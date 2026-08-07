@@ -1,0 +1,68 @@
+# 策略：guarded —— 轻量有护栏
+
+> 适用：M 级 feature、L/XL 级 chore，或被风险修正从 direct 升上来的任务。
+> 预算量级：**~10 万 token**
+
+## 和 full 的区别
+
+省掉两件事：**多方案并行论证**、**L3 场景验收**。
+保留：精简拷问、L1 机械门、L2 异构审查。
+
+**省 L3 意味着**：如果实现 agent 写出"测试全绿但功能是假的"，这条策略抓不到。
+所以 **M 级以上、涉及用户可见行为的功能，宁可升到 full**。
+
+## 阶段
+
+### 1. 精简拷问 [required]
+
+不走 `wf-spec` 的六类全套。只问三件事，一次一个：
+
+1. **失败路径**：输入非法、依赖挂了、超时了，分别怎么办？
+2. **不做什么**：明确的排除项。这条最容易漏，也最容易让 agent 越界。
+3. **判定方式**：这件事做对了，你怎么知道？
+
+产出**不建目录**，直接在对话里形成共识；但**判定方式必须写成一条能跑的命令或一个可观察的现象**。
+写不出来 → 继续问，或升级到 full 走完整的 `acceptance.json`。
+
+### 2. 串行实现 [required]
+
+**你自己写，或派一个 agent 顺序写。不并行。**
+
+M 级任务的协调成本大于并行收益 —— 实测：一次一两百行的改动，
+三个独立方案一致认为拆开协调不划算。
+
+写代码前先看相邻实现。项目有测试设施时优先测试先行。
+
+### 3. L1 机械门 [required]
+
+```
+powershell -ExecutionPolicy Bypass -File <agentflow>/scripts/gate-l1.ps1
+```
+不过 → 修 → 重跑。**最多 3 次**，仍失败则停下来报告。
+
+### 4. L2 异构审查 [required]
+
+1. `git add -A`，冻结目标：
+   ```
+   powershell -ExecutionPolicy Bypass -File <agentflow>/scripts/freeze-target.ps1 -Feature {slug}
+   ```
+   （没有 feature 目录时可省略 `-Feature`，改用 `git diff` 直接交给 reviewer）
+2. 派**一个 fresh reviewer**，异构模型优先（与实现者不同厂商 > 不同模型 > 同构）
+3. 它单轮执行 `wf-review`，只读，返回分级 findings
+4. **reviewer 返回前你不得改动工作树**
+5. blocking > 0 → 修 → **回到 L1 重跑** → 再审（沿用同一 reviewer 的同一 session 做 follow-up）
+
+**最多 2 轮**。超限仍有 blocking → 停下来报告，建议升级到 full 重新设计。
+
+### 5. 收尾
+
+报告：做了什么、改了哪些文件、L1 输出、L2 结论与 findings 处理情况。
+
+有值得长期复用的经验 → 调 `wf-keep`，没有就明说"本次无采纳"。
+
+## 硬门槛
+
+- **不许跳过 L2。**这是 guarded 与 direct 的唯一实质区别。
+- **不许在 blocking 未清零时宣称完成。**
+- **判定方式写不出来就不许开工。**
+- 中途发现涉及权限/安全/持久化数据/并发语义 → **升级到 full**，不要在 guarded 里做完。

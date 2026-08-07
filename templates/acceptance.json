@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "feature": "user-login",
+  "scenarios": [
+    {
+      "id": "AC-1",
+      "name": "错误密码被拒绝且不下发凭据",
+      "given": "存在用户 alice，密码为 correct-pw",
+      "when": "以 alice / wrong-pw 提交登录",
+      "then": "返回 401，body.error 为 invalid_credentials，响应中不含任何 token 字段，且不设置任何 cookie",
+      "judge": "machine",
+      "check": "npm test -- -t AC-1"
+    },
+    {
+      "id": "AC-2",
+      "name": "连续失败 5 次后账号锁定 15 分钟",
+      "given": "用户 bob 已连续 4 次登录失败",
+      "when": "再次用错误密码提交，然后立刻用正确密码提交",
+      "then": "第 5 次返回 401；用正确密码的那次返回 423，body.retry_after_seconds 在 890 到 900 之间",
+      "judge": "machine",
+      "check": "npm test -- -t AC-2"
+    },
+    {
+      "id": "AC-3",
+      "name": "登录失败时用户看到的反馈",
+      "given": "浏览器打开登录页，未登录状态",
+      "when": "输入一个不存在的用户名和任意密码，点击登录按钮",
+      "then": "页面停留在登录页，地址栏不变；表单上方出现红色提示「用户名或密码错误」；密码输入框被清空而用户名保留；浏览器没有存下任何登录凭据",
+      "judge": "agent",
+      "observe": "浏览器打开 /login 页面，直接在表单里操作；凭据情况看 devtools 的 Application > Cookies",
+      "evidence": ["screenshot", "http-trace"]
+    },
+    {
+      "id": "AC-4",
+      "name": "登录成功后跳转回原来想访问的页面",
+      "given": "未登录状态下直接访问 /settings/profile",
+      "when": "被重定向到登录页后，用正确的用户名密码登录",
+      "then": "登录完成后浏览器停在 /settings/profile 而不是首页，页面上能看到当前用户的资料表单已填好",
+      "judge": "agent",
+      "observe": "浏览器地址栏 + /settings/profile 页面上的资料表单本身",
+      "evidence": ["screenshot", "recording"]
+    }
+  ],
+
+  "_schema": {
+    "id": "必填，AC-N 形式，全文唯一",
+    "name": "必填，一句话",
+    "given": "必填，前置状态",
+    "when": "必填，做了什么操作",
+    "then": "必填。judge=agent 时必须写成用户能观察到的现象，禁止出现函数名/文件名/变量名",
+    "judge": "必填，machine | agent",
+    "observe": "judge=agent 时必填。写清楚用产品对外暴露的哪个接口去观察：HTTP 端点 / 页面 / CLI 命令 / 落盘文件。写不出来说明这条黑盒不可验证，应改成 machine 或重新设计 AC",
+    "check": "judge=machine 时必填。⛔ 退出码 0 不等于通过 —— 绝大多数测试运行器在「过滤条件匹配不到任何用例」时也返回 0（node --test --test-name-pattern、jest -t 等），这条 AC 的测试根本没写时 check 照样绿，门被骗过。所以凡是带过滤条件的 check，必须走守卫：powershell -ExecutionPolicy Bypass -File <agentflow>/scripts/check-ac.ps1 -Cmd 「<你的命令>」 -MustMatch 「<输出里必须出现的串，通常是本 AC 的测试名>」。它要求「退出码 0」且「确实匹配到了东西」两个条件同时成立。不带过滤条件的全量命令（如 npm test）可以直接写。",
+    "evidence": "judge=agent 时必填，非空数组。可选值：screenshot | recording | http-trace | log | file-content"
+  },
+  "_rule": "写不出 check 也说不清 evidence 的，不是验收标准，是愿望。回去继续拷问。",
+  "_checkGuard": "跨 feature 的测试名空间是共享的：同一个仓库里 shortlink 的 AC-4 和 test-seam 的 AC-4 会被同一个 pattern 一起匹配到。所以过滤串要带 feature 前缀，例如 --test-name-pattern 「screener AC-1」，测试名也要以它开头。",
+  "_lesson": "实跑教训：有一条 AC 写的是「服务里短链总数没有增加」，judge=agent。但服务按范围声明不做统计接口，这个数字在 HTTP 层根本观测不到 —— 验收 agent 探了 4 个端点全 404，只能如实报告「黑盒未覆盖」。observe 字段就是为了在写 AC 的那一刻就拦住这种情况。"
+}

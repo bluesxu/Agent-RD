@@ -1,0 +1,29 @@
+{
+  "feature": "user-login",
+  "stage": "build",
+  "status": "in_progress",
+  "createdAt": "",
+  "rounds": [],
+  "l1_retries": 0,
+  "breaker": {
+    "max_rounds": 3,
+    "max_l1_retries": 3,
+    "max_task_failures": 2,
+    "tripped": false,
+    "reason": null
+  },
+  "team": {
+    "name": "user-login-team",
+    "mode": "agent-teams",
+    "degraded_reason": null
+  },
+
+  "_roundShape": {
+    "round": 1,
+    "l1": "pass | fail",
+    "l2": { "blocking": 0, "important": 0, "nit": 0 },
+    "l3": { "passed": 0, "failed": 0, "blocked": 0 },
+    "fingerprint": "sha256 of sorted blocking finding titles",
+    "ts": "ISO8601"
+  }
+}

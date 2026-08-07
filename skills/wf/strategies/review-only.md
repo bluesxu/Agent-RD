@@ -1,0 +1,65 @@
+# 策略：review-only —— 只审查，不改代码
+
+> 适用：「审一下这个 diff」「看看这段代码」「发版前扫一遍」。
+> 预算量级：**~5 万 token**
+
+## 三种模式，先确认是哪种
+
+| 模式 | 审什么 | 怎么冻结 |
+|---|---|---|
+| **diff review**（默认） | 当前工作区改动 | `git add -A` 后冻结 staged diff |
+| **design review** | 一份方案文档 | 冻结文档版本 |
+| **audit** | 按范围主动扫描（全仓 / 某目录 / 某维度） | 冻结 commit + 范围标识 |
+
+**audit 模式范围大时，先和用户对齐扫哪里、找什么**，不要闷头全扫。
+
+## 阶段
+
+### 1. 冻结目标 [required]
+
+```
+powershell -ExecutionPolicy Bypass -File <agentflow>/scripts/freeze-target.ps1 -Feature {slug}
+```
+没有 feature 目录时直接用 `git diff` 交给 reviewer，但**审查期间不许改动工作树**。
+
+> 为什么要冻结：审查最常见的失效方式不是审得不好，
+> 而是"审的东西已经不是最终的东西" —— reviewer 还在看，主流程又改了几个文件，
+> findings 全部对不上号。
+
+### 2. 派 reviewer
+
+- **用户直接调用本策略时，你自己就是 reviewer**，不要再派生
+- 需要异构视角时才派一个 fresh agent，执行 `wf-review`
+
+**异构优先**：与代码作者不同厂商 > 不同模型 > 同构。
+只能同构时**在报告里标出来** —— 同模型自审的效力明显更弱，这是已知妥协。
+
+### 3. 审查
+
+按 `wf-review` 的标准。顺序固定：**先对照意图与既有约束，再挑结构。**
+
+**只提会改变正确性或失败代价的点。**能被 lint / formatter 自动处理的不要手工阻塞。
+
+每个发现必须附 `文件:行号` + 问题说明 + **具体失败场景**。
+**说不出失败场景的，降级成 nit 或者不提。**
+
+### 4. 返回 [required]
+
+分级 blocking / important / nit，给出整体结论：**可合 / 有条件可合 / 建议先改再合**。
+
+**blocking 未清零不得给"通过"。**
+
+### 5. 校验目标没漂移
+
+```
+powershell -ExecutionPolicy Bypass -File <agentflow>/scripts/freeze-target.ps1 -Feature {slug} -Verify
+```
+报 `TargetMoved` → 本轮作废，重新冻结再审。
+
+## 硬门槛
+
+- **只读。**不修代码、不 commit。发现的问题只报告，**不当场顺手修** ——
+  想修就走 `direct` 或 `diagnose`，那是另一件事。
+- **审查期间不得改动工作树。**
+- **必须返回终态。**上下文不足时返回 `NeedsContext` + 缺什么 + 已检查范围，不许以空结果结束。
+- 审计发现的问题只**建议**后续用 `wf-feat` / `diagnose` 处理，不当场转入。

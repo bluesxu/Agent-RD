@@ -1,0 +1,27 @@
+{
+  "l1": [
+    { "name": "typecheck", "cmd": "npx tsc --noEmit", "required": true },
+    { "name": "lint",      "cmd": "npm run lint",     "required": true },
+    { "name": "test",      "cmd": "npm test",         "required": true },
+    { "name": "build",     "cmd": "npm run build",    "required": false }
+  ],
+
+  "_note": "按你的项目改。required=false 的项失败只警告不阻塞。顺序即执行顺序，越便宜的放越前面，早失败早退出。",
+  "_presets": {
+    "python": [
+      { "name": "typecheck", "cmd": "mypy .",            "required": true },
+      { "name": "lint",      "cmd": "ruff check .",      "required": true },
+      { "name": "test",      "cmd": "pytest -q",         "required": true }
+    ],
+    "go": [
+      { "name": "vet",   "cmd": "go vet ./...",   "required": true },
+      { "name": "build", "cmd": "go build ./...", "required": true },
+      { "name": "test",  "cmd": "go test ./...",  "required": true }
+    ],
+    "rust": [
+      { "name": "check", "cmd": "cargo check",              "required": true },
+      { "name": "clippy","cmd": "cargo clippy -- -D warnings","required": true },
+      { "name": "test",  "cmd": "cargo test",               "required": true }
+    ]
+  }
+}
