@@ -66,6 +66,18 @@ code written by AI must first pass review and acceptance by another set of AIs b
 ---
 
 <a id="quickstart"></a>
+## 🤖 Copy this and let your Agent install it for you
+
+Don't want to type commands yourself? Paste this **whole line** to any AI coding agent (Claude Code, etc.), and it will read the instructions and install it for you:
+
+```text
+Please install AgentRD for me: https://raw.githubusercontent.com/bluesxu/agentrd/main/docs/install.md
+```
+
+It handles everything, only pausing at checkpoints that touch your environment (actual installation, writing config, which project to initialize into) to wait for your go-ahead.
+
+---
+
 ## 🗣️ You only need to say one sentence
 
 ```
@@ -142,23 +154,6 @@ how awkward it has become.
 
 ---
 
-## 🎯 What it has actually caught
-
-Not theory. Every one of these has a report file to back it up.
-
-| Gate | What it caught |
-|---|---|
-| 🥇 **Gate 1** | **The configured check command itself was broken.** All 8 coding AIs missed it — they ran against specific files, while the config pointed at an entire directory. |
-| 🥈 **Gate 2** | **The anti-tampering feature itself was broken.** The fingerprints recorded by the snapshot feature didn't match the actual files. The security mechanism had been spinning idle all along. |
-| 🥈 **Gate 2** | **A module was broken in 6 places and tests didn't flag a single one.** All green. Just reading the code, you couldn't tell the tests weren't watching anything. |
-| 🥉 **Gate 3** | **9 UX annoyances — one of which was a genuine calculation error.** The ranking algorithm broke on crashing coins, pushing the truly valuable candidates to the back. |
-
-**Every gate caught something only it could catch.**
-
-Had any of these four slipped to production, a one-person company has no second person to save you.
-
----
-
 <a id="guards"></a>
 ## 🛡️ What it mechanically blocks
 
@@ -193,6 +188,10 @@ In a company of one, **the system must be written as scripts** — write it as r
 ## 🚀 Installed in three minutes
 
 ```bash
+# Clone to a fixed location (you'll come back here to git pull for upgrades)
+git clone https://github.com/bluesxu/agentrd.git ~/.agentrd/repo
+cd ~/.agentrd/repo
+
 # See what it plans to do first — this step changes nothing
 node install.js
 
@@ -201,10 +200,14 @@ node install.js -Apply -EnableAgentTeams
 
 # Initialize inside your project directory
 cd /your/project
-node /path/to/agentrd/scripts/init-rd.js
+node ~/.agentrd/repo/scripts/init-rd.js
 ```
 
 Restart Claude Code after installing, then type `/rd` to begin.
+
+> The repo can live anywhere, but it must live in a **fixed** location: the init script needs its
+> absolute path, and upgrades happen there too. If you have no preference, use `~/.agentrd/repo`
+> (`%USERPROFILE%\.agentrd\repo` on Windows).
 
 **Runs on Windows / macOS / Linux — no tmux, no WSL, no extra CLI tools to install.** 💻
 The only runtime is Node.js — which you already have if Claude Code runs, so there's effectively nothing extra to install.
@@ -310,8 +313,9 @@ Said up front, to save you time:
 ```
 AgentRD/
 ├── README.md                  This file in Chinese (简体中文)
-├── docs/                      Multi-language READMEs
-│   └── README_en.md           English
+├── docs/
+│   ├── README_en.md           English README
+│   └── install.md             One-line install instructions for an Agent (the command in the README points here)
 ├── install.js                Install the workflow into Claude Code (Node, cross-platform)
 ├── skills/                    The seven workflow files
 │   ├── rd/                    Entry point; sizes the task and picks a route
