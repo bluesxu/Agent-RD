@@ -6,9 +6,7 @@
 
 **全自动化编程** · 从需求到交付一条龙 · 三道自动审核关卡 · 十三道机械拦截
 
-搜索关键词：Claude Code、全自动化编程、AI 自动审代码、一句话开发、AI 开发流程、
-多 agent 协作、自动验收、代码审查自动化、AI code review、multi-agent workflow、
-autonomous coding、acceptance criteria、mutation testing、Claude Code skills、PowerShell。
+
 
 ---
 
@@ -106,20 +104,7 @@ AI 为了让测试通过，会加假数据、加兜底分支、把断言改松�
 
 **每一道都抓到了只有它能抓到的东西。**
 
-### 实测
 
-**币安 4 小时均线选币命令行工具**，7 条验收标准，TypeScript：
-
-| 项目 | 数字 |
-|---|---|
-| 验收标准 | 7 条（机器判 5 条，AI 判 2 条） |
-| 第一道检查 | 2 轮，测试从 29 个涨到 35 个 |
-| 第二道检查 | 第一轮 3 个必须改的问题 → 第二轮清零 |
-| 第三道检查 | 6 条通过 |
-| 沉淀经验 | 3 条 |
-| 真实运行 | 扫 530 个币，8 秒跑完 |
-
----
 
 ## 它到底硬拦住了什么
 
@@ -320,21 +305,10 @@ Get-ChildItem .\scripts -Filter *.ps1 | ForEach-Object {
 
 ---
 
-## 这套东西是怎么来的
 
-不是从零想的，是把几个已经被验证过的做法拼起来的。理由是：
-只有"怎么调度 AI"这一层还在快速变，另外三层的做法已经稳定了——
-不同的人独立琢磨，最后得出的结论几乎一样。
-
-| 部分 | 来源 | 借鉴了什么 |
-|---|---|---|
-| 调度 | Claude Code 的 Agent Teams | 每个 AI 独立上下文，按文件分工避免冲突 |
-| 验收 | Spexcode 的验收子系统 | 让 AI 像用户一样按自然语言场景操作，并交回证据 |
-| 审查 | CodeStable、CCG | 换个模型审、存快照防篡改、审的人不能再派人、超轮次就停 |
-| 记忆 | CodeStable 的经验记录 | 只记能长期复用的，经验条目有状态变化 |
-| 纪律 | Codex 的子任务实践 | 派出去就等着别插手、任务要自带完整信息 |
-
----
+搜索关键词：Claude Code、全自动化编程、AI 自动审代码、一句话开发、AI 开发流程、
+多 agent 协作、自动验收、代码审查自动化、AI code review、multi-agent workflow、
+autonomous coding、acceptance criteria、mutation testing、Claude Code skills、PowerShell。
 
 ## 许可证
 
