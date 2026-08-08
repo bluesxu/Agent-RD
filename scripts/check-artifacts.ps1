@@ -10,7 +10,7 @@
      却没有任何东西处理「编排者自己的会话被切断」。
 
   2. **要求写在那儿，但没人检查有没有照做。**
-     `wf-plan` 要求写 run.json、`wf-build` 要求每轮追加、`wf-review` 要求写报告正文 ——
+     `rd-plan` 要求写 run.json、`rd-build` 要求每轮追加、`rd-review` 要求写报告正文 ——
      三处都是明文，实跑里三处都落空了，而且直到收尾复盘才被发现。
 
   所以这个脚本不加任何新要求，只做一件事：
@@ -20,7 +20,7 @@
   项目根目录。默认当前目录。
 
 .PARAMETER Feature
-  feature slug。省略时若 .workflow/features/ 下只有一个就自动选中。
+  feature slug。省略时若 .rd/features/ 下只有一个就自动选中。
 
 .PARAMETER Json
   输出 JSON，供程序消费。
@@ -39,7 +39,7 @@
     1  有产物缺失
     2  **上一次运行被中断在半路**（run.json 的 inflight 非空）—— 唯一无歧义的硬阻塞信号
     3  产物齐全但有孤儿证据
-    4  用不了（找不到 .workflow / feature 不明确 / feature 目录不存在）
+    4  用不了（找不到 .rd / feature 不明确 / feature 目录不存在）
 
   **2 只能表示 inflight，不许复用。**寄生在 `validate-plan` 与 `gate-l1` 开头的前置检查
   正是靠它做硬拦；一旦 2 还兼表「环境问题」，那两处就会把「路径写错」误当成「上次被中断」，
@@ -60,14 +60,14 @@ function AsList($x) {
     return @($x | Where-Object { $null -ne $_ })
 }
 
-$wf = Join-Path $Root '.workflow'
-if (-not (Test-Path $wf)) {
-    Write-Host "找不到 $wf —— 这个目录不是 agentflow 项目，或者还没跑 init-workflow。" -ForegroundColor Red
+$rd = Join-Path $Root '.rd'
+if (-not (Test-Path $rd)) {
+    Write-Host "找不到 $rd —— 这个目录不是 AgentRD 项目，或者还没跑 init-rd。" -ForegroundColor Red
     exit 4
 }
 
 # ---- 定位 feature ----
-$featRoot = Join-Path $wf 'features'
+$featRoot = Join-Path $rd 'features'
 if (-not $Feature) {
     $dirs = AsList (Get-ChildItem -Path $featRoot -Directory -ErrorAction SilentlyContinue)
     if ($dirs.Count -eq 1) {
@@ -120,7 +120,7 @@ if (Test-Path $runPath) {
 }
 
 # ---- lessons ----
-$lessonsDir = Join-Path $wf 'lessons'
+$lessonsDir = Join-Path $rd 'lessons'
 $lessons = AsList (Get-ChildItem -Path $lessonsDir -Filter '*.md' -File -ErrorAction SilentlyContinue)
 
 # ---- 阶段定义：每个阶段「完成」的判据 ----
@@ -129,7 +129,7 @@ $stages = @()
 $stages += [pscustomobject]@{
     name = 'dispatch'; label = '派发决策'
     missing = @(
-        $(if (-not (Has 'dispatch.md')) { 'dispatch.md  ← wf 要求 ≥M 复杂度落一份派发决策记录（六行）' })
+        $(if (-not (Has 'dispatch.md')) { 'dispatch.md  ← rd 要求 ≥M 复杂度落一份派发决策记录（六行）' })
     ) | Where-Object { $_ }
 }
 
@@ -146,8 +146,8 @@ $stages += [pscustomobject]@{
     missing = @(
         $(if (-not (Has 'design.md'))  { 'design.md' })
         $(if (-not (Has 'tasks.json')) { 'tasks.json' })
-        $(if (-not (HasRoot '.workflow/gates.json')) { '.workflow/gates.json' })
-        $(if (-not (Test-Path $runPath)) { 'run.json  ← wf-plan:101 明文要求「通过后写 run.json」' })
+        $(if (-not (HasRoot '.rd/gates.json')) { '.rd/gates.json' })
+        $(if (-not (Test-Path $runPath)) { 'run.json  ← rd-plan:101 明文要求「通过后写 run.json」' })
     ) | Where-Object { $_ }
 }
 
@@ -165,7 +165,7 @@ if ($l2.Count -eq 0 -and $l2d.Count -eq 0) {
 }
 foreach ($n in $l2d) {
     if ($l2 -notcontains $n) {
-        $l2Missing += "l2-round$n.md  ← .diff 在但报告正文不在。wf-review:91 明文要求写正文"
+        $l2Missing += "l2-round$n.md  ← .diff 在但报告正文不在。rd-review:91 明文要求写正文"
     }
 }
 $stages += [pscustomobject]@{ name='review'; label='L2 异构审查'; missing=$l2Missing }
@@ -182,7 +182,7 @@ $keepMissing = @()
 $keepRecorded = $false
 if ($null -ne $run -and $null -ne $run.PSObject.Properties['keep']) { $keepRecorded = $true }
 if ($lessons.Count -eq 0 -and -not $keepRecorded) {
-    $keepMissing += 'lessons/*.md 或 run.json 里的 keep 记录  ← wf-keep 要求「无采纳也要显式报告」'
+    $keepMissing += 'lessons/*.md 或 run.json 里的 keep 记录  ← rd-keep 要求「无采纳也要显式报告」'
 }
 $stages += [pscustomobject]@{ name='keep'; label='经验沉淀'; missing=$keepMissing }
 
@@ -222,11 +222,11 @@ if ($null -ne $run -and $null -ne $run.PSObject.Properties['inflight'] -and $nul
 #
 # ⚠️ 这里不禁止改框架 —— 禁止是错的，改框架经常是必要的。
 # 它只把「规则被改过」从看不见变成有记录，并且要求写一句为什么。
-function Get-FrameworkFingerprint([string]$AgentflowRoot) {
+function Get-FrameworkFingerprint([string]$AgentRDRoot) {
     $subDirs = @('skills', 'scripts', 'templates')
     $files = @()
     foreach ($d in $subDirs) {
-        $full = Join-Path $AgentflowRoot $d
+        $full = Join-Path $AgentRDRoot $d
         if (-not (Test-Path $full)) { continue }
         $files += @(Get-ChildItem -Path $full -Recurse -File -ErrorAction SilentlyContinue)
     }
@@ -237,7 +237,7 @@ function Get-FrameworkFingerprint([string]$AgentflowRoot) {
     try {
         foreach ($f in $sorted) {
             # 路径也进 hash：只改文件名（比如把一条规则挪到别处）同样算漂移
-            $rel = $f.FullName.Substring($AgentflowRoot.Length).Replace('\', '/').TrimStart('/')
+            $rel = $f.FullName.Substring($AgentRDRoot.Length).Replace('\', '/').TrimStart('/')
             $nb = [Text.Encoding]::UTF8.GetBytes($rel + "`n")
             $ms.Write($nb, 0, $nb.Length)
             $cb = [IO.File]::ReadAllBytes($f.FullName)
@@ -347,7 +347,7 @@ if ($null -ne $run) {
     $onDisk = @(($l1 + $l2 + $l3) | Sort-Object -Unique)
     foreach ($n in $onDisk) {
         if ($recorded -notcontains $n) {
-            $roundGaps += "round $n 有落盘产物，但 run.json 的 rounds 里没有这一条（wf-build:245 要求每轮结束追加）"
+            $roundGaps += "round $n 有落盘产物，但 run.json 的 rounds 里没有这一条（rd-build:245 要求每轮结束追加）"
         }
     }
 
@@ -550,7 +550,7 @@ Write-Host ""
 if ($roundGaps.Count -gt 0) {
     Write-Host "  ⚠ run.json 与磁盘产物对不上（$($roundGaps.Count) 处）：" -ForegroundColor Yellow
     foreach ($g in $roundGaps) { Write-Host "      · $g" -ForegroundColor Yellow }
-    Write-Host "    `wf-build:245` 要求每轮结束追加一行到 rounds。对不上说明某一轮结束时没人动手。" -ForegroundColor DarkGray
+    Write-Host "    `rd-build:245` 要求每轮结束追加一行到 rounds。对不上说明某一轮结束时没人动手。" -ForegroundColor DarkGray
     Write-Host "    补回去 —— 不补的话，熔断计数、指纹比对全都建立在一份不完整的记录上。" -ForegroundColor DarkGray
 } else {
     Write-Host "  ✓ run.json 的 rounds 与磁盘产物一致" -ForegroundColor Green

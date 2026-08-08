@@ -1,10 +1,10 @@
 ---
-name: wf
-description: agentflow 入口与分诊。触发：用户调用 wf、提出任何开发诉求、想开始一个新需求、或问该用哪个流程。先评估任务类型与复杂度，再选一条相称的策略执行——不是所有任务都值得走全套。
+name: rd
+description: AgentRD 入口与分诊。触发：用户调用 rd、提出任何开发诉求、想开始一个新需求、或问该用哪个流程。先评估任务类型与复杂度，再选一条相称的策略执行——不是所有任务都值得走全套。
 argument-hint: "[诉求]"
 ---
 
-# wf
+# rd
 
 **你是分诊器。**先判断这件事有多大、多险，再选一条相称的策略。
 
@@ -32,7 +32,7 @@ argument-hint: "[诉求]"
 1. `git status` —— 当前改动状态
 2. 读项目配置文件（`package.json` / `go.mod` / `pyproject.toml` / `Cargo.toml`，取存在的第一个）
 3. 看一眼目录结构与规模
-4. 读 `.workflow/attention.md`（存在的话）
+4. 读 `.rd/attention.md`（存在的话）
 
 ### 1.2 任务类型
 
@@ -121,13 +121,13 @@ argument-hint: "[诉求]"
 
 ### 创建 feature 目录
 
-复杂度 **≥ M** 且策略不是 `review-only` / `research-only` 时，先建 `.workflow/features/{slug}/`。
+复杂度 **≥ M** 且策略不是 `review-only` / `research-only` 时，先建 `.rd/features/{slug}/`。
 
 **复杂度 S → 不建目录，保持轻量。**普通任务零产物，证据是 diff 和测试输出。
 
 ### 落一份派发决策记录（≥M 必做）
 
-建完目录后，写 `.workflow/features/{slug}/dispatch.md`，**六行，不要展开**：
+建完目录后，写 `.rd/features/{slug}/dispatch.md`，**六行，不要展开**：
 
 ```markdown
 # 派发决策
@@ -155,7 +155,7 @@ argument-hint: "[诉求]"
 读对应的策略文件：
 
 ```
-Read("<agentflow>/skills/wf/strategies/{strategy}.md")
+Read("<agentrd>/skills/rd/strategies/{strategy}.md")
 ```
 
 严格照它执行。策略文件里标了 `[required]` 的阶段不可跳过。
@@ -207,7 +207,7 @@ Read("<agentflow>/skills/wf/strategies/{strategy}.md")
 ### 唯一的例外
 
 **外部原因导致的中断**（配额耗尽、API 报错、进程被杀）不算流程外动作 ——
-那不是你的决定。按 `wf-build` 的第三种失败模式处理，记进 `run.json`，不计轮次。
+那不是你的决定。按 `rd-build` 的第三种失败模式处理，记进 `run.json`，不计轮次。
 
 ### 落盘
 
@@ -233,12 +233,12 @@ Read("<agentflow>/skills/wf/strategies/{strategy}.md")
 四层流水线，人只在**业务梳理**这一步出现：
 
 ```
-wf-spec    业务梳理 ── 产出 spec.md + acceptance.json
+rd-spec    业务梳理 ── 产出 spec.md + acceptance.json
            硬门槛：每条验收标准必须机器可判定
-wf-plan    方案与选型 ── 产出 design.md + 文件级 DAG
-wf-build   实现 + 三层自动审核闭环（无人）
+rd-plan    方案与选型 ── 产出 design.md + 文件级 DAG
+rd-build   实现 + 三层自动审核闭环（无人）
            L1 机械门 → L2 异构审查 → L3 场景验收
-wf-keep    只沉淀能长期复用的经验
+rd-keep    只沉淀能长期复用的经验
 ```
 
 **三层门各自能抓到别人抓不到的东西**（实测）：

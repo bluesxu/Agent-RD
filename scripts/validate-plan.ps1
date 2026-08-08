@@ -21,7 +21,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$dir      = Join-Path $Root ".workflow\features\$Feature"
+$dir      = Join-Path $Root ".rd\features\$Feature"
 $acPath   = Join-Path $dir 'acceptance.json'
 $taskPath = Join-Path $dir 'tasks.json'
 $specPath = Join-Path $dir 'spec.md'
@@ -195,7 +195,7 @@ if ($null -ne $ac) {
                     if ($s.check.IndexOf($ff, [StringComparison]::OrdinalIgnoreCase) -ge 0) { $usesFilter = $true }
                 }
                 if ($usesFilter -and $s.check -notmatch 'check-ac\.ps1') {
-                    Add-Err "$id 的 check 带了用例过滤条件，但没走 check-ac.ps1 守卫。过滤匹配不到任何用例时运行器也返回 0 —— 这条 AC 的测试没写时 check 照样绿。改成: powershell -ExecutionPolicy Bypass -File .workflow/bin/check-ac.ps1 -Cmd `"<原命令>`" -MustMatch `"<本 AC 的测试名>`""
+                    Add-Err "$id 的 check 带了用例过滤条件，但没走 check-ac.ps1 守卫。过滤匹配不到任何用例时运行器也返回 0 —— 这条 AC 的测试没写时 check 照样绿。改成: powershell -ExecutionPolicy Bypass -File .rd/bin/check-ac.ps1 -Cmd `"<原命令>`" -MustMatch `"<本 AC 的测试名>`""
                 }
 
                 # 【L3 实测发现】check 里禁止出现嵌套转义引号 \" —— 它不可移植。
@@ -252,7 +252,7 @@ if ($null -ne $ac) {
             }
             # 防 overfit: agent 场景的 then 不该出现实现细节
             if ($s.then -match '[A-Za-z_][A-Za-z0-9_]*\.(ts|tsx|js|jsx|py|go|rs|java|cs)\b') {
-                Add-Err "$id judge=agent，但 then 里出现了文件名。用用户能观察到的现象来写，否则 wf-eval 会 overfit 到实现上。"
+                Add-Err "$id judge=agent，但 then 里出现了文件名。用用户能观察到的现象来写，否则 rd-eval 会 overfit 到实现上。"
             }
             if ($s.then -match '\b(function|返回值|调用|handler|Handler)\b') {
                 Add-Warn "$id 的 then 疑似含实现细节，检查一下是不是能改写成用户可观察的描述"
@@ -398,12 +398,12 @@ if ($Stage -eq 'plan') {
         }
 
         # 【#3 / #5】gates.json 的语法门是否覆盖了 tasks.json 声明的全部源文件。
-        # 实跑教训：gates.json 在 init-workflow 时生成，那时还不知道 wf-plan 会产出哪些文件。
+        # 实跑教训：gates.json 在 init-rd 时生成，那时还不知道 rd-plan 会产出哪些文件。
         # 结果语法门只写了 `node --check src/server.js`，其余 6 个模块的语法错误抓不到。
         # tasks.json 一旦存在，这个覆盖关系就变成可机械校验的了。
-        $gatesPath = Join-Path $Root '.workflow\gates.json'
+        $gatesPath = Join-Path $Root '.rd\gates.json'
         if (-not (Test-Path $gatesPath)) {
-            Add-Err "缺少 .workflow/gates.json —— L1 机械门没有配置，无人化流程失去第一道闸"
+            Add-Err "缺少 .rd/gates.json —— L1 机械门没有配置，无人化流程失去第一道闸"
         } else {
             try {
                 $gates = Get-Content $gatesPath -Raw -Encoding UTF8 | ConvertFrom-Json

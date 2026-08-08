@@ -64,7 +64,7 @@
 ## 未决风险
 ```
 
-放哪里由用户定；有 `.workflow/` 就放 `features/{slug}/research.md`。
+放哪里由用户定；有 `.rd/` 就放 `features/{slug}/research.md`。
 
 ## 硬门槛
 

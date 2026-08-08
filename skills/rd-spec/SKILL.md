@@ -1,10 +1,10 @@
 ---
-name: wf-spec
+name: rd-spec
 description: 阶段 0 业务梳理。用连续拷问逼出隐含业务约束，产出 spec.md 和机器可判定的 acceptance.json。这是整条流水线唯一的人工环节，后面所有自动 gate 都烧它的产出。
 argument-hint: "[需求描述]"
 ---
 
-# wf-spec
+# rd-spec
 
 把一句话需求变成两份东西：人读的 `spec.md`，和机器烧的 `acceptance.json`。
 
@@ -13,9 +13,9 @@ argument-hint: "[需求描述]"
 
 ## 开工
 
-1. 读 `.workflow/attention.md`（存在的话）。
-2. 按需求关键词检索 `.workflow/lessons/`，命中要报告来源路径。
-3. 生成 slug（kebab-case，从需求核心词来），创建 `.workflow/features/{slug}/`。
+1. 读 `.rd/attention.md`（存在的话）。
+2. 按需求关键词检索 `.rd/lessons/`，命中要报告来源路径。
+3. 生成 slug（kebab-case，从需求核心词来），创建 `.rd/features/{slug}/`。
 
 ## 第一步：拷问
 
@@ -86,7 +86,7 @@ L3 验收者除了逐条验收，还要写一节**场外观察** ——
 它们直接告诉验收者「作者怕哪里错、打算怎么抓」。
 验收者照着清单找到了，**什么都不证明**。
 
-> 同一条道理在 `wf-eval` 里也写着：「⛔ 这里不举例。列出往期 evaluator 找到过什么，
+> 同一条道理在 `rd-eval` 里也写着：「⛔ 这里不举例。列出往期 evaluator 找到过什么，
 > 会让下一个带着答案去找。」——那是防框架泄漏，这里是防需求文档泄漏，是同一件事。
 
 **「关键约束」为什么留在 spec.md**：它是**规格**，不是提示。
@@ -145,7 +145,7 @@ L3 验收者除了逐条验收，还要写一节**场外观察** ——
 > 它只证明你会写命令。而说清「给定这组输入，输出必须等于这组值，误差 < 1e-9」
 > 逼你把**判据本身**想明白，那才是这一步真正要做的事。
 
-**具体命令是阶段 1 的产物**：技术选定之后，`wf-plan` 会把每条 `checkIntent`
+**具体命令是阶段 1 的产物**：技术选定之后，`rd-plan` 会把每条 `checkIntent`
 具化成选定栈的 `check` 命令。你在这里写下的不是占位符，是**它必须满足的规格**。
 
 ### 什么该 machine，什么该 agent
@@ -161,7 +161,7 @@ L3 验收者除了逐条验收，还要写一节**场外观察** ——
 
 原因：agent 极容易 overfit 到固定测试代码上 —— 各种 mock 和 fallback，
 功能装模作样就通过了。自然语言描述的是目标本身，更难被曲解。
-`wf-eval` 拿到这条场景时不会看到你的实现，它只能真的去跑一遍。
+`rd-eval` 拿到这条场景时不会看到你的实现，它只能真的去跑一遍。
 
 反例（不要这样写）：
 ```
@@ -176,7 +176,7 @@ L3 验收者除了逐条验收，还要写一节**场外观察** ——
 ## 第四步：校验并收尾
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File <agentflow>/scripts/validate-plan.ps1 -Feature {slug} -Stage spec
+powershell -ExecutionPolicy Bypass -File <agentrd>/scripts/validate-plan.ps1 -Feature {slug} -Stage spec
 ```
 
 校验不过就按报错修，**不要手动跳过**。
@@ -184,10 +184,10 @@ powershell -ExecutionPolicy Bypass -File <agentflow>/scripts/validate-plan.ps1 -
 通过后输出：
 
 ```
-✅ 阶段 0 完成 — .workflow/features/{slug}/
+✅ 阶段 0 完成 — .rd/features/{slug}/
    spec.md          {N} 项约束，{M} 项排除
    acceptance.json  {X} 条场景（machine {a} / agent {b}）
-   📍 Next: 调用 wf-plan 进入技术选型
+   📍 Next: 调用 rd-plan 进入技术选型
 ```
 
 ## 硬门槛
@@ -195,4 +195,4 @@ powershell -ExecutionPolicy Bypass -File <agentflow>/scripts/validate-plan.ps1 -
 - **不许替用户做产品决策**。真实取舍必须让用户拍板，不因对话历史推断同意。
 - **不许写出无法判定的验收标准**。写不出判定方式就继续问，这是本 skill 的唯一失败模式。
 - **`spec.md` 的"不做"一节不许为空**。没有边界的需求，agent 一定会越界。
-- 不创建 `.workflow/attention.md` 或 `lessons/` 条目 —— 那是 `wf-keep` 的事。
+- 不创建 `.rd/attention.md` 或 `lessons/` 条目 —— 那是 `rd-keep` 的事。

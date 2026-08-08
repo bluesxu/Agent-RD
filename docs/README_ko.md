@@ -1,4 +1,4 @@
-<h1 align="center">🏭 agentflow</h1>
+<h1 align="center">🏢 AgentRD</h1>
 
 <p align="center">
   <strong>한 사람, 하나의 완전한 연구개발 부서</strong>
@@ -13,7 +13,7 @@
   <a href="../LICENSE"><img src="https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue.svg?style=for-the-badge" alt="License"></a>
   <img src="https://img.shields.io/badge/PowerShell-5.1%2B-5391FE.svg?style=for-the-badge&logo=powershell&logoColor=white" alt="PowerShell 5.1+">
   <img src="https://img.shields.io/badge/Platform-Windows-0078D6.svg?style=for-the-badge&logo=windows&logoColor=white" alt="Windows">
-  <a href="https://github.com/bluesxu/agentflow/stargazers"><img src="https://img.shields.io/github/stars/bluesxu/agentflow?style=for-the-badge" alt="GitHub Stars"></a>
+  <a href="https://github.com/bluesxu/agentrd/stargazers"><img src="https://img.shields.io/github/stars/bluesxu/agentrd?style=for-the-badge" alt="GitHub Stars"></a>
 </p>
 
 <p align="center">
@@ -60,7 +60,7 @@ AI가 다 됐다고 하면, 무슨 근거로 아직 안 됐다고 말하겠는�
 발생한 문제는 자동 리뷰조차 발견하지 못한다. 리뷰하는 쪽이 받는 코드는 덮어쓴 뒤의 코드라서
 보기에는 완전히 정상이기 때문이다.
 
-**agentflow는 바로 이 세 공석을 메우기 위해 왔다.**
+**AgentRD는 바로 이 세 공석을 메우기 위해 왔다.**
 
 코드 짜는 AI를 하나 더 주는 것이 아니다. 당신에게 **제도** 를 준다:
 AI가 짠 코드는 반드시 다른 AI들의 리뷰와 검수를 통과한 뒤에야 당신의 손에 닿는다.
@@ -71,7 +71,7 @@ AI가 짠 코드는 반드시 다른 AI들의 리뷰와 검수를 통과한 뒤�
 ## 🗣️ 당신은 한 마디만 하면 된다
 
 ```
-/wf 잠금 정책을 지원하는 로그인 기능을 만들고 싶어요
+/rd 잠금 정책을 지원하는 로그인 기능을 만들고 싶어요
 ```
 
 **그다음부터 당신의 일은 없다.**
@@ -96,7 +96,7 @@ AI가 짠 코드는 반드시 다른 AI들의 리뷰와 검수를 통과한 뒤�
 ## 👥 당신의 인력 편성표
 
 1인 회사는 「한 사람이 모든 일을 다 하는 것」이 아니라, **한 사람이 모든 자리를 관리하는 것** 이다.
-agentflow가 연구개발 부서의 편제를 채워 준다:
+AgentRD가 연구개발 부서의 편제를 채워 준다:
 
 | 자리 | 하는 이 | 당신이 할 일 |
 |---|---|---|
@@ -201,10 +201,10 @@ powershell -ExecutionPolicy Bypass -File install.ps1 -Apply -EnableAgentTeams
 
 # 프로젝트 디렉터리에서 초기화
 cd D:\your\project
-powershell -ExecutionPolicy Bypass -File <agentflow>\scripts\init-workflow.ps1
+powershell -ExecutionPolicy Bypass -File <agentrd>\scripts\init-rd.ps1
 ```
 
-설치 후 Claude Code를 재시작하고 `/wf` 를 입력해 시작.
+설치 후 Claude Code를 재시작하고 `/rd` 를 입력해 시작.
 
 **Windows에서 동작. tmux도 WSL도, 추가 CLI 도구도 필요 없다.** 💻
 
@@ -307,7 +307,7 @@ powershell -ExecutionPolicy Bypass -File <agentflow>\scripts\init-workflow.ps1
 ## 📁 디렉터리 구조
 
 ```
-agentflow/
+AgentRD/
 ├── README.md                  본 README（简体中文）
 ├── docs/                      다국어 README
 │   ├── README_en.md           English
@@ -315,17 +315,17 @@ agentflow/
 │   └── README_ko.md           한국어
 ├── install.ps1                워크플로우를 Claude Code에 설치
 ├── skills/                    7개의 워크플로우 파일
-│   ├── wf/                    진입점, 태스크 크기를 판단해 루트 선택
-│   ├── wf-spec/               1단계: 요구사항 히어링
-│   ├── wf-plan/               2단계: 설계와 태스크 분할
-│   ├── wf-build/              3단계: 코드 작성 + 3단계 검사
-│   ├── wf-review/             게이트 2: AI가 코드 리뷰
-│   ├── wf-eval/               게이트 3: AI가 사용자로서 검수
-│   └── wf-keep/               4단계: 교훈 기록
+│   ├── rd/                    진입점, 태스크 크기를 판단해 루트 선택
+│   ├── rd-spec/               1단계: 요구사항 히어링
+│   ├── rd-plan/               2단계: 설계와 태스크 분할
+│   ├── rd-build/              3단계: 코드 작성 + 3단계 검사
+│   ├── rd-review/             게이트 2: AI가 코드 리뷰
+│   ├── rd-eval/               게이트 3: AI가 사용자로서 검수
+│   └── rd-keep/               4단계: 교훈 기록
 ├── templates/                 각종 파일의 템플릿
 ├── examples/lessons/          합격한 교훈 엔트리의 작성법
 └── scripts/
-    ├── init-workflow.ps1      프로젝트 내부에서 초기화
+    ├── init-rd.ps1      프로젝트 내부에서 초기화
     ├── gate-l1.ps1            게이트 1 검사
     ├── check-ac.ps1           「성공했지만 아무것도 테스트하지 않음」 방지
     ├── check-artifacts.ps1    진행, 중단, 규칙 변조 검사
@@ -336,7 +336,7 @@ agentflow/
 프로젝트 안에 생성되는 것들:
 
 ```
-.workflow/
+.rd/
 ├── attention.md              착수할 때마다 가장 먼저 읽는다. 30줄 이내로 억제
 ├── gates.json                게이트 1이 실행할 명령
 ├── bin/check-ac.ps1          가드 스크립트, 프로젝트와 함께 이동
@@ -386,15 +386,15 @@ Get-ChildItem .\scripts -Filter *.ps1 | ForEach-Object {
 
 ## 💡 한 문장으로 요약
 
-**다른 도구는 AI 사원을 한 명 준다. agentflow는 AI 사원을 관리할 수 있는 회사 제도를 준다.**
+**다른 도구는 AI 사원을 한 명 준다. AgentRD는 AI 사원을 관리할 수 있는 회사 제도를 준다.**
 
 ```
-/wf ○○을 만들고 싶어요……
+/rd ○○을 만들고 싶어요……
 ```
 
 ---
 
-<sub>검색 키워드: 1인 회사, One Person Company, OPC, 독립 개발자, 슈퍼 개인, solopreneur,
+<sub>검색 키워드: AgentRD, AI 개발부, 1인 회사, One Person Company, OPC, 독립 개발자, 슈퍼 개인, solopreneur,
 indie hacker, Claude Code, 완전 자동화 프로그래밍, AI 자동 코드 리뷰, 한 마디 개발, AI 개발 플로우,
 멀티 에이전트 협업, 자동 검수, 코드 리뷰 자동화, AI code review, multi-agent workflow,
 autonomous coding, acceptance criteria, mutation testing, Claude Code skills, PowerShell.</sub>
@@ -407,4 +407,4 @@ autonomous coding, acceptance criteria, mutation testing, Claude Code skills, Po
 
 개인 사용, 학습, 연구, 비영리 단체의 사용은 무료다. **모든 상업적 사용에는 사전 서면 허가가 필요하다** ——
 상업 제품에 포함하거나, 유료 서비스로 제공하거나, 회사 내부에서 사용하는 것을 포함한다.
-상업 라이선스가 필요하면 GitHub에서 [issue](https://github.com/bluesxu/agentflow/issues) 를 열어 연락해 주세요.
+상업 라이선스가 필요하면 GitHub에서 [issue](https://github.com/bluesxu/agentrd/issues) 를 열어 연락해 주세요.

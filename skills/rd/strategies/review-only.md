@@ -22,7 +22,7 @@
 ### 1. 冻结目标 [required]
 
 ```
-powershell -ExecutionPolicy Bypass -File <agentflow>/scripts/freeze-target.ps1 -Feature {slug}
+powershell -ExecutionPolicy Bypass -File <agentrd>/scripts/freeze-target.ps1 -Feature {slug}
 ```
 没有 feature 目录时直接用 `git diff` 交给 reviewer，但**审查期间不许改动工作树**。
 
@@ -33,14 +33,14 @@ powershell -ExecutionPolicy Bypass -File <agentflow>/scripts/freeze-target.ps1 -
 ### 2. 派 reviewer
 
 - **用户直接调用本策略时，你自己就是 reviewer**，不要再派生
-- 需要异构视角时才派一个 fresh agent，执行 `wf-review`
+- 需要异构视角时才派一个 fresh agent，执行 `rd-review`
 
 **异构优先**：与代码作者不同厂商 > 不同模型 > 同构。
 只能同构时**在报告里标出来** —— 同模型自审的效力明显更弱，这是已知妥协。
 
 ### 3. 审查
 
-按 `wf-review` 的标准。顺序固定：**先对照意图与既有约束，再挑结构。**
+按 `rd-review` 的标准。顺序固定：**先对照意图与既有约束，再挑结构。**
 
 **只提会改变正确性或失败代价的点。**能被 lint / formatter 自动处理的不要手工阻塞。
 
@@ -56,7 +56,7 @@ powershell -ExecutionPolicy Bypass -File <agentflow>/scripts/freeze-target.ps1 -
 ### 5. 校验目标没漂移
 
 ```
-powershell -ExecutionPolicy Bypass -File <agentflow>/scripts/freeze-target.ps1 -Feature {slug} -Verify
+powershell -ExecutionPolicy Bypass -File <agentrd>/scripts/freeze-target.ps1 -Feature {slug} -Verify
 ```
 报 `TargetMoved` → 本轮作废，重新冻结再审。
 
@@ -66,4 +66,4 @@ powershell -ExecutionPolicy Bypass -File <agentflow>/scripts/freeze-target.ps1 -
   想修就走 `direct` 或 `diagnose`，那是另一件事。
 - **审查期间不得改动工作树。**
 - **必须返回终态。**上下文不足时返回 `NeedsContext` + 缺什么 + 已检查范围，不许以空结果结束。
-- 审计发现的问题只**建议**后续用 `wf-feat` / `diagnose` 处理，不当场转入。
+- 审计发现的问题只**建议**后续用 `rd-feat` / `diagnose` 处理，不当场转入。

@@ -1,4 +1,4 @@
-<h1 align="center">🏭 agentflow</h1>
+<h1 align="center">🏢 AgentRD</h1>
 
 <p align="center">
   <strong>One person, an entire R&D department</strong>
@@ -13,7 +13,7 @@
   <a href="../LICENSE"><img src="https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue.svg?style=for-the-badge" alt="License"></a>
   <img src="https://img.shields.io/badge/PowerShell-5.1%2B-5391FE.svg?style=for-the-badge&logo=powershell&logoColor=white" alt="PowerShell 5.1+">
   <img src="https://img.shields.io/badge/Platform-Windows-0078D6.svg?style=for-the-badge&logo=windows&logoColor=white" alt="Windows">
-  <a href="https://github.com/bluesxu/agentflow/stargazers"><img src="https://img.shields.io/github/stars/bluesxu/agentflow?style=for-the-badge" alt="GitHub Stars"></a>
+  <a href="https://github.com/bluesxu/agentrd/stargazers"><img src="https://img.shields.io/github/stars/bluesxu/agentrd?style=for-the-badge" alt="GitHub Stars"></a>
 </p>
 
 <p align="center">
@@ -60,7 +60,7 @@ so when AI says it's done, on what grounds do you say it isn't? You're the boss,
 The resulting problem is invisible even to automated review — the reviewer gets the post-overwrite code,
 and it looks perfectly normal.
 
-**agentflow exists to fill these three empty seats.**
+**AgentRD exists to fill these three empty seats.**
 
 It's not yet another AI that writes code for you. It's a **system of governance**:
 code written by AI must first pass review and acceptance by another set of AIs before it ever reaches you.
@@ -71,7 +71,7 @@ code written by AI must first pass review and acceptance by another set of AIs b
 ## 🗣️ You only need to say one sentence
 
 ```
-/wf I want a login feature with lockout policy
+/rd I want a login feature with lockout policy
 ```
 
 **After that, your part is over.**
@@ -96,7 +96,7 @@ From one sentence to running code, you never need to nod once in between.
 ## 👥 Your org chart
 
 A one-person company isn't "one person doing every job" — it's **one person managing every seat**.
-agentflow fills out your R&D department's headcount:
+AgentRD fills out your R&D department's headcount:
 
 | Role | Who does it | What you do |
 |---|---|---|
@@ -203,10 +203,10 @@ powershell -ExecutionPolicy Bypass -File install.ps1 -Apply -EnableAgentTeams
 
 # Initialize inside your project directory
 cd D:\your\project
-powershell -ExecutionPolicy Bypass -File <agentflow>\scripts\init-workflow.ps1
+powershell -ExecutionPolicy Bypass -File <agentrd>\scripts\init-rd.ps1
 ```
 
-Restart Claude Code after installing, then type `/wf` to begin.
+Restart Claude Code after installing, then type `/rd` to begin.
 
 **Runs on Windows — no tmux, no WSL, no extra CLI tools to install.** 💻
 
@@ -309,7 +309,7 @@ Said up front, to save you time:
 ## 📁 Directory structure
 
 ```
-agentflow/
+AgentRD/
 ├── README.md                  This file in Chinese (简体中文)
 ├── docs/                      Multi-language READMEs
 │   ├── README_en.md           English
@@ -317,17 +317,17 @@ agentflow/
 │   └── README_ko.md           한국어
 ├── install.ps1                Install the workflow into Claude Code
 ├── skills/                    The seven workflow files
-│   ├── wf/                    Entry point; sizes the task and picks a route
-│   ├── wf-spec/               Step 1: gather requirements
-│   ├── wf-plan/               Step 2: design and slice tasks
-│   ├── wf-build/              Step 3: write code + three checks
-│   ├── wf-review/             Gate 2: AI reviews code
-│   ├── wf-eval/               Gate 3: AI accepts as a user
-│   └── wf-keep/               Step 4: record lessons
+│   ├── rd/                    Entry point; sizes the task and picks a route
+│   ├── rd-spec/               Step 1: gather requirements
+│   ├── rd-plan/               Step 2: design and slice tasks
+│   ├── rd-build/              Step 3: write code + three checks
+│   ├── rd-review/             Gate 2: AI reviews code
+│   ├── rd-eval/               Gate 3: AI accepts as a user
+│   └── rd-keep/               Step 4: record lessons
 ├── templates/                 Templates for the various files
 ├── examples/lessons/          What a qualified lesson entry looks like
 └── scripts/
-    ├── init-workflow.ps1      Initialize inside a project
+    ├── init-rd.ps1      Initialize inside a project
     ├── gate-l1.ps1            Gate 1 checks
     ├── check-ac.ps1           Prevents "command succeeded but tested nothing"
     ├── check-artifacts.ps1    Checks progress, interruptions, and rule tampering
@@ -338,7 +338,7 @@ agentflow/
 What gets generated inside your project:
 
 ```
-.workflow/
+.rd/
 ├── attention.md              Read first at every kickoff; kept under 30 lines
 ├── gates.json                Which commands gate 1 runs
 ├── bin/check-ac.ps1          Guard script; travels with the project
@@ -388,15 +388,15 @@ Whether the check scripts can run at all directly decides whether this workflow 
 
 ## 💡 In one sentence
 
-**Others give you an AI employee. agentflow gives you a company system that can manage AI employees.**
+**Others give you an AI employee. AgentRD gives you a company system that can manage AI employees.**
 
 ```
-/wf I want to build a ...
+/rd I want to build a ...
 ```
 
 ---
 
-<sub>Keywords: One Person Company, OPC, solopreneur, indie hacker, Claude Code, autonomous coding,
+<sub>Keywords: AgentRD, AI R&D department, One Person Company, OPC, solopreneur, indie hacker, Claude Code, autonomous coding,
 AI code review, multi-agent workflow, fully automated programming, prompt-to-product, AI development pipeline,
 multi-agent collaboration, automated acceptance, code review automation, acceptance criteria,
 mutation testing, Claude Code skills, PowerShell.</sub>
@@ -409,4 +409,4 @@ mutation testing, Claude Code skills, PowerShell.</sub>
 
 Free for personal use, study, research, and nonprofits. **Any commercial use requires prior written permission** —
 including shipping it in a commercial product, offering paid services built on it, or using it inside a company.
-For commercial licensing, open an [issue](https://github.com/bluesxu/agentflow/issues) on GitHub.
+For commercial licensing, open an [issue](https://github.com/bluesxu/agentrd/issues) on GitHub.

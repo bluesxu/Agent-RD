@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-  安装 agentflow 的 7 个 skill 到 ~/.claude/skills/。
+  安装 AgentRD 的 7 个 skill 到 ~/.claude/skills/。
 
 .DESCRIPTION
   默认 dry-run，只打印将要做什么。确认无误后加 -Apply 真正执行。
@@ -32,7 +32,7 @@ $mode = 'DRY-RUN（不会改任何东西）'
 if ($Apply) { $mode = 'APPLY' }
 
 Write-Host ""
-Write-Host "=== agentflow install [$mode] ===" -ForegroundColor Cyan
+Write-Host "=== AgentRD install [$mode] ===" -ForegroundColor Cyan
 Write-Host "    源:   $srcSkills" -ForegroundColor DarkGray
 Write-Host "    目标: $dstSkills" -ForegroundColor DarkGray
 Write-Host ""
@@ -101,8 +101,8 @@ if ($Apply) {
     Write-Host ""
     Write-Host "下一步：" -ForegroundColor Cyan
     Write-Host "  1. cd 到你的项目" -ForegroundColor Gray
-    Write-Host "  2. powershell -ExecutionPolicy Bypass -File `"$here\scripts\init-workflow.ps1`"" -ForegroundColor Gray
-    Write-Host "  3. 重启 Claude Code，调用 /wf" -ForegroundColor Gray
+    Write-Host "  2. powershell -ExecutionPolicy Bypass -File `"$here\scripts\init-rd.ps1`"" -ForegroundColor Gray
+    Write-Host "  3. 重启 Claude Code，调用 /rd" -ForegroundColor Gray
 } else {
     Write-Host "=== 这是 dry-run。确认无误后重跑并加 -Apply ===" -ForegroundColor Yellow
 }

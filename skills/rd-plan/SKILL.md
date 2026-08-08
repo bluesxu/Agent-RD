@@ -1,15 +1,15 @@
 ---
-name: wf-plan
+name: rd-plan
 description: 阶段 1 技术选型与方案设计。派多个异构 agent 并行独立出方案，主 agent 仲裁，产出 design.md 和文件级任务 DAG tasks.json。全自动，不需要人工审批。
 argument-hint: "[feature slug]"
 ---
 
-# wf-plan
+# rd-plan
 
 多 agent 并行论证技术方案，仲裁出一个，然后切成互不冲突的文件级任务 DAG。
 
-**前置**：`.workflow/features/{slug}/spec.md` 和 `acceptance.json` 存在且已通过 spec 阶段校验。
-不存在就先去 `wf-spec`。
+**前置**：`.rd/features/{slug}/spec.md` 和 `acceptance.json` 存在且已通过 spec 阶段校验。
+不存在就先去 `rd-spec`。
 
 ## 第一步：并行论证
 
@@ -47,7 +47,7 @@ argument-hint: "[feature slug]"
   那样这次派发就白费了，你买的是压缩。
 - 方案之间有实质分歧时，**分歧本身要写进 `design.md`**，不要只留胜出的那个。
   三个月后回来看，你需要知道当时为什么没选另一条路。
-- 选型结论要能落到 `.workflow/lessons/` 的候选 —— 但不要现在写，那是 `wf-keep` 的事。
+- 选型结论要能落到 `.rd/lessons/` 的候选 —— 但不要现在写，那是 `rd-keep` 的事。
 
 ## 第三步：写 design.md
 
@@ -108,7 +108,7 @@ checkIntent: 对一组写死的输入跑计算，逐个断言四个周期的输�
 
      ↓ 选定 Node 之后
 
-check:       powershell -ExecutionPolicy Bypass -File .workflow/bin/check-ac.ps1
+check:       powershell -ExecutionPolicy Bypass -File .rd/bin/check-ac.ps1
              -Cmd "node --test --test-name-pattern={slug}\sAC-1"
              -MustMatch "AC-1: 数值精确匹配;;AC-1: 均值初值与首值初值可区分"
 ```
@@ -119,7 +119,7 @@ check:       powershell -ExecutionPolicy Bypass -File .workflow/bin/check-ac.ps1
    改规格来迁就实现，是这套框架最严重的违规之一。
 2. **`checkIntent` 里有几个并列判据，`-MustMatch` 就要有几个锚点**（`;;` 分隔）。
    一个锚点只能回答「有没有用例跑到」，回答不了「每一句是不是都被锁住了」。
-3. **翻译不动的，说明阶段 0 那条判据本身有问题** —— 回头找 `wf-spec` 重写，
+3. **翻译不动的，说明阶段 0 那条判据本身有问题** —— 回头找 `rd-spec` 重写，
    不要在这里把它悄悄弱化。
 
 > **为什么这一步存在**：早期版本在阶段 0 就要求写一条可执行命令，
@@ -129,13 +129,13 @@ check:       powershell -ExecutionPolicy Bypass -File .workflow/bin/check-ac.ps1
 > **别让它变成走过场。**
 
 **同时检查 `gates.json`**：如果它带着 `_provisional: true`，
-说明 `init-workflow` 当时在一个空目录上猜的语言（多半猜成了 node）。
+说明 `init-rd` 当时在一个空目录上猜的语言（多半猜成了 node）。
 按仲裁结果改掉，并删掉那个标记。
 
 ## 第六步：校验
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File <agentflow>/scripts/validate-plan.ps1 -Feature {slug} -Stage plan
+powershell -ExecutionPolicy Bypass -File <agentrd>/scripts/validate-plan.ps1 -Feature {slug} -Stage plan
 ```
 
 校验的是机械规则：文件不重叠、依赖不成环、AC 全覆盖、verify 非空。
@@ -149,7 +149,7 @@ powershell -ExecutionPolicy Bypass -File <agentflow>/scripts/validate-plan.ps1 -
    方案：{一句话}   排除 {N} 个备选
    任务：{X} 个，分 {Y} 层（layer1 并行 {a} / layer2 并行 {b} ...）
    AC 覆盖：{M}/{M}
-   📍 Next: 调用 wf-build 开始并行实现
+   📍 Next: 调用 rd-build 开始并行实现
 ```
 
 ## 硬门槛

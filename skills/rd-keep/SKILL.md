@@ -1,10 +1,10 @@
 ---
-name: wf-keep
+name: rd-keep
 description: 阶段 3 经验沉淀。任务收尾时筛选值得长期复用的经验写入 lessons/，维护 attention.md。核心是筛选而不是记录——收什么都进的知识库等于没有知识库。
 argument-hint: "[feature slug | 要记住的事]"
 ---
 
-# wf-keep
+# rd-keep
 
 任务做完后，判断有没有经验值得长期留下。
 
@@ -40,7 +40,7 @@ lessons 如果什么都收，最后就是垃圾桶：越写越长、越写越乱
 
 ## 条目格式
 
-写到 `.workflow/lessons/{YYYY-MM-DD}-{slug}.md`：
+写到 `.rd/lessons/{YYYY-MM-DD}-{slug}.md`：
 
 ```markdown
 ---
@@ -58,7 +58,7 @@ source: features/user-login
 **排除了什么错误路径**：{这条规则帮你避开的具体错误做法}
 ```
 
-> **写法参照**：`<agentflow>/examples/lessons/` 有两条真实产出的合格 lesson
+> **写法参照**：`<agentrd>/examples/lessons/` 有两条真实产出的合格 lesson
 > 和一份 `README.md` 说明它们好在哪。**尤其看它们怎么标注证据边界** ——
 > 一条写得含糊的 lesson 比没有更糟，它会让下一个人以为这件事已经搞清楚了。
 
@@ -90,13 +90,13 @@ source: features/user-login
 
 ## attention.md
 
-`.workflow/attention.md` 是**每次开工必读**的那张便签。
+`.rd/attention.md` 是**每次开工必读**的那张便签。
 
 规则：
 - **保持短**。超过 30 行就说明该往 lessons 里搬了。
 - 只放"不知道就会立刻踩坑"的当前事实：正在进行的迁移、临时的绕过、
   已知坏掉的东西、本周不能碰的模块。
-- **有时效**。每次 `wf-keep` 都要顺手清掉已经过期的行。
+- **有时效**。每次 `rd-keep` 都要顺手清掉已经过期的行。
 
 ## 收尾报告
 

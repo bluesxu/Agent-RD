@@ -1,4 +1,4 @@
-<h1 align="center">🏭 agentflow</h1>
+<h1 align="center">🏢 AgentRD</h1>
 
 <p align="center">
   <strong>一个人，一整个研发部</strong>
@@ -13,7 +13,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue.svg?style=for-the-badge" alt="License"></a>
   <img src="https://img.shields.io/badge/PowerShell-5.1%2B-5391FE.svg?style=for-the-badge&logo=powershell&logoColor=white" alt="PowerShell 5.1+">
   <img src="https://img.shields.io/badge/Platform-Windows-0078D6.svg?style=for-the-badge&logo=windows&logoColor=white" alt="Windows">
-  <a href="https://github.com/bluesxu/agentflow/stargazers"><img src="https://img.shields.io/github/stars/bluesxu/agentflow?style=for-the-badge" alt="GitHub Stars"></a>
+  <a href="https://github.com/bluesxu/agentrd/stargazers"><img src="https://img.shields.io/github/stars/bluesxu/agentrd?style=for-the-badge" alt="GitHub Stars"></a>
 </p>
 
 <p align="center">
@@ -60,7 +60,7 @@ AI 为了让测试通过，会加假数据、加兜底分支、把断言改松�
 产生的问题连自动审查都发现不了——审查的人拿到的代码是覆盖之后的，
 看起来完全正常。
 
-**agentflow 就是来把这三个空岗补上的。**
+**AgentRD 就是来把这三个空岗补上的。**
 
 不是再给你一个写代码的 AI。是给你一套**制度**：
 让 AI 写的代码，必须先过另一批 AI 的审查和验收，才能到你手上。
@@ -71,7 +71,7 @@ AI 为了让测试通过，会加假数据、加兜底分支、把断言改松�
 ## 🗣️ 你只需要说一句话
 
 ```
-/wf 我要做一个支持锁定策略的登录功能
+/rd 我要做一个支持锁定策略的登录功能
 ```
 
 **然后就没你的事了。**
@@ -95,7 +95,7 @@ AI 为了让测试通过，会加假数据、加兜底分支、把断言改松�
 ## 👥 你的编制表
 
 一人公司不是「一个人干所有活」，是**一个人管所有岗**。
-agentflow 帮你把研发部的编制填满：
+AgentRD 帮你把研发部的编制填满：
 
 | 岗位 | 谁在干 | 你干什么 |
 |---|---|---|
@@ -200,10 +200,10 @@ powershell -ExecutionPolicy Bypass -File install.ps1 -Apply -EnableAgentTeams
 
 # 到你的项目目录里初始化
 cd D:\your\project
-powershell -ExecutionPolicy Bypass -File <agentflow>\scripts\init-workflow.ps1
+powershell -ExecutionPolicy Bypass -File <agentrd>\scripts\init-rd.ps1
 ```
 
-装完重启 Claude Code，输入 `/wf` 开始。
+装完重启 Claude Code，输入 `/rd` 开始。
 
 **跑在 Windows 上，不需要 tmux、不需要 WSL、不需要装别的命令行工具。** 💻
 
@@ -305,7 +305,7 @@ powershell -ExecutionPolicy Bypass -File <agentflow>\scripts\init-workflow.ps1
 ## 📁 目录结构
 
 ```
-agentflow/
+AgentRD/
 ├── README.md                  本文件（简体中文）
 ├── docs/                      多语言 README
 │   ├── README_en.md           English
@@ -313,17 +313,17 @@ agentflow/
 │   └── README_ko.md           한국어
 ├── install.ps1                把流程装到 Claude Code 里
 ├── skills/                    七个流程文件
-│   ├── wf/                    入口，判断任务大小选路线
-│   ├── wf-spec/               第一步 问需求
-│   ├── wf-plan/               第二步 定方案、切任务
-│   ├── wf-build/              第三步 写代码 + 三道检查
-│   ├── wf-review/             第二道检查 AI 审代码
-│   ├── wf-eval/               第三道检查 AI 当用户验收
-│   └── wf-keep/               第四步 记经验
+│   ├── rd/                    入口，判断任务大小选路线
+│   ├── rd-spec/               第一步 问需求
+│   ├── rd-plan/               第二步 定方案、切任务
+│   ├── rd-build/              第三步 写代码 + 三道检查
+│   ├── rd-review/             第二道检查 AI 审代码
+│   ├── rd-eval/               第三道检查 AI 当用户验收
+│   └── rd-keep/               第四步 记经验
 ├── templates/                 各种文件的模板
 ├── examples/lessons/          经验条目怎么写才算合格
 └── scripts/
-    ├── init-workflow.ps1      在项目里初始化
+    ├── init-rd.ps1      在项目里初始化
     ├── gate-l1.ps1            第一道检查
     ├── check-ac.ps1           防止「命令成功但什么都没测」
     ├── check-artifacts.ps1    查进度、查中断、查规则有没有被改
@@ -334,7 +334,7 @@ agentflow/
 在你项目里生成的东西：
 
 ```
-.workflow/
+.rd/
 ├── attention.md              每次开工先看，控制在 30 行内
 ├── gates.json                第一道检查要跑哪些命令
 ├── bin/check-ac.ps1          守卫脚本，跟着项目走
@@ -384,15 +384,15 @@ Get-ChildItem .\scripts -Filter *.ps1 | ForEach-Object {
 
 ## 💡 一句话总结
 
-**别人给你一个 AI 员工。agentflow 给你一套能管住 AI 员工的公司制度。**
+**别人给你一个 AI 员工。AgentRD 给你一套能管住 AI 员工的公司制度。**
 
 ```
-/wf 我要做一个……
+/rd 我要做一个……
 ```
 
 ---
 
-<sub>搜索关键词：一人公司、One Person Company、OPC、独立开发者、超级个体、solopreneur、
+<sub>搜索关键词：AgentRD、AI 研发部、一人公司、One Person Company、OPC、独立开发者、超级个体、solopreneur、
 indie hacker、Claude Code、全自动化编程、AI 自动审代码、一句话开发、AI 开发流程、
 多 agent 协作、自动验收、代码审查自动化、AI code review、multi-agent workflow、
 autonomous coding、acceptance criteria、mutation testing、Claude Code skills、PowerShell。</sub>
@@ -405,4 +405,4 @@ autonomous coding、acceptance criteria、mutation testing、Claude Code skills�
 
 个人使用、学习、研究、非营利组织使用免费。**任何商业用途需要事先获得书面许可**，
 包括放进商业产品、对外提供收费服务、或者在公司内部使用。
-需要商业授权请在 GitHub 上开 [issue](https://github.com/bluesxu/agentflow/issues) 联系。
+需要商业授权请在 GitHub 上开 [issue](https://github.com/bluesxu/agentrd/issues) 联系。

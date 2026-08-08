@@ -19,7 +19,7 @@
 
 ### 1. 精简拷问 [required]
 
-不走 `wf-spec` 的六类全套。只问三件事，一次一个：
+不走 `rd-spec` 的六类全套。只问三件事，一次一个：
 
 1. **失败路径**：输入非法、依赖挂了、超时了，分别怎么办？
 2. **不做什么**：明确的排除项。这条最容易漏，也最容易让 agent 越界。
@@ -40,7 +40,7 @@ M 级任务的协调成本大于并行收益 —— 实测：一次一两百行�
 ### 3. L1 机械门 [required]
 
 ```
-powershell -ExecutionPolicy Bypass -File <agentflow>/scripts/gate-l1.ps1
+powershell -ExecutionPolicy Bypass -File <agentrd>/scripts/gate-l1.ps1
 ```
 不过 → 修 → 重跑。**最多 3 次**，仍失败则停下来报告。
 
@@ -48,11 +48,11 @@ powershell -ExecutionPolicy Bypass -File <agentflow>/scripts/gate-l1.ps1
 
 1. `git add -A`，冻结目标：
    ```
-   powershell -ExecutionPolicy Bypass -File <agentflow>/scripts/freeze-target.ps1 -Feature {slug}
+   powershell -ExecutionPolicy Bypass -File <agentrd>/scripts/freeze-target.ps1 -Feature {slug}
    ```
    （没有 feature 目录时可省略 `-Feature`，改用 `git diff` 直接交给 reviewer）
 2. 派**一个 fresh reviewer**，异构模型优先（与实现者不同厂商 > 不同模型 > 同构）
-3. 它单轮执行 `wf-review`，只读，返回分级 findings
+3. 它单轮执行 `rd-review`，只读，返回分级 findings
 4. **reviewer 返回前你不得改动工作树**
 5. blocking > 0 → 修 → **回到 L1 重跑** → 再审（沿用同一 reviewer 的同一 session 做 follow-up）
 
@@ -62,7 +62,7 @@ powershell -ExecutionPolicy Bypass -File <agentflow>/scripts/gate-l1.ps1
 
 报告：做了什么、改了哪些文件、L1 输出、L2 结论与 findings 处理情况。
 
-有值得长期复用的经验 → 调 `wf-keep`，没有就明说"本次无采纳"。
+有值得长期复用的经验 → 调 `rd-keep`，没有就明说"本次无采纳"。
 
 ## 硬门槛
 

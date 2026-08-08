@@ -1,17 +1,17 @@
 ---
-name: wf-review
+name: rd-review
 description: L2 异构代码审查。只读叶子执行器，审冻结的 diff 或 design，产出 blocking/important/nit 分级发现，单轮返回。不修代码、不派生任何子 agent。
 argument-hint: "[--target <review-target.json 路径>]"
 ---
 
-# wf-review
+# rd-review
 
 审查一段被冻结的变更，产出分级发现。**叶子执行器：只完成一轮审查并返回。**
 
 ## 调用边界
 
 - **用户直接调用**：当前 agent 就是 reviewer，不再派生。
-- **被 `wf-build` 派发**：你是一个 fresh agent，只看得到 task packet 里的东西。
+- **被 `rd-build` 派发**：你是一个 fresh agent，只看得到 task packet 里的东西。
 
 ### 目标冻结
 
@@ -19,7 +19,7 @@ argument-hint: "[--target <review-target.json 路径>]"
 你要做的第一件事是核对：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File <agentflow>/scripts/freeze-target.ps1 -Feature {slug} -Verify
+powershell -ExecutionPolicy Bypass -File <agentrd>/scripts/freeze-target.ps1 -Feature {slug} -Verify
 ```
 
 - 校验通过 → 继续。
@@ -119,11 +119,11 @@ blocking: {n}  important: {n}  nit: {n}
 ...
 ```
 
-同时把这份报告写入 `.workflow/features/{slug}/reports/l2-round{N}.md`。
+同时把这份报告写入 `.rd/features/{slug}/reports/l2-round{N}.md`。
 
 ## follow-up 复审
 
-被 `wf-build` 以 follow-up 形式再次调用时（同一 session）：
+被 `rd-build` 以 follow-up 形式再次调用时（同一 session）：
 
 - 必须检查**完整的当前候选 + 本轮修复增量**，不是只看修复 diff。
 - 逐项报告每个旧 finding 的 `resolved` / `unresolved`，外加 `new findings`。
@@ -132,8 +132,8 @@ blocking: {n}  important: {n}  nit: {n}
 
 ## 硬门槛
 
-- **只读**：不修代码、不改写业务文件、不 commit。修复由 `wf-build` 派 fix agent 负责。
-- **叶子执行器**：禁止创建、委派或唤醒任何子 agent；不得再次调用 `wf-review`；
+- **只读**：不修代码、不改写业务文件、不 commit。修复由 `rd-build` 派 fix agent 负责。
+- **叶子执行器**：禁止创建、委派或唤醒任何子 agent；不得再次调用 `rd-review`；
   不得把审查转交给其他流程。
 - **必须返回终态**：每次调用必须给出一份完整审查结果。上下文不足时返回
   `NeedsContext` + 缺什么 + 已检查范围，**不得以空结果或"等待中"结束**。

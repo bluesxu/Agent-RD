@@ -1,10 +1,10 @@
 ---
-name: wf-eval
+name: rd-eval
 description: L3 场景验收。像终端用户一样逐条跑 acceptance.json 的场景，附证据判定通过与否。只拿场景和跑起来的系统，拿不到实现和测试代码——这是识破"假绿"的唯一一层。
 argument-hint: "[feature slug]"
 ---
 
-# wf-eval
+# rd-eval
 
 按 `acceptance.json` 逐条验收，**像一个不认识这份代码的终端用户那样**。
 
@@ -35,7 +35,7 @@ argument-hint: "[feature slug]"
 
 没有任何机制阻止你去 `Read` 那些文件：它们和你在同一个文件系统上，你只是被要求不要看。
 
-派发方（`wf-build`）能做的硬化，按有效性排：
+派发方（`rd-build`）能做的硬化，按有效性排：
 
 1. **服务由编排者预先启动**，只把 `host:port` 交给你 —— 你不需要为了跑起来而读任何代码
 2. **工作目录设在仓库外**的空目录，让"顺手 ls 一下"不会撞见 `src/`
@@ -117,7 +117,7 @@ feature: {slug}
 - 卡在: {什么阻止了验证}
 ```
 
-同时写入 `.workflow/features/{slug}/reports/l3-round{N}.md`。
+同时写入 `.rd/features/{slug}/reports/l3-round{N}.md`。
 
 ## 收尾附录（必填）
 
@@ -138,7 +138,7 @@ feature: {slug}
 
 ## 硬门槛
 
-- **叶子执行器**：禁止创建任何子 agent，禁止再次调用 `wf-eval`。
+- **叶子执行器**：禁止创建任何子 agent，禁止再次调用 `rd-eval`。
 - **只读业务代码**：不修任何代码，不改 `acceptance.json`。
   觉得某条 AC 写错了 → 报告出来，不要自己改。**改验收标准来让验收通过是最严重的违规。**
 - **必须返回终态**：每条 AC 都要有 `pass` / `fail` / `blocked` 之一，不许留空。

@@ -118,7 +118,7 @@ function Get-CurrentDiff([string]$RepoRoot, [string[]]$Scope) {
     }
 }
 
-$dir        = Join-Path $Root ".workflow\features\$Feature"
+$dir        = Join-Path $Root ".rd\features\$Feature"
 $targetPath = Join-Path $dir "review-target.json"
 
 if (-not (Test-Path $dir)) {

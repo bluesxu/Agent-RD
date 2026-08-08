@@ -3,7 +3,7 @@
   L1 机械门 —— 零 LLM 成本的第一道闸。
 
 .DESCRIPTION
-  按 .workflow/gates.json 里的顺序逐条执行命令，任一 required 项失败即整体失败。
+  按 .rd/gates.json 里的顺序逐条执行命令，任一 required 项失败即整体失败。
   命令越便宜的放越前面，早失败早退出，省下后面所有审查 token。
 
 .EXAMPLE
@@ -19,11 +19,11 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$configPath = Join-Path $Root '.workflow\gates.json'
+$configPath = Join-Path $Root '.rd\gates.json'
 
 if (-not (Test-Path $configPath)) {
     Write-Host "[L1] 找不到 $configPath" -ForegroundColor Red
-    Write-Host "     先跑 init-workflow.ps1，或从 templates/gates.json 复制一份。" -ForegroundColor Yellow
+    Write-Host "     先跑 init-rd.ps1，或从 templates/gates.json 复制一份。" -ForegroundColor Yellow
     exit 2
 }
 
@@ -146,7 +146,7 @@ $report = [pscustomobject]@{
 }
 
 if ($Feature) {
-    $dir = Join-Path $Root ".workflow\features\$Feature\reports"
+    $dir = Join-Path $Root ".rd\features\$Feature\reports"
     if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
     $out = Join-Path $dir "l1-round$Round.json"
     $report | ConvertTo-Json -Depth 6 | Out-File -FilePath $out -Encoding utf8

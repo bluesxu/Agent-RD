@@ -14,18 +14,18 @@
 
 ## 流程
 
-1. 读 `.workflow/attention.md`（存在的话）
+1. 读 `.rd/attention.md`（存在的话）
 2. 写代码前先看相邻实现，写得像这个项目原本的代码
 3. 改
 4. 跑 L1：
    ```
-   powershell -ExecutionPolicy Bypass -File <agentflow>/scripts/gate-l1.ps1
+   powershell -ExecutionPolicy Bypass -File <agentrd>/scripts/gate-l1.ps1
    ```
 5. 报告：做了什么、改了哪些文件、L1 输出
 
 ## 不做什么
 
-- 不建 `.workflow/features/` 目录
+- 不建 `.rd/features/` 目录
 - 不写 spec / acceptance / design / tasks
 - 不派任何 agent
 - 不做 L2 异构审查、不做 L3 场景验收
