@@ -2,3 +2,5 @@ AUDIT.md
 *.log
 .DS_Store
 Thumbs.db
+KNOWN-ISSUES.md
+ROADMAP.md
