@@ -19,7 +19,7 @@
 3. 改
 4. 跑 L1：
    ```
-   node <agentrd>/scripts/gate-l1.js
+   node <agent-rd>/scripts/gate-l1.js
    ```
 5. 报告：做了什么、改了哪些文件、L1 输出
 

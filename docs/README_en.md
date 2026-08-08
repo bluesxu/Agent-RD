@@ -1,4 +1,4 @@
-<h1 align="center">🏢 AgentRD</h1>
+<h1 align="center">🏢 Agent-RD</h1>
 
 <p align="center">
   <strong>One person, an entire R&D department</strong>
@@ -13,7 +13,7 @@
   <a href="../LICENSE"><img src="https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue.svg?style=for-the-badge" alt="License"></a>
   <img src="https://img.shields.io/badge/Node.js-18%2B-339933.svg?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js 18+">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D6.svg?style=for-the-badge" alt="Windows | macOS | Linux">
-  <a href="https://github.com/bluesxu/agentrd/stargazers"><img src="https://img.shields.io/github/stars/bluesxu/agentrd?style=for-the-badge" alt="GitHub Stars"></a>
+  <a href="https://github.com/bluesxu/agent-rd/stargazers"><img src="https://img.shields.io/github/stars/bluesxu/agent-rd?style=for-the-badge" alt="GitHub Stars"></a>
 </p>
 
 <p align="center">
@@ -58,7 +58,7 @@ so when AI says it's done, on what grounds do you say it isn't? You're the boss,
 The resulting problem is invisible even to automated review — the reviewer gets the post-overwrite code,
 and it looks perfectly normal.
 
-**AgentRD exists to fill these three empty seats.**
+**Agent-RD exists to fill these three empty seats.**
 
 It's not yet another AI that writes code for you. It's a **system of governance**:
 code written by AI must first pass review and acceptance by another set of AIs before it ever reaches you.
@@ -71,7 +71,7 @@ code written by AI must first pass review and acceptance by another set of AIs b
 Don't want to type commands yourself? Paste this **whole line** to any AI coding agent (Claude Code, etc.), and it will read the instructions and install it for you:
 
 ```text
-Please install AgentRD for me: https://raw.githubusercontent.com/bluesxu/agentrd/main/docs/install.md
+Please install Agent-RD for me: https://raw.githubusercontent.com/bluesxu/agent-rd/main/docs/install.md
 ```
 
 It handles everything, only pausing at checkpoints that touch your environment (actual installation, writing config, which project to initialize into) to wait for your go-ahead.
@@ -106,7 +106,7 @@ From one sentence to running code, you never need to nod once in between.
 ## 👥 Your org chart
 
 A one-person company isn't "one person doing every job" — it's **one person managing every seat**.
-AgentRD fills out your R&D department's headcount:
+Agent-RD fills out your R&D department's headcount:
 
 | Role | Who does it | What you do |
 |---|---|---|
@@ -189,28 +189,36 @@ In a company of one, **the system must be written as scripts** — write it as r
 
 ```bash
 # Clone to a fixed location (you'll come back here to git pull for upgrades)
-git clone https://github.com/bluesxu/agentrd.git ~/.agentrd/repo
-cd ~/.agentrd/repo
+git clone https://github.com/bluesxu/agent-rd.git ~/.agent-rd/repo
+cd ~/.agent-rd/repo
 
-# See what it plans to do first — this step changes nothing
-node install.js
+# Install the skills into ~/.claude/skills/ (existing versions get backed up)
+node install.js -Apply
 
-# Once satisfied, actually install
-node install.js -Apply -EnableAgentTeams
-
-# Initialize inside your project directory
-cd /your/project
-node ~/.agentrd/repo/scripts/init-rd.js
+# Optional: turn on Agent Teams (adds one env var to settings.json, backs it up first)
+# Only affects which parallel mode rd-build uses; without it, it falls back to parallel subagents
+node scripts/enable-agent-teams.js
 ```
 
-Restart Claude Code after installing, then type `/rd` to begin.
+**Restart Claude Code, then type `/rd` followed by what you want.** At this point not a single byte of
+your project has been touched — installing only writes into `~/.claude/`.
 
-> The repo can live anywhere, but it must live in a **fixed** location: the init script needs its
-> absolute path, and upgrades happen there too. If you have no preference, use `~/.agentrd/repo`
-> (`%USERPROFILE%\.agentrd\repo` on Windows).
+> The repo can live anywhere, but it must live in a **fixed** location: upgrades happen there via
+> `git pull`, and the init script needs its absolute path. If you have no preference, use
+> `~/.agent-rd/repo` (`%USERPROFILE%\.agent-rd\repo` on Windows).
 
 **Runs on Windows / macOS / Linux — no tmux, no WSL, no extra CLI tools to install.** 💻
 The only runtime is Node.js — which you already have if Claude Code runs, so there's effectively nothing extra to install.
+
+### One more command when you want the full pipeline in a project
+
+The mechanical gate reads `.rd/gates.json` from the project, and the full pipeline writes its artifacts
+into `.rd/`. So **the first time you use it in a given project**, run this once in that project's root:
+
+```bash
+cd /your/project
+node ~/.agent-rd/repo/scripts/init-rd.js
+```
 
 The init script is incremental and won't overwrite existing files. It auto-detects your project's language,
 wires up the matching check commands, creates a `.gitignore`, then actually runs the configured commands once to confirm they work.
@@ -304,14 +312,15 @@ Said up front, to save you time:
 - 🖥️ **Pure codebases get diminished results.** With no runnable interface or command, gate 3 degrades into an ordinary integration test.
 - 💸 **Parallel AIs cost roughly 5× the tokens.** A single AI is more economical for simple CRUD — hence the seven routes.
 - 🧪 **Agent Teams is an experimental Claude Code feature**; on Windows, only single-window mode works.
-  If unavailable, it automatically degrades to one-at-a-time execution, and the flow doesn't break.
+  If unavailable, it first degrades to parallel subagents (still parallel, just no teammate-to-teammate
+  messaging), and only then to one-at-a-time execution. Either way the flow doesn't break.
 
 ---
 
 ## 📁 Directory structure
 
 ```
-AgentRD/
+Agent-RD/
 ├── README.md                  This file in Chinese (简体中文)
 ├── docs/
 │   ├── README_en.md           English README
@@ -328,7 +337,8 @@ AgentRD/
 ├── templates/                 Templates for the various files
 ├── examples/lessons/          What a qualified lesson entry looks like
 └── scripts/
-    ├── init-rd.js       Initialize inside a project
+    ├── init-rd.js             Initialize inside a project
+    ├── enable-agent-teams.js  Flips the parallel-orchestration switch (only script that writes settings.json)
     ├── gate-l1.js             Gate 1 checks
     ├── check-ac.js            Prevents "command succeeded but tested nothing"
     ├── check-artifacts.js     Checks progress, interruptions, and rule tampering
@@ -383,7 +393,7 @@ macOS / Linux users previously had to install PowerShell 7; they no longer do.
 
 ## 💡 In one sentence
 
-**Others give you an AI employee. AgentRD gives you a company system that can manage AI employees.**
+**Others give you an AI employee. Agent-RD gives you a company system that can manage AI employees.**
 
 ```
 /rd I want to build a ...
@@ -391,7 +401,7 @@ macOS / Linux users previously had to install PowerShell 7; they no longer do.
 
 ---
 
-<sub>Keywords: AgentRD, AI R&D department, One Person Company, OPC, solopreneur, indie hacker, Claude Code, autonomous coding,
+<sub>Keywords: Agent-RD, AI R&D department, One Person Company, OPC, solopreneur, indie hacker, Claude Code, autonomous coding,
 AI code review, multi-agent workflow, fully automated programming, prompt-to-product, AI development pipeline,
 multi-agent collaboration, automated acceptance, code review automation, acceptance criteria,
 mutation testing, Claude Code skills, Node.js, cross-platform.</sub>
@@ -404,4 +414,4 @@ mutation testing, Claude Code skills, Node.js, cross-platform.</sub>
 
 Free for personal use, study, research, and nonprofits. **Any commercial use requires prior written permission** —
 including shipping it in a commercial product, offering paid services built on it, or using it inside a company.
-For commercial licensing, open an [issue](https://github.com/bluesxu/agentrd/issues) on GitHub.
+For commercial licensing, open an [issue](https://github.com/bluesxu/agent-rd/issues) on GitHub.

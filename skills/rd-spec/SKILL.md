@@ -176,7 +176,7 @@ L3 验收者除了逐条验收，还要写一节**场外观察** ——
 ## 第四步：校验并收尾
 
 ```bash
-node <agentrd>/scripts/validate-plan.js -Feature {slug} -Stage spec
+node <agent-rd>/scripts/validate-plan.js -Feature {slug} -Stage spec
 ```
 
 校验不过就按报错修，**不要手动跳过**。

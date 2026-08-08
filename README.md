@@ -1,4 +1,4 @@
-<h1 align="center">🏢 AgentRD</h1>
+<h1 align="center">🏢 Agent-RD</h1>
 
 <p align="center">
   <strong>一个人，一整个研发部</strong>
@@ -13,7 +13,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue.svg?style=for-the-badge" alt="License"></a>
   <img src="https://img.shields.io/badge/Node.js-18%2B-339933.svg?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js 18+">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D6.svg?style=for-the-badge" alt="Windows | macOS | Linux">
-  <a href="https://github.com/bluesxu/agentrd/stargazers"><img src="https://img.shields.io/github/stars/bluesxu/agentrd?style=for-the-badge" alt="GitHub Stars"></a>
+  <a href="https://github.com/bluesxu/agent-rd/stargazers"><img src="https://img.shields.io/github/stars/bluesxu/agent-rd?style=for-the-badge" alt="GitHub Stars"></a>
 </p>
 
 <p align="center">
@@ -58,7 +58,7 @@ AI 为了让测试通过，会加假数据、加兜底分支、把断言改松�
 产生的问题连自动审查都发现不了——审查的人拿到的代码是覆盖之后的，
 看起来完全正常。
 
-**AgentRD 就是来把这三个空岗补上的。**
+**Agent-RD 就是来把这三个空岗补上的。**
 
 不是再给你一个写代码的 AI。是给你一套**制度**：
 让 AI 写的代码，必须先过另一批 AI 的审查和验收，才能到你手上。
@@ -71,7 +71,7 @@ AI 为了让测试通过，会加假数据、加兜底分支、把断言改松�
 不想自己敲命令？把下面这**一整行**丢给任意一个 AI 编程 Agent（Claude Code 等），它会自己去读说明、替你装好：
 
 ```text
-帮我安装 AgentRD：https://raw.githubusercontent.com/bluesxu/agentrd/main/docs/install.md
+帮我安装 Agent-RD：https://raw.githubusercontent.com/bluesxu/agent-rd/main/docs/install.md
 ```
 
 全程它代办，只在要动你环境的把关点（真装、写配置、初始化到哪个项目）停下来等你点头。
@@ -105,7 +105,7 @@ AI 为了让测试通过，会加假数据、加兜底分支、把断言改松�
 ## 👥 你的编制表
 
 一人公司不是「一个人干所有活」，是**一个人管所有岗**。
-AgentRD 帮你把研发部的编制填满：
+Agent-RD 帮你把研发部的编制填满：
 
 | 岗位 | 谁在干 | 你干什么 |
 |---|---|---|
@@ -186,27 +186,35 @@ AgentRD 帮你把研发部的编制填满：
 
 ```bash
 # 克隆到固定位置（以后升级也回这里 git pull）
-git clone https://github.com/bluesxu/agentrd.git ~/.agentrd/repo
-cd ~/.agentrd/repo
+git clone https://github.com/bluesxu/agent-rd.git ~/.agent-rd/repo
+cd ~/.agent-rd/repo
 
-# 先看看它打算做什么，这一步不会改任何东西
-node install.js
+# 装 skill 到 ~/.claude/skills/（旧版自动备份）
+node install.js -Apply
 
-# 确认没问题再真装
-node install.js -Apply -EnableAgentTeams
-
-# 到你的项目目录里初始化
-cd /your/project
-node ~/.agentrd/repo/scripts/init-rd.js
+# 可选：开启 Agent Teams（往 settings.json 加一个环境变量，写前自动备份）
+# 只影响 rd-build 的并行档位，不开会自动降级到并行子 agent，一样能跑
+node scripts/enable-agent-teams.js
 ```
 
-装完重启 Claude Code，输入 `/rd` 开始。
+**装完重启 Claude Code，输入 `/rd` 加上你的诉求就能用了。** 到这一步你的项目还没被碰过一个字节 ——
+安装只往 `~/.claude/` 里放东西。
 
-> 仓库放哪都行，但**要放在一个固定位置**：初始化脚本要用它的绝对路径，升级也要回到这里。
-> 没主意就用上面的 `~/.agentrd/repo`（Windows 即 `%USERPROFILE%\.agentrd\repo`）。
+> 仓库放哪都行，但**要放在一个固定位置**：升级要回到这里 `git pull`，初始化脚本也要用它的绝对路径。
+> 没主意就用上面的 `~/.agent-rd/repo`（Windows 即 `%USERPROFILE%\.agent-rd\repo`）。
 
 **跑在 Windows / macOS / Linux 上，不需要 tmux、不需要 WSL、不需要装别的命令行工具。** 💻
 唯一的运行时是 Node.js —— 而你跑 Claude Code 本来就已经装了它，所以等于一个都不用多装。
+
+### 想在某个项目里走完整流程，再多跑一条
+
+机械门要读项目里的 `.rd/gates.json`，完整流程还要往 `.rd/` 里落产物。
+所以**每个项目第一次用之前**，在那个项目根目录跑一次（一次就够）：
+
+```bash
+cd /your/project
+node ~/.agent-rd/repo/scripts/init-rd.js
+```
 
 初始化脚本是增量的，已有文件不会被覆盖。它会自动识别你的项目是什么语言、
 配上对应的检查命令、建好 `.gitignore`，然后把配好的命令实际跑一遍确认能用。
@@ -300,14 +308,15 @@ node ~/.agentrd/repo/scripts/init-rd.js
 - 🖥️ **纯代码库效果打折。** 没有能跑起来的界面或命令，第三道检查会退化成普通集成测试。
 - 💸 **多个 AI 并行大约费 5 倍额度。** 简单的增删改查用一个 AI 更划算——所以有那七条路线。
 - 🧪 **Agent Teams 是 Claude Code 的实验功能**，Windows 上只能用单窗口模式。
-  用不了会自动降级成一个个来，流程不会中断。
+  用不了会先降级成并行子 agent（照样并行，只是队友之间不能互相通信），
+  再不行才一个个来，流程不会中断。
 
 ---
 
 ## 📁 目录结构
 
 ```
-AgentRD/
+Agent-RD/
 ├── README.md                  本文件（简体中文）
 ├── docs/
 │   ├── README_en.md           English README
@@ -325,6 +334,7 @@ AgentRD/
 ├── examples/lessons/          经验条目怎么写才算合格
 └── scripts/
     ├── init-rd.js             在项目里初始化
+    ├── enable-agent-teams.js  开并行编排的开关（唯一会写 settings.json 的脚本）
     ├── gate-l1.js             第一道检查
     ├── check-ac.js            防止「命令成功但什么都没测」
     ├── check-artifacts.js     查进度、查中断、查规则有没有被改
@@ -383,7 +393,7 @@ macOS / Linux 用户此前得装 PowerShell 7，现在不用了。
 
 ## 💡 一句话总结
 
-**别人给你一个 AI 员工。AgentRD 给你一套能管住 AI 员工的公司制度。**
+**别人给你一个 AI 员工。Agent-RD 给你一套能管住 AI 员工的公司制度。**
 
 ```
 /rd 我要做一个……
@@ -391,7 +401,7 @@ macOS / Linux 用户此前得装 PowerShell 7，现在不用了。
 
 ---
 
-<sub>搜索关键词：AgentRD、AI 研发部、一人公司、One Person Company、OPC、独立开发者、超级个体、solopreneur、
+<sub>搜索关键词：Agent-RD、AI 研发部、一人公司、One Person Company、OPC、独立开发者、超级个体、solopreneur、
 indie hacker、Claude Code、全自动化编程、AI 自动审代码、一句话开发、AI 开发流程、
 多 agent 协作、自动验收、代码审查自动化、AI code review、multi-agent workflow、
 autonomous coding、acceptance criteria、mutation testing、Claude Code skills、Node.js、cross-platform。</sub>
@@ -404,4 +414,4 @@ autonomous coding、acceptance criteria、mutation testing、Claude Code skills�
 
 个人使用、学习、研究、非营利组织使用免费。**任何商业用途需要事先获得书面许可**，
 包括放进商业产品、对外提供收费服务、或者在公司内部使用。
-需要商业授权请在 GitHub 上开 [issue](https://github.com/bluesxu/agentrd/issues) 联系。
+需要商业授权请在 GitHub 上开 [issue](https://github.com/bluesxu/agent-rd/issues) 联系。

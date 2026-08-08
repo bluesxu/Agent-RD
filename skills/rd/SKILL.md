@@ -1,6 +1,6 @@
 ---
 name: rd
-description: AgentRD 入口与分诊。触发：用户调用 rd、提出任何开发诉求、想开始一个新需求、或问该用哪个流程。先评估任务类型与复杂度，再选一条相称的策略执行——不是所有任务都值得走全套。
+description: Agent-RD 入口与分诊。触发：用户调用 rd、提出任何开发诉求、想开始一个新需求、或问该用哪个流程。先评估任务类型与复杂度，再选一条相称的策略执行——不是所有任务都值得走全套。
 argument-hint: "[诉求]"
 ---
 
@@ -155,7 +155,7 @@ argument-hint: "[诉求]"
 读对应的策略文件：
 
 ```
-Read("<agentrd>/skills/rd/strategies/{strategy}.md")
+Read("<agent-rd>/skills/rd/strategies/{strategy}.md")
 ```
 
 严格照它执行。策略文件里标了 `[required]` 的阶段不可跳过。

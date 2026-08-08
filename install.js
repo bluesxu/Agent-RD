@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /*
-  install —— 安装 AgentRD 的 7 个 skill 到 ~/.claude/skills/（跨平台：Windows / macOS / Linux）。
+  install —— 安装 Agent-RD 的 7 个 skill 到 ~/.claude/skills/（跨平台：Windows / macOS / Linux）。
 
   默认 dry-run，只打印将要做什么。确认无误后加 -Apply 真正执行。
   本脚本只复制 skill 目录，不修改任何配置文件。
-  Agent Teams 的开关由用户自行在 ~/.claude/settings.json 设置，见 docs/install.md 步骤 3b。
+  Agent Teams 的开关由 scripts/enable-agent-teams.js 单独负责，见 docs/install.md 步骤 2。
   用法：
     node install.js
     node install.js -Apply
@@ -58,7 +58,7 @@ if (!fs.existsSync(srcSkills)) {
 const mode = args.Apply ? 'APPLY' : 'DRY-RUN（不会改任何东西）';
 
 out('');
-out(C.cyan(`=== AgentRD install [${mode}] ===`));
+out(C.cyan(`=== Agent-RD install [${mode}] ===`));
 out(C.dark(`    源:   ${srcSkills}`));
 out(C.dark(`    目标: ${dstSkills}`));
 out('');

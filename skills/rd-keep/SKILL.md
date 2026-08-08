@@ -58,7 +58,7 @@ source: features/user-login
 **排除了什么错误路径**：{这条规则帮你避开的具体错误做法}
 ```
 
-> **写法参照**：`<agentrd>/examples/lessons/` 有两条真实产出的合格 lesson
+> **写法参照**：`<agent-rd>/examples/lessons/` 有两条真实产出的合格 lesson
 > 和一份 `README.md` 说明它们好在哪。**尤其看它们怎么标注证据边界** ——
 > 一条写得含糊的 lesson 比没有更糟，它会让下一个人以为这件事已经搞清楚了。
 

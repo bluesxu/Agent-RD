@@ -40,7 +40,7 @@ M 级任务的协调成本大于并行收益 —— 实测：一次一两百行�
 ### 3. L1 机械门 [required]
 
 ```
-node <agentrd>/scripts/gate-l1.js
+node <agent-rd>/scripts/gate-l1.js
 ```
 不过 → 修 → 重跑。**最多 3 次**，仍失败则停下来报告。
 
@@ -48,7 +48,7 @@ node <agentrd>/scripts/gate-l1.js
 
 1. `git add -A`，冻结目标：
    ```
-   node <agentrd>/scripts/freeze-target.js -Feature {slug}
+   node <agent-rd>/scripts/freeze-target.js -Feature {slug}
    ```
    （没有 feature 目录时可省略 `-Feature`，改用 `git diff` 直接交给 reviewer）
 2. 派**一个 fresh reviewer**，异构模型优先（与实现者不同厂商 > 不同模型 > 同构）

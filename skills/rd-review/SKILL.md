@@ -19,7 +19,7 @@ argument-hint: "[--target <review-target.json 路径>]"
 你要做的第一件事是核对：
 
 ```bash
-node <agentrd>/scripts/freeze-target.js -Feature {slug} -Verify
+node <agent-rd>/scripts/freeze-target.js -Feature {slug} -Verify
 ```
 
 - 校验通过 → 继续。

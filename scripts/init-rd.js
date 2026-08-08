@@ -53,7 +53,7 @@ if (!fs.existsSync(templates)) {
 }
 
 out('');
-out(C.cyan(`=== AgentRD init -> ${Root} ===`));
+out(C.cyan(`=== Agent-RD init -> ${Root} ===`));
 
 const rd = path.join(Root, '.rd');
 for (const d of [rd, path.join(rd, 'lessons'), path.join(rd, 'features')]) {
@@ -153,7 +153,7 @@ for (const g of (Array.isArray(gatesCfg.l1) ? gatesCfg.l1 : [])) {
 // ---- .gitignore：直接创建 ----
 const giPath = path.join(Root, '.gitignore');
 
-const common = ['# --- AgentRD init ---', '.DS_Store', 'Thumbs.db', '*.log'];
+const common = ['# --- Agent-RD init ---', '.DS_Store', 'Thumbs.db', '*.log'];
 let langIgnore;
 if (kind === 'python') langIgnore = ['__pycache__/', '*.py[cod]', '.venv/', 'venv/', '.pytest_cache/', '.mypy_cache/', 'dist/', 'build/', '*.egg-info/'];
 else if (kind === 'go') langIgnore = ['bin/', '*.exe', '*.test', 'coverage.out'];
@@ -167,7 +167,7 @@ if (fs.existsSync(giPath)) {
   const gi = fs.readFileSync(giPath, 'utf8');
   const missing = want.filter((w) => w.charAt(0) !== '#' && gi.indexOf(w) < 0);
   if (missing.length > 0) {
-    let app = '\n# --- AgentRD init [' + kind + '] ---\n' + missing.join('\n') + '\n';
+    let app = '\n# --- Agent-RD init [' + kind + '] ---\n' + missing.join('\n') + '\n';
     fs.appendFileSync(giPath, app, 'utf8');
     out('');
     out(C.green(`  appended .gitignore  追加 ${missing.length} 条 [${kind}]`));

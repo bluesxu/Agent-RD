@@ -22,7 +22,7 @@
 ### 1. 冻结目标 [required]
 
 ```
-node <agentrd>/scripts/freeze-target.js -Feature {slug}
+node <agent-rd>/scripts/freeze-target.js -Feature {slug}
 ```
 没有 feature 目录时直接用 `git diff` 交给 reviewer，但**审查期间不许改动工作树**。
 
@@ -56,7 +56,7 @@ node <agentrd>/scripts/freeze-target.js -Feature {slug}
 ### 5. 校验目标没漂移
 
 ```
-node <agentrd>/scripts/freeze-target.js -Feature {slug} -Verify
+node <agent-rd>/scripts/freeze-target.js -Feature {slug} -Verify
 ```
 报 `TargetMoved` → 本轮作废，重新冻结再审。
 

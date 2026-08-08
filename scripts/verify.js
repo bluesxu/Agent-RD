@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
-  verify —— AgentRD 脚本的最小行为验证（自带、零依赖、Node 18+）。
+  verify —— Agent-RD 脚本的最小行为验证（自带、零依赖、Node 18+）。
 
   在临时目录里造一个 fixture 项目，逐个脚本跑真实命令，断言退出码和关键行为。
   不动仓库本身，只碰 os.tmpdir() 下的一次性目录。
@@ -27,7 +27,7 @@ const C = {
 };
 
 const HERE = __dirname;
-const ROOT = path.dirname(HERE); // AgentRD 根
+const ROOT = path.dirname(HERE); // Agent-RD 根
 
 let pass = 0;
 let fail = 0;
@@ -64,7 +64,7 @@ function sh(cmd, cwd) {
 function write(p, s) { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, s, 'utf8'); }
 
 // ---- 造一个一次性 fixture 项目 ----
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'agentrd-verify-'));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-rd-verify-'));
 console.log(C.cyan('fixture: ' + tmp));
 console.log('');
 
@@ -99,7 +99,7 @@ try {
   console.log('');
   console.log(C.cyan('【3】check-artifacts 退出码契约'));
   // 4：没有 .rd 的目录
-  const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentrd-nord-'));
+  const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-rd-nord-'));
   const ca4 = run('check-artifacts.js', ['-Root', emptyDir], emptyDir);
   check('无 .rd → exit 4', ca4.code === 4, 'got ' + ca4.code);
   // 有 .rd 但 feature 目录不存在
@@ -241,7 +241,7 @@ try {
   // ==== 7. install.js（dry-run 安全 + 真装到假 home）====
   console.log('');
   console.log(C.cyan('【7】install.js'));
-  const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), 'agentrd-home-'));
+  const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-rd-home-'));
   const dry = spawnSync(process.execPath, [path.join(ROOT, 'install.js'), '-ClaudeHome', fakeHome], { cwd: ROOT, encoding: 'buffer' });
   check('dry-run → exit 0', dry.status === 0, 'got ' + dry.status);
   check('dry-run 不创建 skills/', !fs.existsSync(path.join(fakeHome, 'skills')));
@@ -251,8 +251,45 @@ try {
   const srcCount = fs.readdirSync(path.join(ROOT, 'skills'), { withFileTypes: true }).filter((e) => e.isDirectory()).length;
   const dstCount = fs.existsSync(path.join(fakeHome, 'skills')) ? fs.readdirSync(path.join(fakeHome, 'skills')).filter((d) => fs.statSync(path.join(fakeHome, 'skills', d)).isDirectory()).length : 0;
   check(`install 全部 ${srcCount} 个 skill`, srcCount > 0 && dstCount === srcCount, `src=${srcCount} dst=${dstCount}`);
-  // install.js 不得碰任何配置文件 —— Agent Teams 开关由用户自行设置（docs/install.md 步骤 3b）
+  // install.js 不得碰任何配置文件 —— Agent Teams 开关归 enable-agent-teams.js（docs/install.md 步骤 2）
   check('install.js 不创建 settings.json', !fs.existsSync(path.join(fakeHome, 'settings.json')));
+
+  // ==== 8. enable-agent-teams（写 settings.json 的那一条独立命令）====
+  console.log('');
+  console.log(C.cyan('【8】enable-agent-teams'));
+  const eatHome = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-rd-eat-'));
+  const settings = path.join(eatHome, 'settings.json');
+  const eat = (argv) => spawnSync(process.execPath, [path.join(HERE, 'enable-agent-teams.js'), '-ClaudeHome', eatHome, ...argv], { cwd: ROOT, encoding: 'buffer' });
+  const readSettings = () => JSON.parse(fs.readFileSync(settings, 'utf8'));
+  const KEY = 'CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS';
+
+  // dry-run 不落地
+  const eatDry = eat(['-DryRun']);
+  check('dry-run → exit 0', eatDry.status === 0, 'got ' + eatDry.status);
+  check('dry-run 不创建 settings.json', !fs.existsSync(settings));
+  // 无 settings.json → 新建
+  const eatNew = eat([]);
+  check('无 settings.json → exit 0 并新建', eatNew.status === 0 && fs.existsSync(settings), 'got ' + eatNew.status);
+  check(`  …写入 env.${KEY}="1"`, readSettings().env[KEY] === '1');
+  // 幂等：二次运行不产生备份（说明它根本没写）
+  const eatAgain = eat([]);
+  check('幂等 → exit 0', eatAgain.status === 0, 'got ' + eatAgain.status);
+  check('  …已配置时不重复备份', fs.readdirSync(eatHome).filter((f) => f.startsWith('settings.json.bak-')).length === 0);
+  // 合并进已有配置：其他顶层键和已有 env 字段都要活下来
+  fs.writeFileSync(settings, JSON.stringify({ model: 'opus', env: { FOO: 'bar' }, permissions: { allow: ['Bash(ls)'] } }, null, 2), 'utf8');
+  const eatMerge = eat([]);
+  check('合并进已有配置 → exit 0', eatMerge.status === 0, 'got ' + eatMerge.status);
+  const merged = readSettings();
+  check('  …保留其他顶层键', merged.model === 'opus' && merged.permissions.allow[0] === 'Bash(ls)');
+  check('  …保留已有 env 字段', merged.env.FOO === 'bar' && merged.env[KEY] === '1');
+  check('  …写前备份了原文件', fs.readdirSync(eatHome).some((f) => f.startsWith('settings.json.bak-')));
+  // 坏 JSON → exit 1，且绝不覆盖用户原文件（install 流程靠这个保证「跳过是安全的」）
+  const junk = '{ "env": { /* 注释 */ } }';
+  fs.writeFileSync(settings, junk, 'utf8');
+  const eatBad = eat([]);
+  check('settings.json 解析失败 → exit 1', eatBad.status === 1, 'got ' + eatBad.status);
+  check('  …失败时不覆盖原文件', fs.readFileSync(settings, 'utf8') === junk);
+  try { fs.rmSync(eatHome, { recursive: true, force: true }); } catch { /* ignore */ }
 } finally {
   // 清理
   try { fs.rmSync(tmp, { recursive: true, force: true }); } catch { /* ignore */ }

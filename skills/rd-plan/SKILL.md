@@ -135,7 +135,7 @@ check:       node .rd/bin/check-ac.js
 ## 第六步：校验
 
 ```bash
-node <agentrd>/scripts/validate-plan.js -Feature {slug} -Stage plan
+node <agent-rd>/scripts/validate-plan.js -Feature {slug} -Stage plan
 ```
 
 校验的是机械规则：文件不重叠、依赖不成环、AC 全覆盖、verify 非空。

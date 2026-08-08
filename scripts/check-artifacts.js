@@ -104,7 +104,7 @@ function asList(v) {
 
 const rd = path.join(Root, '.rd');
 if (!exists(rd)) {
-  out(C.red(`找不到 ${rd} —— 这个目录不是 AgentRD 项目，或者还没跑 init-rd。`));
+  out(C.red(`找不到 ${rd} —— 这个目录不是 Agent-RD 项目，或者还没跑 init-rd。`));
   process.exit(4);
 }
 
@@ -263,7 +263,7 @@ function getFrameworkFingerprint(agentRDRoot) {
   return { sha256: sha.digest('hex'), fileCount: sorted.length };
 }
 
-const fwRoot = path.resolve(__dirname, '..'); // scripts/ 的父目录 = AgentRD 根
+const fwRoot = path.resolve(__dirname, '..'); // scripts/ 的父目录 = Agent-RD 根
 const fwNow = getFrameworkFingerprint(fwRoot);
 let fwState = 'unknown'; // captured | same | drifted | acknowledged | unknown
 let fwRecorded = null;
