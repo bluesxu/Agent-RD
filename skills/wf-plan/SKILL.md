@@ -15,9 +15,16 @@ argument-hint: "[feature slug]"
 
 派 **2~3 个探索 agent 独立出方案**。硬性要求：
 
-- **不继承主对话历史**（每个 agent 的任务必须自包含，把 `spec.md` 全文和
-  `acceptance.json` 放进它的 prompt）。理由：继承了你的假设的 agent 不再独立，
+- **不继承主对话历史**（每个 agent 的任务必须自包含，把 `spec.md` 全文、
+  **`spec-internal.md` 全文**（若存在）和 `acceptance.json` 放进它的 prompt）。
+  理由：继承了你的假设的 agent 不再独立，
   它会去找支持你已有倾向的证据，而不是真的另想一条路。
+
+  > **`spec-internal.md` 为什么要给方案 agent，却不给 L3 验收者**：
+  > 它装的是「未决风险」和「打算怎么抓错」。
+  > 对**出方案**的人，这是必须知道的输入 —— 方案得能应对那些风险。
+  > 对**验收**的人，这是一份提示清单 —— 照着找到了什么都不证明。
+  > 同一份内容，对不同角色一个是必需、一个是污染。
 - **异构优先**：能指定不同厂商/不同模型就指定。同一个模型出三份方案，
   大概率是同一份方案的三种措辞。
 - **同一条消息里全部派出**，然后**立即等待，停止你自己的一切分析、检索和文件操作**，
@@ -88,7 +95,44 @@ argument-hint: "[feature slug]"
 典型分层：layer 1 是底层（model / schema / util / store），layer 2 是上层
 （service / route / controller / component），layer 3 是集成与端到端测试。
 
-## 第五步：校验
+## 第五步：把 checkIntent 具化成 check —— 技术定了才做得了这件事
+
+**阶段 0 只写判据，不写命令**（业务梳理只讨论业务）。所以 `acceptance.json` 里
+每条 `judge: "machine"` 的场景现在只有 `checkIntent`，没有 `check`。
+
+**技术栈仲裁完之后，回到 `acceptance.json`，逐条把 `checkIntent` 翻译成选定栈的命令。**
+
+```
+checkIntent: 对一组写死的输入跑计算，逐个断言四个周期的输出与手工验算值一致
+             （相对误差 < 1e-9），并能区分「用均值作初值」和「用首个数据点作初值」
+
+     ↓ 选定 Node 之后
+
+check:       powershell -ExecutionPolicy Bypass -File .workflow/bin/check-ac.ps1
+             -Cmd "node --test --test-name-pattern={slug}\sAC-1"
+             -MustMatch "AC-1: 数值精确匹配;;AC-1: 均值初值与首值初值可区分"
+```
+
+三条要求：
+
+1. **`checkIntent` 不许动。**它是规格，你写的 `check` 是实现。
+   改规格来迁就实现，是这套框架最严重的违规之一。
+2. **`checkIntent` 里有几个并列判据，`-MustMatch` 就要有几个锚点**（`;;` 分隔）。
+   一个锚点只能回答「有没有用例跑到」，回答不了「每一句是不是都被锁住了」。
+3. **翻译不动的，说明阶段 0 那条判据本身有问题** —— 回头找 `wf-spec` 重写，
+   不要在这里把它悄悄弱化。
+
+> **为什么这一步存在**：早期版本在阶段 0 就要求写一条可执行命令，
+> 而命令必然带着语言和工具 —— 于是技术选型在你开始论证之前就已经定了。
+> 实跑里三个论证 agent 有两个开口第一句就是「技术栈其实不用论证，已被钉死」。
+> 你上面那套「2~3 个异构 agent 独立出方案再仲裁」的安排成本不低，
+> **别让它变成走过场。**
+
+**同时检查 `gates.json`**：如果它带着 `_provisional: true`，
+说明 `init-workflow` 当时在一个空目录上猜的语言（多半猜成了 node）。
+按仲裁结果改掉，并删掉那个标记。
+
+## 第六步：校验
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File <agentflow>/scripts/validate-plan.ps1 -Feature {slug} -Stage plan

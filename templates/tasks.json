@@ -6,58 +6,97 @@
       "id": "T1",
       "layer": 1,
       "name": "用户与会话数据模型",
-      "files": ["src/models/user.ts", "src/models/session.ts"],
+      "files": [
+        "src/models/user.ts",
+        "src/models/session.ts"
+      ],
       "steps": [
         "定义 User 实体，密码字段只存 argon2 哈希，禁止出现明文字段",
         "定义 Session 实体，含 expires_at 与 revoked_at",
         "补 failed_attempts 与 locked_until 两个字段，供锁定逻辑使用"
       ],
       "verify": "npx tsc --noEmit && npm test -- src/models",
-      "covers": ["AC-1", "AC-2"]
+      "covers": [
+        "AC-1",
+        "AC-2"
+      ],
+      "mutationTargets": [
+        "src/models/user.ts"
+      ]
     },
     {
       "id": "T2",
       "layer": 1,
       "name": "登录页面组件",
-      "files": ["src/ui/LoginForm.tsx", "src/ui/LoginForm.css"],
+      "files": [
+        "src/ui/LoginForm.tsx",
+        "src/ui/LoginForm.css"
+      ],
       "steps": [
         "表单含用户名、密码、提交按钮",
         "失败时在表单上方渲染错误横幅，清空密码框并保留用户名",
         "保存 returnTo 查询参数以便登录后跳回"
       ],
       "verify": "npx tsc --noEmit && npm test -- src/ui",
-      "covers": ["AC-3", "AC-4"]
+      "covers": [
+        "AC-3",
+        "AC-4"
+      ],
+      "mutationTargets": []
     },
     {
       "id": "T3",
       "layer": 2,
-      "depends_on": ["T1"],
+      "depends_on": [
+        "T1"
+      ],
       "name": "登录服务与锁定策略",
-      "files": ["src/services/auth.ts", "src/services/lockout.ts"],
+      "files": [
+        "src/services/auth.ts",
+        "src/services/lockout.ts"
+      ],
       "steps": [
         "校验凭据，失败时递增 failed_attempts",
         "达到 5 次时写 locked_until = now + 15min",
         "锁定期内即使密码正确也返回 423 与剩余秒数"
       ],
       "verify": "npm test -- src/services",
-      "covers": ["AC-1", "AC-2"]
+      "covers": [
+        "AC-1",
+        "AC-2"
+      ],
+      "mutationTargets": [
+        "src/services/auth.ts",
+        "src/services/lockout.ts"
+      ]
     },
     {
       "id": "T4",
       "layer": 3,
-      "depends_on": ["T2", "T3"],
+      "depends_on": [
+        "T2",
+        "T3"
+      ],
       "name": "登录路由与端到端串联",
-      "files": ["src/routes/login.ts", "tests/e2e/login.spec.ts"],
+      "files": [
+        "src/routes/login.ts",
+        "tests/e2e/login.spec.ts"
+      ],
       "steps": [
         "POST /api/login 接入 auth 服务，按 design.md 的契约返回",
         "登录成功后按 returnTo 跳转，缺省回首页",
         "补端到端测试覆盖 AC-1 到 AC-4"
       ],
       "verify": "npm test -- tests/e2e/login.spec.ts",
-      "covers": ["AC-1", "AC-2", "AC-3", "AC-4"]
+      "covers": [
+        "AC-1",
+        "AC-2",
+        "AC-3",
+        "AC-4"
+      ],
+      "mutationTargets": []
     }
   ],
-
   "_schema": {
     "id": "必填，T-N 形式，全文唯一",
     "layer": "必填，正整数。layer N 只能依赖 layer < N",
@@ -65,7 +104,9 @@
     "files": "必填非空。同一 layer 内任意两个 task 的 files 必须无交集",
     "steps": "必填非空",
     "verify": "必填。一条这个 task 自己能跑的窄验证命令",
-    "covers": "必填非空。所有 AC 必须被至少一个 task 覆盖"
+    "covers": "必填非空。所有 AC 必须被至少一个 task 覆盖",
+    "mutationTargets": "必填字段（可为空数组）。声明这个 task 里【哪些文件必须做变异测试】。规则：每个 judge=machine 的 AC，必须至少有一个覆盖它的 task 声明了非空 mutationTargets —— 因为机器判定的 AC，它的全部验证就是「测试通过了」，测试集不够用这条 AC 就是空的。judge=agent 的 AC 有人真的去观察，对测试充分性的依赖低得多，可以留空。"
   },
-  "_rule": "按文件边界切，不按功能切。功能是耦合的，文件不是。两个 agent 同时改一个文件产生的冲突，自动审查抓不出来。"
+  "_rule": "按文件边界切，不按功能切。功能是耦合的，文件不是。两个 agent 同时改一个文件产生的冲突，自动审查抓不出来。",
+  "_mutationRule": "为什么需要这个字段：实跑里出现过一次近乎受控的对比 —— 同一个仓库、同一轮审查，EMA 模块 6 个变异体全被杀，pipeline 模块 6 个全存活，唯一的差别是【EMA 那个 task 的任务书里写了变异测试要求，pipeline 那个没写】。测试通过只说明「实现和测试一致」，不说明「实现是对的」；变异测试是唯一直接检验「测试集够不够用」的手段。⚠️ 但这套要求目前只有一个数据点支撑，尚未在第二个独立项目上复现。"
 }

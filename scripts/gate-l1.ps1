@@ -35,6 +35,30 @@ if ($gates.Count -eq 0) {
     exit 2
 }
 
+# ---- 前置：上次是不是被中断在半路 ----
+# 寄生在这里的理由同 validate-plan：L1 是每轮第一道闸，绕不过去。
+# 不新增「必须调用」的规则 —— 那条路已被证伪三次（KNOWN-ISSUES 的 A15）。
+# 只硬拦 inflight（退出码 2），产物缺失只警告：
+# build 阶段 L2/L3 本来就还没有，一律阻塞会天天误报，然后人开始习惯性跳过。
+$checkArt = Join-Path $PSScriptRoot 'check-artifacts.ps1'
+if (Test-Path $checkArt) {
+    $caArgs = @('-ExecutionPolicy', 'Bypass', '-File', $checkArt, '-Root', $Root)
+    if ($Feature) { $caArgs += @('-Feature', $Feature) }
+    $caOut  = & powershell @caArgs 2>$null | Out-String
+    $caCode = $LASTEXITCODE
+    if ($caCode -eq 2) {
+        Write-Host $caOut
+        Write-Host "[L1] 中止：上次运行被中断在半路。" -ForegroundColor Red
+        Write-Host "     先按上面的 inflight 收尾，把 run.json 的 inflight 清成 null，再跑 L1。" -ForegroundColor Red
+        Write-Host "     在没收尾的状态下跑门，绿了也不知道绿的是哪一版。" -ForegroundColor DarkGray
+        exit 2
+    }
+    if ($caCode -eq 3) {
+        Write-Host "[L1] ⚠ 存在孤儿证据（evidence/ 下有文件没被任何报告引用）。" -ForegroundColor Yellow
+        Write-Host "     跑 check-artifacts.ps1 看清单 —— 要么在报告里认领，要么删掉。" -ForegroundColor DarkGray
+    }
+}
+
 Write-Host ""
 Write-Host "=== L1 机械门 ($($gates.Count) 项) ===" -ForegroundColor Cyan
 

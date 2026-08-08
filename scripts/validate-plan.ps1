@@ -39,6 +39,33 @@ function AsList($v) {
     return @($v | Where-Object { $null -ne $_ })
 }
 
+# ---------- 前置：上次是不是被中断在半路 ----------
+# 为什么挂在这里而不是往 SKILL.md 里加一句「必须先跑 check-artifacts」：
+# 「写进 skill 正文」这条路已经被证伪三次（见 KNOWN-ISSUES 的 A15）——
+# 规则写得很清楚、没被执行、都是复盘才发现的，而违反者是持有规则原文的编排者本人。
+# 所以不新增调用点，寄生到一条**流程上绕不过去**的路上：
+# validate-plan 不过就不许派 agent，它必跑。
+#
+# 只硬拦 inflight（退出码 2），因为它是唯一无歧义的信号：
+# 「派出去的东西没收回来」只有这一个含义。
+# 产物缺失（1）在流程中段是正常的，一律阻塞会天天误报，
+# 然后人开始习惯性跳过检查 —— 跟没有检查一样。
+$checkArt = Join-Path $PSScriptRoot 'check-artifacts.ps1'
+if (Test-Path $checkArt) {
+    $caOut  = & powershell -ExecutionPolicy Bypass -File $checkArt -Root $Root -Feature $Feature 2>$null | Out-String
+    $caCode = $LASTEXITCODE
+    if ($caCode -eq 2) {
+        Write-Host $caOut
+        Write-Host "=== validate-plan 中止：上次运行被中断在半路 ===" -ForegroundColor Red
+        Write-Host "  先按上面的 inflight 收尾，把 run.json 的 inflight 清成 null，再回来规划。" -ForegroundColor Red
+        Write-Host "  在没收尾的状态下继续规划，会基于一份不知道真假的进度做决策。" -ForegroundColor DarkGray
+        exit 2
+    }
+    if ($caCode -eq 3) {
+        Add-Warn "存在孤儿证据（evidence/ 下有文件没被任何报告引用）。跑 check-artifacts.ps1 看清单 —— 要么在报告里认领，要么删掉。无主证据会被后人误当成有效依据。"
+    }
+}
+
 # ---------- spec.md ----------
 if (-not (Test-Path $specPath)) {
     Add-Err "缺少 spec.md"
@@ -50,6 +77,26 @@ if (-not (Test-Path $specPath)) {
         # 容忍 markdown 强调与不同列表符号：「- 不做：」「- **不做**：」「* `不做`:」都算数。
         # 早期版本只认最朴素的一种写法，会对完全合规的 spec 误报。
         Add-Err "spec.md 的「范围」里「不做」为空。没有边界的需求，agent 一定会越界。"
+    }
+
+    # 【B13】提示性内容不该留在 spec.md 里 —— L3 验收者会读它的全文。
+    #
+    # 「未决风险」和「怎么确认算对了」本质是**一份提示清单**：
+    # 它们告诉验收者「作者怕哪里错、打算怎么抓」。验收者照着找到了，什么都不证明 ——
+    # 而它要写的「场外观察」，全部价值就在于「那是自己撞见的」。
+    #
+    # 早期版本的写法是「验收者只许读 spec.md 的两节」。那条规则**根本无法被遵守**：
+    # 读文件的工具只能整读，实跑里验收者只能事后报备「我看到了全部 75 行」。
+    # 做不到的规则会腐蚀做得到的规则，所以改成按文件切分：这两节移到 spec-internal.md。
+    #
+    # ⚠️ 只警告不报错：已有项目的 spec.md 就是合在一起的，
+    # 报错会把它们全部拦死，而这属于文档组织问题，不是判定能力缺陷。
+    $internalPath = Join-Path $dir 'spec-internal.md'
+    $leaky = @()
+    if ($spec -match '(?m)^##\s*未决风险')     { $leaky += '未决风险' }
+    if ($spec -match '(?m)^#{2,3}.*怎么确认算对') { $leaky += '怎么确认算对了' }
+    if ($leaky.Count -gt 0 -and -not (Test-Path $internalPath)) {
+        Add-Warn "spec.md 里还留着「$($leaky -join '」「')」。这几节是给出方案的人看的，不是给验收者看的 —— L3 验收者会读 spec.md 全文，读到它们等于拿到一份提示清单，之后它的「场外观察」就不再是自己撞见的了。把它们移到同目录的 spec-internal.md（L3 禁读、方案 agent 必读）。"
     }
 }
 
@@ -66,6 +113,7 @@ if (-not (Test-Path $acPath)) {
 }
 
 $acIds = @()
+$machineAcIds = @()
 $machineChecks = @{}
 if ($null -ne $ac) {
     $scenarios = AsList $ac.scenarios
@@ -91,8 +139,47 @@ if ($null -ne $ac) {
         }
 
         if ($judge -eq 'machine') {
+            $machineAcIds += $id
+
+            # 【A9】业务梳理只讨论业务 —— 阶段 0 要判据，阶段 1 才要命令。
+            #
+            # 原设计在阶段 0 就要求「一条能跑、退出码即结论的命令」，
+            # 而命令必然带着语言和工具。于是技术选型在阶段 1 开始之前就已经定了 ——
+            # 而阶段 1 还要派 2~3 个 agent（尽量不同厂商/不同模型）独立出方案再仲裁。
+            # 实跑：三个论证 agent 里两个开口第一句就是「技术栈其实不用论证，已被钉死」。
+            # 那套安排的成本照付，产出的是一场走过场。
+            #
+            # 这不是锚定问题，是**类别错误**：阶段 0 里根本不该有技术。
+            $techTokens = @(
+                'node ', 'node.', 'npm ', 'npx ', 'yarn ', 'pnpm ', 'deno ', 'bun ',
+                'pytest', 'python ', 'pip ', 'poetry', 'tox ',
+                'cargo ', 'go test', 'go build', 'dotnet ', 'mvn ', 'gradle ',
+                'jest', 'mocha', 'vitest', 'rspec', 'phpunit', 'junit',
+                'tsc ', '--test-name-pattern', 'powershell', 'bash '
+            )
+            $intent = "$($s.checkIntent)"
+
+            if ([string]::IsNullOrWhiteSpace($intent)) {
+                if ($Stage -eq 'spec') {
+                    Add-Err "$id judge=machine 但没有 checkIntent。阶段 0 要的是【判据】不是【命令】：说清输入是什么、期望输出是什么、用什么判等（精确相等 / 相对误差 / 区间）。说不清就不是验收标准，是愿望 —— 回去继续拷问。"
+                } else {
+                    Add-Warn "$id 没有 checkIntent。阶段 0 应当先写下判据（输入 / 期望输出 / 判等方式），阶段 1 再具化成命令。缺了它，无法判断当前这条 check 是不是忠实地实现了原本的判据。"
+                }
+            } else {
+                $badTok = $null
+                foreach ($tk in $techTokens) {
+                    if ($intent.IndexOf($tk, [StringComparison]::OrdinalIgnoreCase) -ge 0) { $badTok = $tk.Trim(); break }
+                }
+                if ($null -ne $badTok) {
+                    Add-Err "$id 的 checkIntent 里出现了技术栈名词「$badTok」。**业务梳理只讨论业务** —— 技术选型是阶段 1 的事，阶段 1 还要派 2~3 个 agent 独立出方案再仲裁。在阶段 0 写下工具名，等于开会之前就把结论写在纸上。把它改写成与语言无关的判据：输入是什么、期望输出是什么、用什么判等。"
+                }
+            }
+
+            # 阶段 0 不要求 check —— 具体命令是阶段 1 技术选定之后的产物。
             if ([string]::IsNullOrWhiteSpace($s.check)) {
-                Add-Err "$id judge=machine 但没有 check 命令。判定不了的不是验收标准，是愿望。"
+                if ($Stage -ne 'spec') {
+                    Add-Err "$id judge=machine 但没有 check 命令。阶段 1 必须把 checkIntent 具化成选定技术栈的可执行命令，否则 L1/L3 无从判定。"
+                }
             } else {
                 # 【#11b】check 必须能区分是哪条 AC 挂了。
                 # 实跑教训：AC-1/2/3 的 check 全是同一条 `node --test`。命令挂了你不知道
@@ -108,7 +195,22 @@ if ($null -ne $ac) {
                     if ($s.check.IndexOf($ff, [StringComparison]::OrdinalIgnoreCase) -ge 0) { $usesFilter = $true }
                 }
                 if ($usesFilter -and $s.check -notmatch 'check-ac\.ps1') {
-                    Add-Err "$id 的 check 带了用例过滤条件，但没走 check-ac.ps1 守卫。过滤匹配不到任何用例时运行器也返回 0 —— 这条 AC 的测试没写时 check 照样绿。改成: powershell -ExecutionPolicy Bypass -File <agentflow>/scripts/check-ac.ps1 -Cmd `"<原命令>`" -MustMatch `"<本 AC 的测试名>`""
+                    Add-Err "$id 的 check 带了用例过滤条件，但没走 check-ac.ps1 守卫。过滤匹配不到任何用例时运行器也返回 0 —— 这条 AC 的测试没写时 check 照样绿。改成: powershell -ExecutionPolicy Bypass -File .workflow/bin/check-ac.ps1 -Cmd `"<原命令>`" -MustMatch `"<本 AC 的测试名>`""
+                }
+
+                # 【L3 实测发现】check 里禁止出现嵌套转义引号 \" —— 它不可移植。
+                # 同一个 check 字符串，bash 下 PASS，PowerShell 下 FAIL：
+                #   写的是   -Cmd "node --test --test-name-pattern \"screener AC-1\"" -MustMatch "screener AC-1"
+                #   PS 收到  -Cmd 'node --test --test-name-pattern " screener AC-1\ -MustMatch screener'
+                # 反斜杠被吃掉后引号错配，连 -MustMatch 参数本身都被吞进 -Cmd。
+                # 结果是**假 FAIL**：实现明明是对的，执行者却拿到一个失败结论。
+                # 反过来也可能构造出假 PASS —— 取决于错配后剩下什么。
+                #
+                # 正解：用 `--flag=value` 形式 + 正则 \s 代替空格，把嵌套引号彻底消掉：
+                #   -Cmd "node --test --test-name-pattern=screener\sAC-1" -MustMatch "screener AC-1"
+                # 只剩一层引号，bash 和 PowerShell 解析结果一致。
+                if ($s.check.IndexOf('\"') -ge 0) {
+                    Add-Err "$id 的 check 含嵌套转义引号 \`" —— 不可移植，bash 下过、PowerShell 下会因引号错配得到假 FAIL。改用 --flag=value 形式，空格用正则 \s 代替，例如: -Cmd `"node --test --test-name-pattern=<feature>\s$id`" -MustMatch `"<feature> $id`""
                 }
 
                 $key = $s.check.Trim()
@@ -120,11 +222,23 @@ if ($null -ne $ac) {
             }
         } else {
             # 【#11】agent 判定的场景必须声明「用什么对外接口去观察」。
-            # 实跑教训：AC「短链总数没有增加」在 HTTP 层根本观测不到（服务没有统计端点），
-            # 这条 AC 从写下来那刻起就只能靠白盒验证，而校验脚本当时放行了它。
+            # 实跑教训：有一条 AC 要求验「某个总数没有增加」，而服务按范围声明不做统计接口，
+            # 这个数字在对外接口层根本观测不到 —— 该 AC 从写下来那刻起就只能靠白盒验证，
+            # 而校验脚本当时放行了它。
             # 逼作者写出观察通道 —— 写不出来，说明这条不该是 agent 判定。
             if ([string]::IsNullOrWhiteSpace($s.observe)) {
                 Add-Err "$id judge=agent 但没有 observe。必须写清楚用产品对外暴露的哪个接口去观察（HTTP 端点 / 页面 / CLI 命令 / 落盘文件）。写不出来说明这条黑盒不可验证，应改成 machine 或重新设计。"
+            }
+
+            # 【A16】agent 判定的场景必须声明「在什么条件下比对才算数」。
+            # 实跑教训：一条 AC 要求把命令行数值与某看盘工具的读数比对，但没写明用哪种合约类型的图表。
+            # 同一标的的现货与永续是两条独立行情序列，验收者若打开了错的那条，读数必然对不上，
+            # 于是判「算法口径不一致」—— 它确实照着 when 做了、确实对照 then 判了，
+            # 报告形式上无懈可击，结论却完全错误。
+            # 隔离机制拦不住这种错：它防的是「偷看答案」，不是「前提缺失」。
+            # 派发方当时是在 prompt 里口头补的这个前提 —— 口头补的前提不是前提，是运气。
+            if ([string]::IsNullOrWhiteSpace($s.preconditions)) {
+                Add-Err "$id judge=agent 但没有 preconditions。必须写清楚「在什么条件下比对才算数」—— 那些不满足就会让整条判定失效、但 given/when/then 里没地方写的前提（对照的是哪个数据源/环境/版本、服务跑在哪、外部工具的哪个具体配置）。缺了它，验收者会产出一份形式无懈可击、结论完全错误的报告。"
             }
 
             $ev = AsList $s.evidence
@@ -166,8 +280,9 @@ if ($Stage -eq 'plan') {
         $tasks = AsList $tk.tasks
         if ($tasks.Count -eq 0) { Add-Err "tasks.json 没有任何 task" }
 
-        $byId    = @{}
-        $covered = @{}
+        $byId       = @{}
+        $covered    = @{}
+        $mutCovered = @{}
 
         foreach ($t in $tasks) {
             $id = $t.id
@@ -181,9 +296,46 @@ if ($Stage -eq 'plan') {
             if ([string]::IsNullOrWhiteSpace($t.verify)) { Add-Err "$id 缺少 verify 命令" }
             if ((AsList $t.covers).Count -eq 0) { Add-Err "$id 的 covers 为空，说明它不对任何验收标准负责" }
 
+            $hasMut = (AsList $t.mutationTargets).Count -gt 0
             foreach ($c in (AsList $t.covers)) {
                 $covered[$c] = $true
+                if ($hasMut) { $mutCovered[$c] = $id }
                 if ($acIds -notcontains $c) { Add-Err "$id 的 covers 引用了不存在的 $c" }
+            }
+
+            # 【A13-①】任务书里出现「实测得到的期望值」——
+            # 编排者把自己跑出来的数字直接写进任务书，Builder 就不是算出来的，是抄回来的。
+            # 下游任何 agent 的「独立验证」都被诱导了：它验的是「有没有抄对」，
+            # 不是「这个数字对不对」。而这类值往往还会漂（标的数量、市场统计），
+            # 抄进去之后**没有任何环节会重新测一次**。
+            #
+            # ⚠️ 这条只能是警告，不能是错误：
+            # 分不清「我实测的期望输出」和「设计参数」——
+            # `minBars=800` 也是数字，但那是设计决策，本来就该写进任务书。
+            # 判据是关键词而非数值本身：`实测`/`期望值`/`跑出来` 这类词，
+            # 恰恰是作者自己在标注「这是观察到的结果」。
+            #
+            # ⛔ 不属于本条的：告诉 Builder 测试命名约定（如「测试名以 <feature> AC-N 开头」）。
+            # 那是 check 机制的必要输入，不是污染 —— 锚点必须事先约定，否则 check 匹配不到。
+            # 「锚点命中不证明正确性」这个弱点由 A11（变异测试）和 A14（多锚点）负责，不在这里。
+            $obsMarkers = @('实测', '期望值', '跑出来', '实际得到', '实际测得', 'measured', 'observed value')
+            foreach ($step in (AsList $t.steps)) {
+                $s = "$step"
+                $hit = $null
+                foreach ($mk in $obsMarkers) {
+                    if ($s.IndexOf($mk, [StringComparison]::OrdinalIgnoreCase) -ge 0) { $hit = $mk; break }
+                }
+                if ($null -eq $hit) { continue }
+                # 同一条 step 里还带具体数值才告警（纯文字说明不算）
+                if ($s -notmatch '\d') { continue }
+                # 给了推导式的放行：能自己复算就不算「抄答案」
+                # 给了推导依据的放行：能自己复算就不算「抄答案」。
+                # 「代数」两字单独出现就够 —— 实测踩过：「复用同一套代数期望值」被误报，
+                # 因为豁免词写死成了「代数上」。宁可放过几条，也不要让告警变成噪音：
+                # 一条会误报的告警，用不了几次就会被习惯性忽略，跟没有一样。
+                if ($s -match '代数|推导|公式|定义为|由.{0,8}得出|=\s*P_|IEEE|浮点') { continue }
+                $short = if ($s.Length -gt 48) { $s.Substring(0, 48) + '…' } else { $s }
+                Add-Warn "$id 的 steps 里有一条带「$hit」+ 具体数值：「$short」。这类值是编排者跑出来的，Builder 只会抄不会算，下游的『独立验证』因此是被诱导的。要么补上推导依据（能复算就不算抄），要么把它移出任务书 —— 期望值属于 acceptance.json（做成什么样算对），不属于 tasks.json（怎么做）。"
             }
         }
 
@@ -224,6 +376,24 @@ if ($Stage -eq 'plan') {
         foreach ($id in $acIds) {
             if (-not $covered.ContainsKey($id)) {
                 Add-Err "$id 没有被任何 task 覆盖"
+            }
+        }
+
+        # 【A11】machine 判定的 AC 必须有变异测试目标。
+        #
+        # 为什么只卡 machine：judge=machine 的 AC，它的**全部**验证就是「测试通过了」。
+        # 测试集不够用，这条 AC 就是空的 —— 而「测试通过」只说明实现与测试一致，
+        # 不说明实现是对的。变异测试是唯一直接检验「测试集够不够用」的手段。
+        # judge=agent 的 AC 有人真的按场景操作一遍，对测试充分性的依赖低得多，不强制。
+        #
+        # 实跑证据（一次近乎受控的对比）：同一个仓库、同一轮审查，
+        # EMA 模块 6 个变异体全被杀，pipeline 模块 6 个全存活 ——
+        # 唯一的差别是 **EMA 那个 task 的任务书里写了变异测试要求，pipeline 那个没写**。
+        #
+        # ⚠️ 这条规则目前只有一个数据点支撑，尚未在第二个独立项目上复现。
+        foreach ($id in $machineAcIds) {
+            if ($covered.ContainsKey($id) -and -not $mutCovered.ContainsKey($id)) {
+                Add-Err "$id 是 machine 判定，但覆盖它的 task 没有一个声明了 mutationTargets。machine 判定的 AC 全部依赖「测试通过了」这一个信号 —— 测试集不够用时这条 AC 就是空的。在负责实现它的 task 上声明 mutationTargets（要做变异测试的源文件），Builder 必须报告变异体存活数，存活 > 0 不算完成。"
             }
         }
 

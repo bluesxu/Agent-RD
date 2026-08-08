@@ -5,6 +5,7 @@
   "createdAt": "",
   "rounds": [],
   "l1_retries": 0,
+  "inflight": null,
   "breaker": {
     "max_rounds": 3,
     "max_l1_retries": 3,
@@ -17,13 +18,54 @@
     "mode": "agent-teams",
     "degraded_reason": null
   },
-
   "_roundShape": {
     "round": 1,
     "l1": "pass | fail",
-    "l2": { "blocking": 0, "important": 0, "nit": 0 },
-    "l3": { "passed": 0, "failed": 0, "blocked": 0 },
+    "l2": {
+      "blocking": 0,
+      "important": 0,
+      "nit": 0
+    },
+    "l3": {
+      "passed": 0,
+      "failed": 0,
+      "blocked": 0
+    },
     "fingerprint": "sha256 of sorted blocking finding titles",
+    "ts": "ISO8601",
+    "l1_verified_by": "agent | orchestrator | human —— 谁下的这个判定",
+    "l1_evidence": "证据文件路径（相对 feature 目录）。⛔ verified_by 不是 agent 时必填：编排者/人工的判定不经过三层门，必须自带可复核产物。check-artifacts 会核对该文件是否存在。"
+  },
+  "_inflightRule": "⛔ 中断可以发生在任何时刻，所以不要去预估「这一步能不能一口气跑完」—— 预估必然出错。要求是：任何时刻的状态都能从产物恢复。inflight 就是为此存在的：它记录「此刻正在做什么、派了谁出去」。派 agent 之前写，拿到结果立刻清空并把结果落进 rounds。**inflight 非 null 就意味着上一次运行是被中断在这里的** —— 恢复时先读它，不要凭记忆接着走。",
+  "_inflightShape": {
+    "stage": "spec | plan | build | review | eval | keep",
+    "round": 1,
+    "startedAt": "ISO8601",
+    "what": "一句话：此刻在做什么",
+    "agents": [
+      {
+        "name": "T4",
+        "role": "builder | reviewer | evaluator | fixer",
+        "task": "task id 或 AC id",
+        "files": [
+          "它被授权改的文件"
+        ],
+        "dispatchedAt": "ISO8601",
+        "reportPath": "它该把完整报告写到哪 —— 中断后据此判断它写没写完"
+      }
+    ],
+    "_note": "agents 里每一项在派发那一刻就写进去。这样即使会话被切断，也知道当时有谁在跑、它该产出什么文件、那文件在不在。被中断 agent 的部分产物据此认领或删除，不允许无主证据留在 evidence/。"
+  },
+  "_orchCheckRule": "【A18】判定链的最后一环 —— 编排者为核对而临时写的脚本 —— 是整条链上唯一没有守卫的地方。Builder 的产出过三层门，编排者的核对过零层。实测七次出错，最危险的一类不报错也不崩溃，只是数字错了（git 参数位置写错，2 个文件报成 14 个，差点当成正确结果记下来）。所以：编排者宣布任何核对结论前要做三件事 —— ① 证伪优先：先构造一个已知应该失败的输入，确认核对报得出失败，否则它没有判别力；② 双路复算：数字必须用两条独立路径各算一遍；③ 落盘：命令原文 + 原始输出写进 reports/orch-check-{标识}.md，并在本轮次标注 *_verified_by 与 *_evidence。机械能卡住的只有第三条 —— 卡不住结论对不对，因为编排者上面没有人（见 A13）。状态：已缓解，未解决。",
+  "outOfFlowActions": [],
+  "_outOfFlowRule": "【铁律 7】流程内的每个动作都有守卫，流程外的动作一个守卫都没有 —— 而实跑中真正出问题的地方，恰恰是编排者跳出流程做的那些事（掐掉两个正在跑的验收 agent、十余次修改框架本身、用人工判定替代 agent 判定、改动已定稿的验收标准）。所以：下列动作必须【先问用户】，不许自作主张 —— ① 中止/掐掉正在跑的 agent；② 修改框架本身（skills/scripts/templates）；③ 跳过某道门或手动放行没通过的门；④ 用人工判定替代 agent 判定；⑤ 修改已定稿的验收标准；⑥ 放宽或删除已生效的规则；⑦ 在流程之外新增步骤。列死而不是「自己判断算不算流程外」—— 触发条件若由编排者自判，他只要认定「这算流程内」就不用问，那这条规则就和它要解决的问题同一个形状了。⛔ 提问必须包含【不做的话会怎样】：只说「想做什么+为什么」等于诱导（「这个 agent 卡住了要不要停掉」技术上是问了，实际已经把答案塞过去）。唯一例外：外部原因中断（配额耗尽/API 报错/进程被杀）不算 —— 那不是你的决定。",
+  "_outOfFlowShape": {
+    "action": "kill-agent | modify-framework | skip-gate | human-override | change-acceptance | relax-rule | add-step",
+    "target": "具体对象（agent 名 / 文件 / AC id）",
+    "reason": "为什么要做",
+    "ifNotDone": "不做的话会怎样 —— 必须如实，包括「其实也能继续，只是更慢」",
+    "userDecision": "approved | rejected | modified",
+    "userNote": "用户附加的说明（可空）",
     "ts": "ISO8601"
   }
 }
