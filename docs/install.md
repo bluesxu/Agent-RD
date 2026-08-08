@@ -77,20 +77,36 @@ cd ~/.agentrd/repo
 node install.js
 ```
 
-### 步骤 3：⚠️ 真正安装
+### 步骤 3：⚠️ 安装 skill
 
 用户确认没问题之后：
 
 ```bash
-node install.js -Apply -EnableAgentTeams
+node install.js -Apply
 ```
 
-这一步做的事：
+这一步只做一件事：把全套 skill 拷进 `~/.claude/skills/`（已存在的先备份成
+`*.bak-<时间戳>` 再覆盖）。它不修改任何配置文件。
 
-- 把全套 skill 拷进 `~/.claude/skills/`（已存在的先备份成 `*.bak-<时间戳>` 再覆盖）
-- 往 `~/.claude/settings.json` 写入 `env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`（同样先备份原文件）
+### 步骤 3b：开启 Agent Teams（可选，推荐，由用户操作）
 
-> 用户不想开 Agent Teams 就去掉 `-EnableAgentTeams`，功能自动降级，不影响流程。
+Agent Teams 是 `rd-plan` / `rd-build` 并行编排依赖的能力。请用户自行在
+`~/.claude/settings.json` 中加入：
+
+```json
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}
+```
+
+这个键要手动加进 `settings.json`——`/permissions` 管的是工具权限规则，不管环境变量，
+在那里找不到它。已经有 `env` 对象就往里加字段，不要整个替换掉。
+
+不开也能用——AgentRD 会自动降级为子 agent 执行，功能不受影响，
+少掉的是常驻具名队友和队友间互相喊话的能力。所以**不要卡在这一步**，
+用户没开就继续走第 4 步。
 
 ### 步骤 4：⚠️ 在项目里初始化
 
@@ -122,7 +138,6 @@ node ~/.agentrd/repo/scripts/init-rd.js
 |---|---|
 | `node install.js` | 预览安装计划（默认，只读） |
 | `node install.js -Apply` | 真正安装 skill 到 `~/.claude/skills/` |
-| `node install.js -Apply -EnableAgentTeams` | 同上，并开启 Agent Teams |
 | `cd ~/.agentrd/repo && git pull` | 更新到最新版（之后重跑 install.js） |
 | `node ~/.agentrd/repo/scripts/init-rd.js` | 在当前项目初始化 `.rd/` |
 

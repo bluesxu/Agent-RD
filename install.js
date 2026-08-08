@@ -3,12 +3,11 @@
   install —— 安装 AgentRD 的 7 个 skill 到 ~/.claude/skills/（跨平台：Windows / macOS / Linux）。
 
   默认 dry-run，只打印将要做什么。确认无误后加 -Apply 真正执行。
-  -EnableAgentTeams 会往 ~/.claude/settings.json 写入
-  CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1（会先备份原文件）。
-
+  本脚本只复制 skill 目录，不修改任何配置文件。
+  Agent Teams 的开关由用户自行在 ~/.claude/settings.json 设置，见 docs/install.md 步骤 3b。
   用法：
     node install.js
-    node install.js -Apply -EnableAgentTeams
+    node install.js -Apply
     node install.js -Apply -ClaudeHome /custom/.claude
 
   退出码：0 = 成功（含 dry-run）；2 = 源目录缺失。
@@ -31,11 +30,10 @@ const C = {
 function out(s) { process.stdout.write(s + '\n'); }
 
 function parseArgs(argv) {
-  const args = { Apply: false, EnableAgentTeams: false };
+  const args = { Apply: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '-Apply' || a === '--Apply') { args.Apply = true; continue; }
-    if (a === '-EnableAgentTeams' || a === '--EnableAgentTeams') { args.EnableAgentTeams = true; continue; }
     const m = a.match(/^--?([A-Za-z]+)(?:=(.*))?$/);
     if (!m) continue;
     const key = m[1].toLowerCase();
@@ -103,40 +101,6 @@ for (const name of skills) {
     }
     copyDir(path.join(srcSkills, name), dst);
   }
-}
-
-if (args.EnableAgentTeams) {
-  out('');
-  out(C.cyan('  --- Agent Teams ---'));
-  const settingsPath = path.join(ClaudeHome, 'settings.json');
-
-  let settings = {};
-  if (fs.existsSync(settingsPath)) {
-    try { settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8')); }
-    catch { settings = {}; }
-  }
-  if (settings === null || typeof settings !== 'object' || Array.isArray(settings)) settings = {};
-  if (!settings.env || typeof settings.env !== 'object') settings.env = {};
-
-  const current = settings.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS;
-  if (current === '1') {
-    out(C.dark('  已经是 1，无需改动'));
-  } else {
-    out(C.yellow(`  将设置 env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = 1  (当前: '${current === undefined ? '' : current}')`));
-    if (args.Apply) {
-      if (fs.existsSync(settingsPath)) {
-        const bak = `${settingsPath}.bak-${ts()}`;
-        fs.copyFileSync(settingsPath, bak);
-        out(C.dark(`  已备份 -> ${path.basename(bak)}`));
-      }
-      settings.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = '1';
-      fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
-      out(C.green(`  已写入 ${settingsPath}`));
-    }
-  }
-  out('');
-  out(C.dark('  注意：Windows 上只能用 in-process 模式（主终端 Shift+上/下 切换队友）。'));
-  out(C.dark('        split panes 需要 tmux 或 iTerm2。'));
 }
 
 out('');

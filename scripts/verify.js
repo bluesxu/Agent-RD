@@ -245,18 +245,14 @@ try {
   const dry = spawnSync(process.execPath, [path.join(ROOT, 'install.js'), '-ClaudeHome', fakeHome], { cwd: ROOT, encoding: 'buffer' });
   check('dry-run → exit 0', dry.status === 0, 'got ' + dry.status);
   check('dry-run 不创建 skills/', !fs.existsSync(path.join(fakeHome, 'skills')));
-  const apply = spawnSync(process.execPath, [path.join(ROOT, 'install.js'), '-Apply', '-EnableAgentTeams', '-ClaudeHome', fakeHome], { cwd: ROOT, encoding: 'buffer' });
+  const apply = spawnSync(process.execPath, [path.join(ROOT, 'install.js'), '-Apply', '-ClaudeHome', fakeHome], { cwd: ROOT, encoding: 'buffer' });
   check('apply → exit 0', apply.status === 0, 'got ' + apply.status);
   // skill 数量与源目录一致（不写死个数，目录可能增减）
   const srcCount = fs.readdirSync(path.join(ROOT, 'skills'), { withFileTypes: true }).filter((e) => e.isDirectory()).length;
   const dstCount = fs.existsSync(path.join(fakeHome, 'skills')) ? fs.readdirSync(path.join(fakeHome, 'skills')).filter((d) => fs.statSync(path.join(fakeHome, 'skills', d)).isDirectory()).length : 0;
   check(`install 全部 ${srcCount} 个 skill`, srcCount > 0 && dstCount === srcCount, `src=${srcCount} dst=${dstCount}`);
-  let settingsOk = false;
-  try {
-    const s = JSON.parse(fs.readFileSync(path.join(fakeHome, 'settings.json'), 'utf8'));
-    settingsOk = s.env && s.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS === '1';
-  } catch { settingsOk = false; }
-  check('settings.json 写入 AGENT_TEAMS=1', settingsOk);
+  // install.js 不得碰任何配置文件 —— Agent Teams 开关由用户自行设置（docs/install.md 步骤 3b）
+  check('install.js 不创建 settings.json', !fs.existsSync(path.join(fakeHome, 'settings.json')));
 } finally {
   // 清理
   try { fs.rmSync(tmp, { recursive: true, force: true }); } catch { /* ignore */ }
