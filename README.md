@@ -1,14 +1,40 @@
-# agentflow
+<h1 align="center">🏭 agentflow</h1>
 
-# 一个人，一整个研发部
+<p align="center">
+  <strong>一个人，一整个研发部</strong>
+</p>
 
-## 给一人公司（One-Person Company）的全自动交付流水线
+<p align="center">
+  给一人公司（One-Person Company）的全自动交付流水线<br>
+  你负责说要什么，AI 负责写、审、验、交 · 三道自动审核关卡 · 十三道机械拦截
+</p>
 
-**你负责说要什么，AI 负责写、审、验、交** · 三道自动审核关卡 · 十三道机械拦截
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue.svg?style=for-the-badge" alt="License"></a>
+  <img src="https://img.shields.io/badge/PowerShell-5.1%2B-5391FE.svg?style=for-the-badge&logo=powershell&logoColor=white" alt="PowerShell 5.1+">
+  <img src="https://img.shields.io/badge/Platform-Windows-0078D6.svg?style=for-the-badge&logo=windows&logoColor=white" alt="Windows">
+  <a href="https://github.com/bluesxu/agentflow/stargazers"><img src="https://img.shields.io/github/stars/bluesxu/agentflow?style=for-the-badge" alt="GitHub Stars"></a>
+</p>
+
+<p align="center">
+  <b>简体中文</b> ·
+  <a href="docs/README_en.md">English</a> ·
+  <a href="docs/README_ja.md">日本語</a> ·
+  <a href="docs/README_ko.md">한국어</a>
+</p>
+
+<p align="center">
+  <a href="#quickstart">🚀 快速开始</a> ·
+  <a href="#gates">🚧 三道关卡</a> ·
+  <a href="#guards">🛡️ 机械拦截</a> ·
+  <a href="#routes">🧭 七条路线</a> ·
+  <a href="#design">🧠 核心设计</a> ·
+  <a href="#boundary">⚠️ 适用边界</a>
+</p>
 
 ---
 
-## 一人公司缺的从来不是「会写代码的人」
+## 🧩 一人公司缺的从来不是「会写代码的人」
 
 现在遍地都是让 AI 帮你写代码的工具。一个人写代码这件事，早就不是瓶颈了。
 
@@ -19,17 +45,17 @@
 
 于是三件事一定会发生：
 
-### 测试全绿，功能是假的
+### 🟢 测试全绿，功能是假的
 
 AI 为了让测试通过，会加假数据、加兜底分支、把断言改松。
 测试是绿的，代码是坏的。你看到一片绿，以为万事大吉。
 
-### 「我做完了」这句话，没人能反驳
+### 🗯️ 「我做完了」这句话，没人能反驳
 
 因为验收标准当初就没写成能检查的样子。写的是「用户体验要好」——
 那 AI 说做完了，你凭什么说没做完？你自己就是老板，也是唯一的验收方。
 
-### 两个 AI 同时改一个文件，后面的把前面的覆盖掉
+### 📑 两个 AI 同时改一个文件，后面的把前面的覆盖掉
 
 产生的问题连自动审查都发现不了——审查的人拿到的代码是覆盖之后的，
 看起来完全正常。
@@ -41,7 +67,8 @@ AI 为了让测试通过，会加假数据、加兜底分支、把断言改松�
 
 ---
 
-## 你只需要说一句话
+<a id="quickstart"></a>
+## 🗣️ 你只需要说一句话
 
 ```
 /wf 我要做一个支持锁定策略的登录功能
@@ -54,10 +81,10 @@ AI 为了让测试通过，会加假数据、加兜底分支、把断言改松�
   AI       3 个 AI     AI       多个 AI      3 个 AI       AI         ✅
 ```
 
-- **三个 AI 各出一套技术方案**，主控 AI 横向比较后选定
-- **按文件边界切成互不冲突的任务**，多个 AI 同时开工
-- **三道关卡自动审核**，没过就自动派新 AI 去修，修完从头再走一遍
-- **最多三轮**，还不过就停下来告诉你卡在哪
+- 🤖 **三个 AI 各出一套技术方案**，主控 AI 横向比较后选定
+- ✂️ **按文件边界切成互不冲突的任务**，多个 AI 同时开工
+- 🚧 **三道关卡自动审核**，没过就自动派新 AI 去修，修完从头再走一遍
+- 🔁 **最多三轮**，还不过就停下来告诉你卡在哪
 
 从一句话到能跑的代码，中间不需要你点一次头。
 
@@ -65,28 +92,29 @@ AI 为了让测试通过，会加假数据、加兜底分支、把断言改松�
 
 ---
 
-## 你的编制表
+## 👥 你的编制表
 
 一人公司不是「一个人干所有活」，是**一个人管所有岗**。
 agentflow 帮你把研发部的编制填满：
 
 | 岗位 | 谁在干 | 你干什么 |
 |---|---|---|
-| 产品经理 | AI 问你需求、写成可检查的验收清单 | 回答问题 |
-| 架构师 | 3 个 AI 各出方案，主控横向比选 | — |
-| 项目经理 | AI 按文件边界切任务，检查有没有冲突 | — |
-| 工程师 ×N | 多个 AI 并行开工 | — |
-| CI / 构建 | 脚本跑类型检查和测试，不花 AI 额度 | — |
-| Code Reviewer | 换一个 AI 来审，只能看不能改 | — |
-| QA / 验收 | 一个没看过代码的 AI，当真实用户用一遍 | — |
-| 知识管理 | AI 把这轮踩的坑记成经验，下轮自动带上 | 确认要记哪些 |
-| **CEO** | **你** | **说要什么、拍板、担责** |
+| 📋 产品经理 | AI 问你需求、写成可检查的验收清单 | 回答问题 |
+| 🏗️ 架构师 | 3 个 AI 各出方案，主控横向比选 | — |
+| 📊 项目经理 | AI 按文件边界切任务，检查有没有冲突 | — |
+| 👨‍💻 工程师 ×N | 多个 AI 并行开工 | — |
+| ⚙️ CI / 构建 | 脚本跑类型检查和测试，不花 AI 额度 | — |
+| 🔍 Code Reviewer | 换一个 AI 来审，只能看不能改 | — |
+| 🧑‍💼 QA / 验收 | 一个没看过代码的 AI，当真实用户用一遍 | — |
+| 📚 知识管理 | AI 把这轮踩的坑记成经验，下轮自动带上 | 确认要记哪些 |
+| 👑 **CEO** | **你** | **说要什么、拍板、担责** |
 
 **九个岗，八个 AI 在干。**
 
 ---
 
-## 三道自动审核关卡
+<a id="gates"></a>
+## 🚧 三道自动审核关卡
 
 ```
 第一道  不花 AI 额度的检查
@@ -102,7 +130,7 @@ agentflow 帮你把研发部的编制填满：
         ✅ 交付
 ```
 
-**第三道是杀手锏。**
+**第三道是杀手锏。** 🎯
 
 它拿不到代码、拿不到测试、也不知道是怎么实现的，
 手里只有「做成什么样算通过」这份清单和一个能跑起来的程序。
@@ -114,21 +142,16 @@ agentflow 帮你把研发部的编制填满：
 
 ---
 
-## 它真的抓到过什么
+## 🎯 它真的抓到过什么
 
 不是理论。每一条都有报告文件为证。
 
-**第一道抓到：配好的检查命令本身是坏的。**
-8 个写代码的 AI 全都没碰到——因为它们跑的是具体文件，而配置里写的是整个目录。
-
-**第二道抓到：防篡改功能自己是坏的。**
-存快照那个功能记录的指纹，和实际文件对不上。也就是说这个安全机制一直在空转。
-
-**第二道还抓到：一个模块改坏 6 处，测试一处都没报错。**
-测试全绿。光看代码，看不出来测试根本没在管事。
-
-**第三道抓到：9 条用起来别扭的地方，其中一条是真的算错了。**
-排序算法在暴跌的币上会失效，把真正有价值的标的挤到后面去。
+| 关卡 | 抓到过什么 |
+|---|---|
+| 🥇 **第一道** | **配好的检查命令本身是坏的。** 8 个写代码的 AI 全都没碰到——因为它们跑的是具体文件，而配置里写的是整个目录。 |
+| 🥈 **第二道** | **防篡改功能自己是坏的。** 存快照那个功能记录的指纹，和实际文件对不上。也就是说这个安全机制一直在空转。 |
+| 🥈 **第二道** | **一个模块改坏 6 处，测试一处都没报错。** 测试全绿。光看代码，看不出来测试根本没在管事。 |
+| 🥉 **第三道** | **9 条用起来别扭的地方，其中一条是真的算错了。** 排序算法在暴跌的币上会失效，把真正有价值的标的挤到后面去。 |
 
 **每一道都抓到了只有它能抓到的东西。**
 
@@ -136,7 +159,8 @@ agentflow 帮你把研发部的编制填满：
 
 ---
 
-## 它到底硬拦住了什么
+<a id="guards"></a>
+## 🛡️ 它到底硬拦住了什么
 
 一人公司最贵的成本是**返工**——没人替你复查，错误会一直往下游滚。
 
@@ -164,7 +188,8 @@ agentflow 帮你把研发部的编制填满：
 
 ---
 
-## 三分钟装好
+<a id="install"></a>
+## 🚀 三分钟装好
 
 ```powershell
 # 先看看它打算做什么，这一步不会改任何东西
@@ -180,16 +205,17 @@ powershell -ExecutionPolicy Bypass -File <agentflow>\scripts\init-workflow.ps1
 
 装完重启 Claude Code，输入 `/wf` 开始。
 
-**跑在 Windows 上，不需要 tmux、不需要 WSL、不需要装别的命令行工具。**
+**跑在 Windows 上，不需要 tmux、不需要 WSL、不需要装别的命令行工具。** 💻
 
 初始化脚本是增量的，已有文件不会被覆盖。它会自动识别你的项目是什么语言、
 配上对应的检查命令、建好 `.gitignore`，然后把配好的命令实际跑一遍确认能用。
 
-**没有服务器要租，没有账号要注册，没有月费。装完就是你自己的东西。**
+**没有服务器要租，没有账号要注册，没有月费。装完就是你自己的东西。** 🆓
 
 ---
 
-## 七条路线，小任务不走全套
+<a id="routes"></a>
+## 🧭 七条路线，小任务不走全套
 
 一人公司的额度是自己掏的。所以它会先看任务多大，再决定走哪条路：
 
@@ -203,13 +229,14 @@ powershell -ExecutionPolicy Bypass -File <agentflow>\scripts\init-workflow.ps1
 | `research-only` | 只调研，不写代码 |
 | `review-only` | 只审代码 |
 
-**不会拿大炮打蚊子。**
+**不会拿大炮打蚊子。** 🦟
 
 ---
 
-## 核心设计
+<a id="design"></a>
+## 🧠 核心设计
 
-### 验收清单是整套流程的起点
+### 📋 验收清单是整套流程的起点
 
 不要人工审核，前提就是**验收标准在开工前已经能被机器判断**。
 
@@ -222,7 +249,7 @@ powershell -ExecutionPolicy Bypass -File <agentflow>\scripts\init-workflow.ps1
 **这一条是整个一人公司模式能成立的地基。**
 你不可能一行行看代码，你只能看结论——那结论就必须是可信的。
 
-### 光有测试通过不算数
+### 🧪 光有测试通过不算数
 
 测试通过只说明「代码和测试对得上」，不说明代码是对的。
 
@@ -239,7 +266,7 @@ powershell -ExecutionPolicy Bypass -File <agentflow>\scripts\init-workflow.ps1
 
 唯一的差别：前一个模块的任务书里写了「要做这件事」，后一个没写。
 
-### 同一批任务不许改同一个文件
+### 📂 同一批任务不许改同一个文件
 
 两个 AI 同时改一个文件，后面的把前面的覆盖掉，这种问题自动审查看不出来。
 
@@ -247,59 +274,61 @@ powershell -ExecutionPolicy Bypass -File <agentflow>\scripts\init-workflow.ps1
 
 ---
 
-## 什么时候需要你出面
+## 🙋 什么时候需要你出面
 
 一人公司的 CEO 最该省的是注意力。全流程里只有四个地方需要你：
 
 | 时候 | 说明 |
 |---|---|
-| 第一步问需求 | 需求只能从你这来，省不掉 |
-| 主控 AI 想跳出流程做事 | 中途掐掉一个正在干活的 AI、改流程规则、跳过某道检查——必须先问你 |
-| 收尾时确认要记哪些经验 | 低成本确认，你不回应它就按自己的判断记 |
-| 三轮还没过 | 不正常的情况，正常跑不会触发 |
+| 1️⃣ 第一步问需求 | 需求只能从你这来，省不掉 |
+| 2️⃣ 主控 AI 想跳出流程做事 | 中途掐掉一个正在干活的 AI、改流程规则、跳过某道检查——必须先问你 |
+| 3️⃣ 收尾时确认要记哪些经验 | 低成本确认，你不回应它就按自己的判断记 |
+| 4️⃣ 三轮还没过 | 不正常的情况，正常跑不会触发 |
 
-**其余时间，你可以去做只有你能做的事——想产品、见客户、收钱。**
+**其余时间，你可以去做只有你能做的事——想产品、见客户、收钱。** 💰
 
 ---
 
-## 适用边界
+<a id="boundary"></a>
+## ⚠️ 适用边界
 
 丑话说前面，省得你浪费时间：
 
-**Windows 环境。** 检查命令基于 PowerShell，Mac 和 Linux 上跑不完整。
-
-**纯代码库效果打折。** 没有能跑起来的界面或命令，第三道检查会退化成普通集成测试。
-
-**多个 AI 并行大约费 5 倍额度。** 简单的增删改查用一个 AI 更划算——所以有那七条路线。
-
-**Agent Teams 是 Claude Code 的实验功能**，Windows 上只能用单窗口模式。
-用不了会自动降级成一个个来，流程不会中断。
+- 💻 **Windows 环境。** 检查命令基于 PowerShell，Mac 和 Linux 上跑不完整。
+- 🖥️ **纯代码库效果打折。** 没有能跑起来的界面或命令，第三道检查会退化成普通集成测试。
+- 💸 **多个 AI 并行大约费 5 倍额度。** 简单的增删改查用一个 AI 更划算——所以有那七条路线。
+- 🧪 **Agent Teams 是 Claude Code 的实验功能**，Windows 上只能用单窗口模式。
+  用不了会自动降级成一个个来，流程不会中断。
 
 ---
 
-## 目录结构
+## 📁 目录结构
 
 ```
 agentflow/
-├── README.md
-├── install.ps1                  把流程装到 Claude Code 里
-├── skills/                      七个流程文件
-│   ├── wf/                      入口，判断任务大小选路线
-│   ├── wf-spec/                 第一步 问需求
-│   ├── wf-plan/                 第二步 定方案、切任务
-│   ├── wf-build/                第三步 写代码 + 三道检查
-│   ├── wf-review/               第二道检查 AI 审代码
-│   ├── wf-eval/                 第三道检查 AI 当用户验收
-│   └── wf-keep/                 第四步 记经验
-├── templates/                   各种文件的模板
-├── examples/lessons/            经验条目怎么写才算合格
+├── README.md                  本文件（简体中文）
+├── docs/                      多语言 README
+│   ├── README_en.md           English
+│   ├── README_ja.md           日本語
+│   └── README_ko.md           한국어
+├── install.ps1                把流程装到 Claude Code 里
+├── skills/                    七个流程文件
+│   ├── wf/                    入口，判断任务大小选路线
+│   ├── wf-spec/               第一步 问需求
+│   ├── wf-plan/               第二步 定方案、切任务
+│   ├── wf-build/              第三步 写代码 + 三道检查
+│   ├── wf-review/             第二道检查 AI 审代码
+│   ├── wf-eval/               第三道检查 AI 当用户验收
+│   └── wf-keep/               第四步 记经验
+├── templates/                 各种文件的模板
+├── examples/lessons/          经验条目怎么写才算合格
 └── scripts/
-    ├── init-workflow.ps1        在项目里初始化
-    ├── gate-l1.ps1              第一道检查
-    ├── check-ac.ps1             防止「命令成功但什么都没测」
-    ├── check-artifacts.ps1      查进度、查中断、查规则有没有被改
-    ├── freeze-target.ps1        存快照 + 对比有没有被改
-    └── validate-plan.ps1        检查验收清单和任务清单写得对不对
+    ├── init-workflow.ps1      在项目里初始化
+    ├── gate-l1.ps1            第一道检查
+    ├── check-ac.ps1           防止「命令成功但什么都没测」
+    ├── check-artifacts.ps1    查进度、查中断、查规则有没有被改
+    ├── freeze-target.ps1      存快照 + 对比有没有被改
+    └── validate-plan.ps1      检查验收清单和任务清单写得对不对
 ```
 
 在你项目里生成的东西：
@@ -330,7 +359,7 @@ agentflow/
 
 ---
 
-## 改代码要注意
+## ⚙️ 改代码要注意
 
 `scripts` 目录下的 `.ps1` 文件必须存成 **UTF-8 with BOM**。
 
@@ -353,7 +382,7 @@ Get-ChildItem .\scripts -Filter *.ps1 | ForEach-Object {
 
 ---
 
-## 一句话总结
+## 💡 一句话总结
 
 **别人给你一个 AI 员工。agentflow 给你一套能管住 AI 员工的公司制度。**
 
@@ -363,17 +392,17 @@ Get-ChildItem .\scripts -Filter *.ps1 | ForEach-Object {
 
 ---
 
-搜索关键词：一人公司、One Person Company、OPC、独立开发者、超级个体、solopreneur、
+<sub>搜索关键词：一人公司、One Person Company、OPC、独立开发者、超级个体、solopreneur、
 indie hacker、Claude Code、全自动化编程、AI 自动审代码、一句话开发、AI 开发流程、
 多 agent 协作、自动验收、代码审查自动化、AI code review、multi-agent workflow、
-autonomous coding、acceptance criteria、mutation testing、Claude Code skills、PowerShell。
+autonomous coding、acceptance criteria、mutation testing、Claude Code skills、PowerShell。</sub>
 
-## 许可证
+---
+
+## 📜 许可证
 
 [PolyForm Noncommercial License 1.0.0](LICENSE)
 
 个人使用、学习、研究、非营利组织使用免费。**任何商业用途需要事先获得书面许可**，
 包括放进商业产品、对外提供收费服务、或者在公司内部使用。
-需要商业授权请在 GitHub 上开 issue 联系。
-</content>
-</invoke>
+需要商业授权请在 GitHub 上开 [issue](https://github.com/bluesxu/agentflow/issues) 联系。
