@@ -67,6 +67,28 @@ AI 为了让测试通过，会加假数据、加兜底分支、把断言改松�
 
 ---
 
+## 🤖 复制这段，让你的 Agent 帮你装
+
+不想自己敲命令？把下面整段复制，丢给任意一个 AI 编程 Agent（Claude Code 等），它会替你装好：
+
+```text
+帮我安装 AgentRD（一套给 Claude Code 用的多 AI 审核交付流程，开源仓库：https://github.com/bluesxu/agentrd）。步骤如下：
+
+1. 找个目录把仓库克隆下来（已经克隆过就跳过）：
+     git clone https://github.com/bluesxu/agentrd.git
+2. 进入仓库，先跑一次 dry-run（默认就是这个模式，不会改任何东西），把它的执行计划打印出来给我看：
+     powershell -ExecutionPolicy Bypass -File install.ps1
+3. 我确认没问题之后，再真正安装并开启 Agent Teams：
+     powershell -ExecutionPolicy Bypass -File install.ps1 -Apply -EnableAgentTeams
+4. 装完后问我要在哪个项目里用，然后到那个项目目录里跑初始化：
+     powershell -ExecutionPolicy Bypass -File agentrd\scripts\init-rd.ps1
+5. 最后提醒我重启 Claude Code，输入 /rd 开始使用。
+
+要求：克隆和 dry-run 这类只读操作你自己跑就行；凡是带 -Apply、写环境变量、覆盖文件的步骤，先停下来等我点头再执行。
+```
+
+---
+
 <a id="quickstart"></a>
 ## 🗣️ 你只需要说一句话
 
