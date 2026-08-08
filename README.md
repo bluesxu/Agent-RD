@@ -11,16 +11,14 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue.svg?style=for-the-badge" alt="License"></a>
-  <img src="https://img.shields.io/badge/PowerShell-5.1%2B-5391FE.svg?style=for-the-badge&logo=powershell&logoColor=white" alt="PowerShell 5.1+">
-  <img src="https://img.shields.io/badge/Platform-Windows-0078D6.svg?style=for-the-badge&logo=windows&logoColor=white" alt="Windows">
+  <img src="https://img.shields.io/badge/Node.js-18%2B-339933.svg?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js 18+">
+  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D6.svg?style=for-the-badge" alt="Windows | macOS | Linux">
   <a href="https://github.com/bluesxu/agentrd/stargazers"><img src="https://img.shields.io/github/stars/bluesxu/agentrd?style=for-the-badge" alt="GitHub Stars"></a>
 </p>
 
 <p align="center">
   <b>简体中文</b> ·
-  <a href="docs/README_en.md">English</a> ·
-  <a href="docs/README_ja.md">日本語</a> ·
-  <a href="docs/README_ko.md">한국어</a>
+  <a href="docs/README_en.md">English</a>
 </p>
 
 <p align="center">
@@ -77,11 +75,11 @@ AI 为了让测试通过，会加假数据、加兜底分支、把断言改松�
 1. 找个目录把仓库克隆下来（已经克隆过就跳过）：
      git clone https://github.com/bluesxu/agentrd.git
 2. 进入仓库，先跑一次 dry-run（默认就是这个模式，不会改任何东西），把它的执行计划打印出来给我看：
-     powershell -ExecutionPolicy Bypass -File install.ps1
+     node install.js
 3. 我确认没问题之后，再真正安装并开启 Agent Teams：
-     powershell -ExecutionPolicy Bypass -File install.ps1 -Apply -EnableAgentTeams
+     node install.js -Apply -EnableAgentTeams
 4. 装完后问我要在哪个项目里用，然后到那个项目目录里跑初始化：
-     powershell -ExecutionPolicy Bypass -File agentrd\scripts\init-rd.ps1
+     node agentrd/scripts/init-rd.js
 5. 最后提醒我重启 Claude Code，输入 /rd 开始使用。
 
 要求：克隆和 dry-run 这类只读操作你自己跑就行；凡是带 -Apply、写环境变量、覆盖文件的步骤，先停下来等我点头再执行。
@@ -213,21 +211,22 @@ AgentRD 帮你把研发部的编制填满：
 <a id="install"></a>
 ## 🚀 三分钟装好
 
-```powershell
+```bash
 # 先看看它打算做什么，这一步不会改任何东西
-powershell -ExecutionPolicy Bypass -File install.ps1
+node install.js
 
 # 确认没问题再真装
-powershell -ExecutionPolicy Bypass -File install.ps1 -Apply -EnableAgentTeams
+node install.js -Apply -EnableAgentTeams
 
 # 到你的项目目录里初始化
-cd D:\your\project
-powershell -ExecutionPolicy Bypass -File <agentrd>\scripts\init-rd.ps1
+cd /your/project
+node /path/to/agentrd/scripts/init-rd.js
 ```
 
 装完重启 Claude Code，输入 `/rd` 开始。
 
-**跑在 Windows 上，不需要 tmux、不需要 WSL、不需要装别的命令行工具。** 💻
+**跑在 Windows / macOS / Linux 上，不需要 tmux、不需要 WSL、不需要装别的命令行工具。** 💻
+唯一的运行时是 Node.js —— 而你跑 Claude Code 本来就已经装了它，所以等于一个都不用多装。
 
 初始化脚本是增量的，已有文件不会被覆盖。它会自动识别你的项目是什么语言、
 配上对应的检查命令、建好 `.gitignore`，然后把配好的命令实际跑一遍确认能用。
@@ -316,7 +315,8 @@ powershell -ExecutionPolicy Bypass -File <agentrd>\scripts\init-rd.ps1
 
 丑话说前面，省得你浪费时间：
 
-- 💻 **Windows 环境。** 检查命令基于 PowerShell，Mac 和 Linux 上跑不完整。
+- 💻 **跨平台。** 检查脚本是 Node.js,Windows / macOS / Linux 都能跑。
+  但你项目自己的检查命令（`npm test`、`cargo test` 之类）得在你的平台上能跑，这取决于你的工具链。
 - 🖥️ **纯代码库效果打折。** 没有能跑起来的界面或命令，第三道检查会退化成普通集成测试。
 - 💸 **多个 AI 并行大约费 5 倍额度。** 简单的增删改查用一个 AI 更划算——所以有那七条路线。
 - 🧪 **Agent Teams 是 Claude Code 的实验功能**，Windows 上只能用单窗口模式。
@@ -330,10 +330,8 @@ powershell -ExecutionPolicy Bypass -File <agentrd>\scripts\init-rd.ps1
 AgentRD/
 ├── README.md                  本文件（简体中文）
 ├── docs/                      多语言 README
-│   ├── README_en.md           English
-│   ├── README_ja.md           日本語
-│   └── README_ko.md           한국어
-├── install.ps1                把流程装到 Claude Code 里
+│   └── README_en.md           English
+├── install.js                 把流程装到 Claude Code 里（Node，跨平台）
 ├── skills/                    七个流程文件
 │   ├── rd/                    入口，判断任务大小选路线
 │   ├── rd-spec/               第一步 问需求
@@ -345,12 +343,12 @@ AgentRD/
 ├── templates/                 各种文件的模板
 ├── examples/lessons/          经验条目怎么写才算合格
 └── scripts/
-    ├── init-rd.ps1      在项目里初始化
-    ├── gate-l1.ps1            第一道检查
-    ├── check-ac.ps1           防止「命令成功但什么都没测」
-    ├── check-artifacts.ps1    查进度、查中断、查规则有没有被改
-    ├── freeze-target.ps1      存快照 + 对比有没有被改
-    └── validate-plan.ps1      检查验收清单和任务清单写得对不对
+    ├── init-rd.js             在项目里初始化
+    ├── gate-l1.js             第一道检查
+    ├── check-ac.js            防止「命令成功但什么都没测」
+    ├── check-artifacts.js     查进度、查中断、查规则有没有被改
+    ├── freeze-target.js       存快照 + 对比有没有被改
+    └── validate-plan.js       检查验收清单和任务清单写得对不对
 ```
 
 在你项目里生成的东西：
@@ -359,7 +357,7 @@ AgentRD/
 .rd/
 ├── attention.md              每次开工先看，控制在 30 行内
 ├── gates.json                第一道检查要跑哪些命令
-├── bin/check-ac.ps1          守卫脚本，跟着项目走
+├── bin/check-ac.js           守卫脚本，跟着项目走
 ├── lessons/                  攒下来的经验
 └── features/{功能名}/
     ├── dispatch.md           为什么选这条路线
@@ -383,24 +381,22 @@ AgentRD/
 
 ## ⚙️ 改代码要注意
 
-`scripts` 目录下的 `.ps1` 文件必须存成 **UTF-8 with BOM**。
+脚本是 **Node.js**(`scripts/*.js`、根目录的 `install.js`),只用内置模块、零 npm 依赖，
+目标版本 Node 18+——和 Claude Code 同一要求，所以装了 Claude Code 就够。
 
-Windows PowerShell 5.1 读没有 BOM 的文件时会按系统默认编码去解，
-中文注释直接变乱码，接着引号配不上对，整个脚本报语法错误。
+只有两处跟平台有关，改动时留心：
 
-用 VS Code 改的话，右下角编码选 "UTF-8 with BOM"。命令行修：
+- **跑命令统一用 `spawnSync(cmd, { shell: true })`**,Node 会自动选 Windows 的 `cmd`
+  或 Unix 的 `sh`。不要写死 `cmd /c` 或 `sh -c`，也不要用 `2>NUL` 这种 cmd 专属的重定向。
+- **路径用 `path.join` 拼，比对时统一转成 `/` 分隔**（`freeze-target` 里越界检测就这么干的）。
+  别在字符串里手写 `\`。
 
-```powershell
-$enc = New-Object System.Text.UTF8Encoding($true)
-Get-ChildItem .\scripts -Filter *.ps1 | ForEach-Object {
-    $t = [IO.File]::ReadAllText($_.FullName, [Text.Encoding]::UTF8)
-    [IO.File]::WriteAllText($_.FullName, $t, $enc)
-}
-```
+**为什么配置用 JSON 不用 YAML**：为了让检查脚本零依赖就能跑——JSON 是 Node 内置的,
+YAML 得额外装库。检查脚本能不能跑，直接决定这套流程能不能自动化。
 
-**为什么配置用 JSON 不用 YAML**：为了让检查脚本在 Windows PowerShell 5.1 上
-不装任何东西就能跑，而 5.1 不支持读 YAML。
-检查脚本能不能跑，直接决定这套流程能不能自动化。
+早期版本是 PowerShell，后来迁到 Node：你跑 Claude Code 本来就装了 Node,
+于是「不额外装任何运行时」这条红线从「只在 Windows 成立」变成全平台成立。
+macOS / Linux 用户此前得装 PowerShell 7，现在不用了。
 
 ---
 
@@ -417,7 +413,7 @@ Get-ChildItem .\scripts -Filter *.ps1 | ForEach-Object {
 <sub>搜索关键词：AgentRD、AI 研发部、一人公司、One Person Company、OPC、独立开发者、超级个体、solopreneur、
 indie hacker、Claude Code、全自动化编程、AI 自动审代码、一句话开发、AI 开发流程、
 多 agent 协作、自动验收、代码审查自动化、AI code review、multi-agent workflow、
-autonomous coding、acceptance criteria、mutation testing、Claude Code skills、PowerShell。</sub>
+autonomous coding、acceptance criteria、mutation testing、Claude Code skills、Node.js、cross-platform。</sub>
 
 ---
 

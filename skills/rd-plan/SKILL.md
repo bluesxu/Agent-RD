@@ -86,7 +86,7 @@ argument-hint: "[feature slug]"
 
 | 规则 | 说明 |
 |---|---|
-| **同一 layer 内，任意两个 task 的 `files` 必须无交集** | 由 `validate-plan.ps1` 机械校验，不是靠自觉 |
+| **同一 layer 内，任意两个 task 的 `files` 必须无交集** | 由 `validate-plan.js` 机械校验，不是靠自觉 |
 | **`layer` 表示依赖深度** | layer 1 无依赖，layer N 只能依赖 layer < N |
 | **每个 task 必须有 `verify`** | 一条它自己能跑的验证命令（窄，只覆盖它的文件） |
 | **每个 task 必须有 `covers`** | 它负责满足哪几条 AC。所有 AC 必须被至少一个 task 覆盖 |
@@ -108,7 +108,7 @@ checkIntent: 对一组写死的输入跑计算，逐个断言四个周期的输�
 
      ↓ 选定 Node 之后
 
-check:       powershell -ExecutionPolicy Bypass -File .rd/bin/check-ac.ps1
+check:       node .rd/bin/check-ac.js
              -Cmd "node --test --test-name-pattern={slug}\sAC-1"
              -MustMatch "AC-1: 数值精确匹配;;AC-1: 均值初值与首值初值可区分"
 ```
@@ -134,8 +134,8 @@ check:       powershell -ExecutionPolicy Bypass -File .rd/bin/check-ac.ps1
 
 ## 第六步：校验
 
-```powershell
-powershell -ExecutionPolicy Bypass -File <agentrd>/scripts/validate-plan.ps1 -Feature {slug} -Stage plan
+```bash
+node <agentrd>/scripts/validate-plan.js -Feature {slug} -Stage plan
 ```
 
 校验的是机械规则：文件不重叠、依赖不成环、AC 全覆盖、verify 非空。

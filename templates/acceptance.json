@@ -9,7 +9,7 @@
       "when": "以 alice / wrong-pw 提交登录",
       "then": "返回 401，body.error 为 invalid_credentials，响应中不含任何 token 字段，且不设置任何 cookie",
       "judge": "machine",
-      "check": "powershell -ExecutionPolicy Bypass -File .rd/bin/check-ac.ps1 -Cmd \"npm test -- --test-name-pattern=user-login\\sAC-1\" -MustMatch \"AC-1: 401 与 invalid_credentials;;AC-1: 响应不含 token;;AC-1: 不设置 cookie\"",
+      "check": "node .rd/bin/check-ac.js -Cmd \"npm test -- --test-name-pattern=user-login\\sAC-1\" -MustMatch \"AC-1: 401 与 invalid_credentials;;AC-1: 响应不含 token;;AC-1: 不设置 cookie\"",
       "checkIntent": "给定用户 alice（密码为 correct-pw），以错误密码提交登录，断言四件事同时成立：① 状态码为 401；② 错误标识为 invalid_credentials；③ 响应体中不存在任何名字含 token 的字段；④ 未设置任何 cookie。四条各自独立断言，不许合并成一个整体比较。"
     },
     {
@@ -19,7 +19,7 @@
       "when": "再次用错误密码提交，然后立刻用正确密码提交",
       "then": "第 5 次返回 401；用正确密码的那次返回 423，body.retry_after_seconds 在 890 到 900 之间",
       "judge": "machine",
-      "check": "powershell -ExecutionPolicy Bypass -File .rd/bin/check-ac.ps1 -Cmd \"npm test -- --test-name-pattern=user-login\\sAC-2\" -MustMatch \"AC-2: 第 5 次返回 401;;AC-2: 正确密码返回 423;;AC-2: retry_after_seconds 区间\"",
+      "check": "node .rd/bin/check-ac.js -Cmd \"npm test -- --test-name-pattern=user-login\\sAC-2\" -MustMatch \"AC-2: 第 5 次返回 401;;AC-2: 正确密码返回 423;;AC-2: retry_after_seconds 区间\"",
       "checkIntent": "构造「已连续失败 4 次」的用户状态，再提交一次错误密码，然后立刻提交正确密码。断言：第 5 次返回 401；用正确密码的那次返回 423，且其 retry_after_seconds 落在 890~900 闭区间内（区间而非定值，因为它依赖执行时刻）。"
     },
     {
@@ -60,12 +60,12 @@
     "judge": "必填，machine | agent",
     "observe": "judge=agent 时必填。写清楚用产品对外暴露的哪个接口去观察：HTTP 端点 / 页面 / CLI 命令 / 落盘文件。写不出来说明这条黑盒不可验证，应改成 machine 或重新设计 AC",
     "preconditions": "judge=agent 时必填。写清楚「在什么条件下比对才算数」—— 那些不满足就会让整条判定失效、但 given/when/then 里没地方写的前提。典型：对照的是哪个数据源/环境/版本、服务跑在哪、需要什么账号权限、外部工具的哪个具体配置。⛔ 这一条不是给 agent 的贴心提示，是判定的组成部分：前提缺失产生的错误长成「形式无懈可击、结论完全错误」的样子 —— 验收者确实照着 when 做了、确实对照 then 判了，报告挑不出毛病，结论却是反的。隔离机制拦不住这种错，因为它防的是「偷看答案」，不是「前提缺失」。",
-    "check": "judge=machine 时【阶段 1】必填，由 rd-plan 在技术选定后把 checkIntent 具化成本栈的命令。judge=machine 时必填。⛔ 退出码 0 不等于通过 —— 绝大多数测试运行器在「过滤条件匹配不到任何用例」时也返回 0（node --test --test-name-pattern、jest -t 等），这条 AC 的测试根本没写时 check 照样绿。所以必须走守卫：powershell -ExecutionPolicy Bypass -File .rd/bin/check-ac.ps1 -Cmd 「<你的命令>」 -MustMatch 「<锚点>」。⛔ 命令里不许有嵌套转义引号（PowerShell 下会引号错配得到假 FAIL）—— 用 --flag=value 形式，空格用正则 \\s 代替。【A14 多锚点】then 有几个并列要求，就写几个锚点，用 ;; 分隔，全部命中才算通过：-MustMatch 「数值精确匹配;;SMA 种子;;长度不足返回全 null」。只写一个锚点时，check 只能回答「有没有用例跑到」，回答不了「then 的每一句是不是都被锁住了」—— 实跑里出现过某条规则实现了两遍而只有一份有测试，机器判定照样通过。",
+    "check": "judge=machine 时【阶段 1】必填，由 rd-plan 在技术选定后把 checkIntent 具化成本栈的命令。judge=machine 时必填。⛔ 退出码 0 不等于通过 —— 绝大多数测试运行器在「过滤条件匹配不到任何用例」时也返回 0（node --test --test-name-pattern、jest -t 等），这条 AC 的测试根本没写时 check 照样绿。所以必须走守卫：node .rd/bin/check-ac.js -Cmd 「<你的命令>」 -MustMatch 「<锚点>」。⛔ 命令里不许有嵌套转义引号（cmd 下会引号错配得到假 FAIL）—— 用 --flag=value 形式，空格用正则 \\s 代替。【A14 多锚点】then 有几个并列要求，就写几个锚点，用 ;; 分隔，全部命中才算通过：-MustMatch 「数值精确匹配;;SMA 种子;;长度不足返回全 null」。只写一个锚点时，check 只能回答「有没有用例跑到」，回答不了「then 的每一句是不是都被锁住了」—— 实跑里出现过某条规则实现了两遍而只有一份有测试，机器判定照样通过。",
     "evidence": "judge=agent 时必填，非空数组。可选值：screenshot | recording | http-trace | log | file-content",
     "checkIntent": "judge=machine 时【阶段 0】必填。说清三件事：输入是什么、期望输出是什么、用什么判等（精确相等 / 相对误差 / 区间）。⛔ 不许出现任何语言、框架、测试运行器、包管理器的名字（node/npm/pytest/cargo/go test/jest/mocha/dotnet…）——【业务梳理只讨论业务】，技术选型是阶段 1 的事，阶段 1 还要派 2~3 个 agent 独立出方案再仲裁。在阶段 0 写下一条具体命令，等于开会之前就把结论写在了纸上（实跑里三个论证 agent 有两个开口就说「技术栈已被钉死」）。validate-plan -Stage spec 会机械拦截。⚠️ 拷问力度不因此降低：写一条命令很容易蒙混，说清「给定这组输入、输出必须等于这组值、误差 < 1e-9」才是真功夫。"
   },
   "_rule": "【阶段 0】说不清 checkIntent（输入 / 期望输出 / 判等方式）也说不清 evidence 的，不是验收标准，是愿望，回去继续拷问。【阶段 0 不写 check】—— 业务梳理只讨论业务，具体命令由 rd-plan 在技术选定后具化。",
-  "_checkGuard": "跨 feature 的测试名空间是共享的：同一个仓库里 feature-A 的 AC-4 和 feature-B 的 AC-4 会被同一个 pattern 一起匹配到。更糟的是新 feature 的测试压根没写时，pattern 仍会匹配到旧 feature 的同名测试并全绿。所以过滤串要带 feature 前缀（例如 --test-name-pattern=<feature>\\sAC-1），测试名也要以它开头。⛔ 另外：过滤串里不许出现嵌套转义引号 \\\" —— 它在 PowerShell 下会被吃掉导致引号错配，同一条命令在 bash 下过、在 PowerShell 下得到假 FAIL。用 --flag=value 形式加正则 \\s 代替空格，把嵌套引号彻底消掉。",
+  "_checkGuard": "跨 feature 的测试名空间是共享的：同一个仓库里 feature-A 的 AC-4 和 feature-B 的 AC-4 会被同一个 pattern 一起匹配到。更糟的是新 feature 的测试压根没写时，pattern 仍会匹配到旧 feature 的同名测试并全绿。所以过滤串要带 feature 前缀（例如 --test-name-pattern=<feature>\\sAC-1），测试名也要以它开头。⛔ 另外：过滤串里不许出现嵌套转义引号 \\\" —— 它在 cmd 下被吃掉导致引号错配，同一条命令在 sh 下过、在 cmd 下得到假 FAIL。用 --flag=value 形式加正则 \\s 代替空格，把嵌套引号彻底消掉。",
   "_lessonObserve": "实跑教训：有一条 AC 写的是「服务里某个总数没有增加」，judge=agent。但服务按范围声明不做统计接口，这个数字在对外接口层根本观测不到 —— 验收 agent 探了 4 个端点全 404，只能如实报告「黑盒未覆盖」。observe 字段就是为了在写 AC 的那一刻就拦住这种情况。",
   "_lessonPreconditions": "实跑教训：一条 AC 要求「把命令行算出的数值与某看盘工具上同一时刻的读数比对，误差在千分之一内」。它没写明必须用哪一种合约类型的图表。而同一个标的的现货与永续是两条独立行情序列，同一时刻的 OHLC 每一位都不同。验收者若打开了错误的那一条，读数必然对不上，于是判定「算法口径不一致」—— 它确实打开了图、确实挂了指标、确实逐个比对了，报告在形式上无懈可击，结论却完全错误。派发方当时是在 prompt 里口头补的这个前提；换个派发方就漏了。口头补的前提不是前提，是运气。"
 }

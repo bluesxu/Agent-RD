@@ -11,16 +11,14 @@
 
 <p align="center">
   <a href="../LICENSE"><img src="https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue.svg?style=for-the-badge" alt="License"></a>
-  <img src="https://img.shields.io/badge/PowerShell-5.1%2B-5391FE.svg?style=for-the-badge&logo=powershell&logoColor=white" alt="PowerShell 5.1+">
-  <img src="https://img.shields.io/badge/Platform-Windows-0078D6.svg?style=for-the-badge&logo=windows&logoColor=white" alt="Windows">
+  <img src="https://img.shields.io/badge/Node.js-18%2B-339933.svg?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js 18+">
+  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D6.svg?style=for-the-badge" alt="Windows | macOS | Linux">
   <a href="https://github.com/bluesxu/agentrd/stargazers"><img src="https://img.shields.io/github/stars/bluesxu/agentrd?style=for-the-badge" alt="GitHub Stars"></a>
 </p>
 
 <p align="center">
   <a href="../README.md">简体中文</a> ·
-  <b>English</b> ·
-  <a href="README_ja.md">日本語</a> ·
-  <a href="README_ko.md">한국어</a>
+  <b>English</b>
 </p>
 
 <p align="center">
@@ -194,21 +192,22 @@ In a company of one, **the system must be written as scripts** — write it as r
 <a id="install"></a>
 ## 🚀 Installed in three minutes
 
-```powershell
+```bash
 # See what it plans to do first — this step changes nothing
-powershell -ExecutionPolicy Bypass -File install.ps1
+node install.js
 
 # Once satisfied, actually install
-powershell -ExecutionPolicy Bypass -File install.ps1 -Apply -EnableAgentTeams
+node install.js -Apply -EnableAgentTeams
 
 # Initialize inside your project directory
-cd D:\your\project
-powershell -ExecutionPolicy Bypass -File <agentrd>\scripts\init-rd.ps1
+cd /your/project
+node /path/to/agentrd/scripts/init-rd.js
 ```
 
 Restart Claude Code after installing, then type `/rd` to begin.
 
-**Runs on Windows — no tmux, no WSL, no extra CLI tools to install.** 💻
+**Runs on Windows / macOS / Linux — no tmux, no WSL, no extra CLI tools to install.** 💻
+The only runtime is Node.js — which you already have if Claude Code runs, so there's effectively nothing extra to install.
 
 The init script is incremental and won't overwrite existing files. It auto-detects your project's language,
 wires up the matching check commands, creates a `.gitignore`, then actually runs the configured commands once to confirm they work.
@@ -298,7 +297,7 @@ What a one-person CEO should save most is attention. In the entire flow, only fo
 
 Said up front, to save you time:
 
-- 💻 **Windows only.** Check commands are PowerShell-based; they run incompletely on Mac and Linux.
+- 💻 **Cross-platform.** The check scripts are Node.js and run on Windows / macOS / Linux. Your project's own check commands (`npm test`, `cargo test`, etc.) just need to run on your platform — that's up to your toolchain.
 - 🖥️ **Pure codebases get diminished results.** With no runnable interface or command, gate 3 degrades into an ordinary integration test.
 - 💸 **Parallel AIs cost roughly 5× the tokens.** A single AI is more economical for simple CRUD — hence the seven routes.
 - 🧪 **Agent Teams is an experimental Claude Code feature**; on Windows, only single-window mode works.
@@ -312,10 +311,8 @@ Said up front, to save you time:
 AgentRD/
 ├── README.md                  This file in Chinese (简体中文)
 ├── docs/                      Multi-language READMEs
-│   ├── README_en.md           English
-│   ├── README_ja.md           日本語
-│   └── README_ko.md           한국어
-├── install.ps1                Install the workflow into Claude Code
+│   └── README_en.md           English
+├── install.js                Install the workflow into Claude Code (Node, cross-platform)
 ├── skills/                    The seven workflow files
 │   ├── rd/                    Entry point; sizes the task and picks a route
 │   ├── rd-spec/               Step 1: gather requirements
@@ -327,12 +324,12 @@ AgentRD/
 ├── templates/                 Templates for the various files
 ├── examples/lessons/          What a qualified lesson entry looks like
 └── scripts/
-    ├── init-rd.ps1      Initialize inside a project
-    ├── gate-l1.ps1            Gate 1 checks
-    ├── check-ac.ps1           Prevents "command succeeded but tested nothing"
-    ├── check-artifacts.ps1    Checks progress, interruptions, and rule tampering
-    ├── freeze-target.ps1      Snapshot + tamper comparison
-    └── validate-plan.ps1      Validates acceptance & task list quality
+    ├── init-rd.js       Initialize inside a project
+    ├── gate-l1.js             Gate 1 checks
+    ├── check-ac.js            Prevents "command succeeded but tested nothing"
+    ├── check-artifacts.js     Checks progress, interruptions, and rule tampering
+    ├── freeze-target.js       Snapshot + tamper comparison
+    └── validate-plan.js       Validates acceptance & task list quality
 ```
 
 What gets generated inside your project:
@@ -341,7 +338,7 @@ What gets generated inside your project:
 .rd/
 ├── attention.md              Read first at every kickoff; kept under 30 lines
 ├── gates.json                Which commands gate 1 runs
-├── bin/check-ac.ps1          Guard script; travels with the project
+├── bin/check-ac.js           Guard script; travels with the project
 ├── lessons/                  Accumulated lessons
 └── features/{feature-name}/
     ├── dispatch.md           Why this route was chosen
@@ -365,24 +362,18 @@ when a customer asks, a partner asks, or you-yourself-six-months-later asks, the
 
 ## ⚙️ Notes for editing the code
 
-The `.ps1` files under `scripts` **must be saved as UTF-8 with BOM**.
+The scripts are **Node.js** (`scripts/*.js`, plus `install.js` at the root): built-in modules only, zero npm dependencies, targeting Node 18+ — the same requirement as Claude Code, so having Claude Code installed is enough.
 
-Windows PowerShell 5.1 decodes BOM-less files using the system default codepage:
-CJK comments turn into mojibake, quotes stop pairing, and the whole script fails with syntax errors.
+Only two platform-specific concerns; keep them in mind when editing:
 
-In VS Code, pick "UTF-8 with BOM" in the encoding selector at bottom right. From the command line:
+- **Run commands with `spawnSync(cmd, { shell: true })`** — Node picks Windows `cmd` or Unix `sh` automatically. Don't hardcode `cmd /c` / `sh -c`, and don't use cmd-only redirections like `2>NUL`.
+- **Join paths with `path.join`, and normalize to `/` separators when comparing** (that's what the out-of-scope check in `freeze-target` does). Don't write `\` by hand in a string.
 
-```powershell
-$enc = New-Object System.Text.UTF8Encoding($true)
-Get-ChildItem .\scripts -Filter *.ps1 | ForEach-Object {
-    $t = [IO.File]::ReadAllText($_.FullName, [Text.Encoding]::UTF8)
-    [IO.File]::WriteAllText($_.FullName, $t, $enc)
-}
-```
-
-**Why JSON instead of YAML for configuration**: so the check scripts run on Windows PowerShell 5.1
-with nothing installed — 5.1 can't parse YAML.
+**Why JSON instead of YAML for configuration**: so the check scripts run with zero dependencies — JSON is built into Node, YAML needs an extra library.
 Whether the check scripts can run at all directly decides whether this workflow can automate.
+
+Earlier versions used PowerShell; they've since been migrated to Node. Since you already have Node wherever Claude Code runs, the "no extra runtime to install" guarantee went from Windows-only to fully cross-platform.
+macOS / Linux users previously had to install PowerShell 7; they no longer do.
 
 ---
 
@@ -399,7 +390,7 @@ Whether the check scripts can run at all directly decides whether this workflow 
 <sub>Keywords: AgentRD, AI R&D department, One Person Company, OPC, solopreneur, indie hacker, Claude Code, autonomous coding,
 AI code review, multi-agent workflow, fully automated programming, prompt-to-product, AI development pipeline,
 multi-agent collaboration, automated acceptance, code review automation, acceptance criteria,
-mutation testing, Claude Code skills, PowerShell.</sub>
+mutation testing, Claude Code skills, Node.js, cross-platform.</sub>
 
 ---
 

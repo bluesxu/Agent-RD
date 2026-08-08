@@ -5,7 +5,7 @@
 >
 > **中断处理**：不要预估「能不能一口气跑完」—— 中断可以发生在任何时刻，预估必然出错。
 > 要求是**进度持续落盘**：派 agent 前写 inflight，拿到结果立刻落盘，不要攒到阶段末尾一次性写。
-> 恢复时跑 `scripts/check-artifacts.ps1`，**以产物为准，不以记忆为准**。
+> 恢复时跑 `scripts/check-artifacts.js`，**以产物为准，不以记忆为准**。
 
 ## 三种模式，先确认是哪种
 
@@ -22,7 +22,7 @@
 ### 1. 冻结目标 [required]
 
 ```
-powershell -ExecutionPolicy Bypass -File <agentrd>/scripts/freeze-target.ps1 -Feature {slug}
+node <agentrd>/scripts/freeze-target.js -Feature {slug}
 ```
 没有 feature 目录时直接用 `git diff` 交给 reviewer，但**审查期间不许改动工作树**。
 
@@ -56,7 +56,7 @@ powershell -ExecutionPolicy Bypass -File <agentrd>/scripts/freeze-target.ps1 -Fe
 ### 5. 校验目标没漂移
 
 ```
-powershell -ExecutionPolicy Bypass -File <agentrd>/scripts/freeze-target.ps1 -Feature {slug} -Verify
+node <agentrd>/scripts/freeze-target.js -Feature {slug} -Verify
 ```
 报 `TargetMoved` → 本轮作废，重新冻结再审。
 

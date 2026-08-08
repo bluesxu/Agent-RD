@@ -5,7 +5,7 @@
 >
 > **中断处理**：不要预估「能不能一口气跑完」—— 中断可以发生在任何时刻，预估必然出错。
 > 要求是**进度持续落盘**：派 agent 前写 inflight，拿到结果立刻落盘，不要攒到阶段末尾一次性写。
-> 恢复时跑 `scripts/check-artifacts.ps1`，**以产物为准，不以记忆为准**。
+> 恢复时跑 `scripts/check-artifacts.js`，**以产物为准，不以记忆为准**。
 
 ## 为什么这条策略存在
 
@@ -19,7 +19,7 @@
 3. 改
 4. 跑 L1：
    ```
-   powershell -ExecutionPolicy Bypass -File <agentrd>/scripts/gate-l1.ps1
+   node <agentrd>/scripts/gate-l1.js
    ```
 5. 报告：做了什么、改了哪些文件、L1 输出
 

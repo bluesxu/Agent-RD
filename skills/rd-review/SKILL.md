@@ -15,11 +15,11 @@ argument-hint: "[--target <review-target.json 路径>]"
 
 ### 目标冻结
 
-审查开始前，目标必须已被冻结（`freeze-target.ps1` 已写好 `review-target.json`）。
+审查开始前，目标必须已被冻结（`freeze-target.js` 已写好 `review-target.json`）。
 你要做的第一件事是核对：
 
-```powershell
-powershell -ExecutionPolicy Bypass -File <agentrd>/scripts/freeze-target.ps1 -Feature {slug} -Verify
+```bash
+node <agentrd>/scripts/freeze-target.js -Feature {slug} -Verify
 ```
 
 - 校验通过 → 继续。

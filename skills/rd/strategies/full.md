@@ -5,7 +5,7 @@
 >
 > **中断处理**：不要预估「能不能一口气跑完」—— 中断可以发生在任何时刻，预估必然出错。
 > 要求是**进度持续落盘**：派 agent 前写 inflight，拿到结果立刻落盘，不要攒到阶段末尾一次性写。
-> 恢复时跑 `scripts/check-artifacts.ps1`，**以产物为准，不以记忆为准**。
+> 恢复时跑 `scripts/check-artifacts.js`，**以产物为准，不以记忆为准**。
 
 ## 什么时候值得
 
@@ -23,7 +23,7 @@
 
 调 `rd-spec`。完整六类拷问，产出 `spec.md` + `acceptance.json`。
 
-**硬门槛**：`validate-plan.ps1 -Stage spec` 必须通过。
+**硬门槛**：`validate-plan.js -Stage spec` 必须通过。
 每条验收标准要么有能跑的命令，要么有说得清的观察通道。写不出来就继续问。
 
 ### 1. 方案与选型 [required]
@@ -34,7 +34,7 @@
 - 每个 prompt 自包含，不继承主对话历史
 - 单个 agent 超 10 分钟未返回 → 取部分结果，停掉它，记一笔
 - 产出 `design.md` + `tasks.json`
-- **硬门槛**：`validate-plan.ps1 -Stage plan` 必须通过
+- **硬门槛**：`validate-plan.js -Stage plan` 必须通过
 
 **绿地才并行实现；存量代码先确认能不能切**（见 `refactor-safe.md` 的判断方法）。
 

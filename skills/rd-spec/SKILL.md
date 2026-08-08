@@ -175,8 +175,8 @@ L3 验收者除了逐条验收，还要写一节**场外观察** ——
 
 ## 第四步：校验并收尾
 
-```powershell
-powershell -ExecutionPolicy Bypass -File <agentrd>/scripts/validate-plan.ps1 -Feature {slug} -Stage spec
+```bash
+node <agentrd>/scripts/validate-plan.js -Feature {slug} -Stage spec
 ```
 
 校验不过就按报错修，**不要手动跳过**。

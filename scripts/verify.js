@@ -1,0 +1,273 @@
+#!/usr/bin/env node
+/*
+  verify —— AgentRD 脚本的最小行为验证（自带、零依赖、Node 18+）。
+
+  在临时目录里造一个 fixture 项目，逐个脚本跑真实命令，断言退出码和关键行为。
+  不动仓库本身，只碰 os.tmpdir() 下的一次性目录。
+
+  用法：
+    node scripts/verify.js
+
+  退出码：0 = 全部通过；1 = 有用例失败。
+*/
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const { spawnSync } = require('child_process');
+
+const isTty = process.stdout.isTTY;
+const C = {
+  red: (s) => (isTty ? '[31m' + s + '[0m' : s),
+  green: (s) => (isTty ? '[32m' + s + '[0m' : s),
+  yellow: (s) => (isTty ? '[33m' + s + '[0m' : s),
+  cyan: (s) => (isTty ? '[36m' + s + '[0m' : s),
+  dark: (s) => (isTty ? '[90m' + s + '[0m' : s),
+};
+
+const HERE = __dirname;
+const ROOT = path.dirname(HERE); // AgentRD 根
+
+let pass = 0;
+let fail = 0;
+const failures = [];
+
+function check(name, cond, extra) {
+  if (cond) {
+    pass++;
+    console.log(C.green('  ✓ ' + name));
+  } else {
+    fail++;
+    failures.push(name + (extra ? ' — ' + extra : ''));
+    console.log(C.red('  ✗ ' + name + (extra ? '  (' + extra + ')' : '')));
+  }
+}
+
+// 跑一个本仓库脚本，返回 {code, out}
+function run(script, argv, cwd) {
+  const r = spawnSync(process.execPath, [path.join(HERE, script), ...argv], {
+    cwd: cwd || ROOT,
+    encoding: 'buffer',
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  const out = (r.stdout ? r.stdout.toString('utf8') : '') + (r.stderr ? '\n' + r.stderr.toString('utf8') : '');
+  return { code: r.status === null ? -1 : r.status, out };
+}
+
+// 跑任意 shell 命令
+function sh(cmd, cwd) {
+  const r = spawnSync(cmd, { cwd, shell: true, encoding: 'buffer', maxBuffer: 8 * 1024 * 1024 });
+  return { code: r.status === null ? 1 : r.status, out: (r.stdout || '').toString() + (r.stderr || '').toString() };
+}
+
+function write(p, s) { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, s, 'utf8'); }
+
+// ---- 造一个一次性 fixture 项目 ----
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'agentrd-verify-'));
+console.log(C.cyan('fixture: ' + tmp));
+console.log('');
+
+try {
+  // ==== 1. init-rd ====
+  console.log(C.cyan('【1】init-rd'));
+  write(path.join(tmp, 'package.json'), JSON.stringify({ name: 'fix', version: '1.0.0' }, null, 2));
+  write(path.join(tmp, 'index.js'), 'console.log("hi");\n');
+  const init = run('init-rd.js', ['-Root', tmp], tmp);
+  check('init-rd 退出码 0', init.code === 0, 'got ' + init.code);
+  check('生成 .rd/gates.json', fs.existsSync(path.join(tmp, '.rd', 'gates.json')));
+  check('生成 .rd/bin/check-ac.js', fs.existsSync(path.join(tmp, '.rd', 'bin', 'check-ac.js')));
+  check('生成 .gitignore', fs.existsSync(path.join(tmp, '.gitignore')));
+  // 幂等：再跑一次不报错
+  const init2 = run('init-rd.js', ['-Root', tmp], tmp);
+  check('init-rd 幂等（二次运行不覆盖、退出码 0）', init2.code === 0, 'got ' + init2.code);
+
+  // ==== 2. check-ac（用 vendored 副本，走真实路径）====
+  console.log('');
+  console.log(C.cyan('【2】check-ac（下发到 .rd/bin 的守卫）'));
+  const guard = path.join(tmp, '.rd', 'bin', 'check-ac.js');
+  const okAc = spawnSync(process.execPath, [guard, '-Cmd', 'echo AC-1 hit && echo 401', '-MustMatch', 'AC-1;;401'], { cwd: tmp, encoding: 'buffer' });
+  check('锚点全中 → exit 0', okAc.status === 0, 'got ' + okAc.status);
+  const vacuous = spawnSync(process.execPath, [guard, '-Cmd', 'echo nothing', '-MustMatch', 'AC-1;;AC-2'], { cwd: tmp, encoding: 'buffer' });
+  check('空过（exit 0 但锚点 0 中）→ exit 1', vacuous.status === 1, 'got ' + vacuous.status);
+  const cmdFail = spawnSync(process.execPath, [guard, '-Cmd', process.platform === 'win32' ? 'exit 5' : 'exit 5', '-MustMatch', 'x'], { cwd: tmp, encoding: 'buffer' });
+  check('命令本身失败 → exit 1', cmdFail.status === 1, 'got ' + cmdFail.status);
+  const noArgs = spawnSync(process.execPath, [guard], { cwd: tmp, encoding: 'buffer' });
+  check('缺参数 → exit 2', noArgs.status === 2, 'got ' + noArgs.status);
+
+  // ==== 3. check-artifacts 退出码 ====
+  console.log('');
+  console.log(C.cyan('【3】check-artifacts 退出码契约'));
+  // 4：没有 .rd 的目录
+  const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentrd-nord-'));
+  const ca4 = run('check-artifacts.js', ['-Root', emptyDir], emptyDir);
+  check('无 .rd → exit 4', ca4.code === 4, 'got ' + ca4.code);
+  // 有 .rd 但 feature 目录不存在
+  const caNoFeat = run('check-artifacts.js', ['-Root', tmp, '-Feature', 'nonexistent'], tmp);
+  check('feature 目录不存在 → exit 4', caNoFeat.code === 4, 'got ' + caNoFeat.code);
+  // 造个 feature，什么都缺 → exit 1（产物缺失）
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'spec.md'), '# spec\n');
+  const ca1 = run('check-artifacts.js', ['-Root', tmp, '-Feature', 'feat1'], tmp);
+  check('产物缺失 → exit 1', ca1.code === 1, 'got ' + ca1.code);
+  // inflight 非空 → exit 2
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'run.json'), JSON.stringify({
+    stage: 'build', status: 'running',
+    inflight: { stage: 'build', round: 1, startedAt: '2026-01-01', agents: [] },
+    rounds: [],
+  }, null, 2));
+  const ca2 = run('check-artifacts.js', ['-Root', tmp, '-Feature', 'feat1'], tmp);
+  check('inflight 非空 → exit 2', ca2.code === 2, 'got ' + ca2.code);
+  // 清 inflight、补齐全套产物 → exit 0（无孤儿）
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'run.json'), JSON.stringify({
+    stage: 'keep', status: 'done', inflight: null,
+    keep: { decided: [] }, rounds: [],
+  }, null, 2));
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'dispatch.md'), 'x\n');
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'acceptance.json'), JSON.stringify({ scenarios: [] }));
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'design.md'), 'x\n');
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'tasks.json'), JSON.stringify({ tasks: [] }));
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'l1-round1.json'), JSON.stringify({ stage: 'l1', verdict: 'pass' }));
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'l2-round1.md'), 'x\n');
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'l2-round1.diff'), 'x\n');
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'l3-round1.md'), 'x\n');
+  write(path.join(tmp, '.rd', 'lessons', 'l1.md'), 'x\n');
+  // run.json rounds 里要记 round 1，否则对账会报警 → 补 round 记录
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'run.json'), JSON.stringify({
+    stage: 'keep', status: 'done', inflight: null, keep: { decided: [] },
+    rounds: [{ round: 1, l1: 'pass', l2: 'pass', l3: 'pass' }],
+  }, null, 2));
+  const ca0 = run('check-artifacts.js', ['-Root', tmp, '-Feature', 'feat1'], tmp);
+  check('产物齐全无孤儿 → exit 0', ca0.code === 0, 'got ' + ca0.code + '\n' + ca0.out);
+  // 孤儿证据 → exit 3
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'evidence', 'orphan.png'), 'x');
+  // 清掉报告里对它的引用（不放任何 .md 引用 orphan.png）→ 应有孤儿
+  const ca3 = run('check-artifacts.js', ['-Root', tmp, '-Feature', 'feat1'], tmp);
+  check('孤儿证据 → exit 3', ca3.code === 3, 'got ' + ca3.code);
+  fs.unlinkSync(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'evidence', 'orphan.png'));
+
+  // ==== 4. gate-l1 ====
+  console.log('');
+  console.log(C.cyan('【4】gate-l1'));
+  // 配一个必过的 gate
+  write(path.join(tmp, '.rd', 'gates.json'), JSON.stringify({
+    l1: [{ name: 'noop', cmd: process.platform === 'win32' ? 'echo ok' : 'echo ok', required: true }],
+  }));
+  const gpass = run('gate-l1.js', ['-Root', tmp], tmp);
+  check('必过 gate → exit 0', gpass.code === 0, 'got ' + gpass.code + '\n' + gpass.out);
+  // 必挂的 required gate
+  write(path.join(tmp, '.rd', 'gates.json'), JSON.stringify({
+    l1: [{ name: 'boom', cmd: process.platform === 'win32' ? 'exit 1' : 'exit 1', required: true }],
+  }));
+  const gfail = run('gate-l1.js', ['-Root', tmp], tmp);
+  check('required 失败 → exit 1', gfail.code === 1, 'got ' + gfail.code);
+  // 空过：命令成功但输出没有 mustMatch
+  write(path.join(tmp, '.rd', 'gates.json'), JSON.stringify({
+    l1: [{ name: 'vac', cmd: 'echo hello', required: true, mustMatch: 'REQUIRED_MARKER' }],
+  }));
+  const gvac = run('gate-l1.js', ['-Root', tmp], tmp);
+  check('空过（exit 0 但无 mustMatch）→ exit 1', gvac.code === 1, 'got ' + gvac.code);
+  // 配置缺失 → exit 2
+  fs.unlinkSync(path.join(tmp, '.rd', 'gates.json'));
+  const gno = run('gate-l1.js', ['-Root', tmp], tmp);
+  check('gates.json 缺失 → exit 2', gno.code === 2, 'got ' + gno.code);
+
+  // ==== 5. validate-plan ====
+  console.log('');
+  console.log(C.cyan('【5】validate-plan'));
+  const feat = path.join(tmp, '.rd', 'features', 'feat1');
+  // 先造一个「干净但 spec 阶段信息不全」的 spec，应 FAIL
+  write(path.join(feat, 'spec.md'), '## 范围\n- 不做：无\n');
+  write(path.join(feat, 'acceptance.json'), JSON.stringify({
+    scenarios: [{ id: 'AC-1', name: 'x', given: 'g', when: 'w', then: 't', judge: 'machine' }],
+  }));
+  const vpSpecErr = run('validate-plan.js', ['-Root', tmp, '-Feature', 'feat1', '-Stage', 'spec'], tmp);
+  check('machine AC 缺 checkIntent(spec) → exit 1', vpSpecErr.code === 1, 'got ' + vpSpecErr.code);
+  // 补上 checkIntent → spec 应 PASS
+  write(path.join(feat, 'acceptance.json'), JSON.stringify({
+    scenarios: [{ id: 'AC-1', name: 'x', given: 'g', when: 'w', then: 't', judge: 'machine', checkIntent: '输入 I,期望输出 O,精确相等' }],
+  }));
+  const vpSpecOk = run('validate-plan.js', ['-Root', tmp, '-Feature', 'feat1', '-Stage', 'spec'], tmp);
+  check('spec 阶段判据齐 → exit 0', vpSpecOk.code === 0, 'got ' + vpSpecOk.code + '\n' + vpSpecOk.out);
+  // plan 阶段：机器判定 + 带过滤的 check 不走守卫 → 应 FAIL（且命中规则）
+  write(path.join(feat, 'tasks.json'), JSON.stringify({
+    tasks: [{ id: 'T1', layer: 1, files: ['index.js'], steps: ['do'], verify: 'echo ok', covers: ['AC-1'], mutationTargets: ['index.js'] }],
+  }));
+  write(path.join(feat, 'design.md'), 'x\n');
+  write(path.join(tmp, '.rd', 'gates.json'), JSON.stringify({ l1: [{ name: 'noop', cmd: 'node --check index.js', required: true }] }));
+  write(path.join(feat, 'acceptance.json'), JSON.stringify({
+    scenarios: [{ id: 'AC-1', name: 'x', given: 'g', when: 'w', then: 't', judge: 'machine', checkIntent: 'I/O 判等', check: 'node --test --test-name-pattern=feat1\\sAC-1' }],
+  }));
+  const vpPlanGuard = run('validate-plan.js', ['-Root', tmp, '-Feature', 'feat1', '-Stage', 'plan'], tmp);
+  check('过滤 check 未走守卫（plan) → exit 1', vpPlanGuard.code === 1, 'got ' + vpPlanGuard.code);
+  check('  …报错点到 check-ac', /check-ac\.js/.test(vpPlanGuard.out));
+  // 改成走守卫 → PASS
+  write(path.join(feat, 'acceptance.json'), JSON.stringify({
+    scenarios: [{ id: 'AC-1', name: 'x', given: 'g', when: 'w', then: 't', judge: 'machine', checkIntent: 'I/O 判等', check: 'node .rd/bin/check-ac.js -Cmd "node --test --test-name-pattern=feat1\\sAC-1" -MustMatch "feat1 AC-1"' }],
+  }));
+  const vpPlanOk = run('validate-plan.js', ['-Root', tmp, '-Feature', 'feat1', '-Stage', 'plan'], tmp);
+  check('plan 阶段合规 → exit 0', vpPlanOk.code === 0, 'got ' + vpPlanOk.code + '\n' + vpPlanOk.out);
+
+  // ==== 6. freeze-target（需要 git）====
+  console.log('');
+  console.log(C.cyan('【6】freeze-target'));
+  const hasGit = sh('git --version', tmp).code === 0;
+  if (!hasGit) {
+    console.log(C.yellow('  ⚠ 无 git，跳过 freeze-target 用例'));
+  } else {
+    sh('git init -q', tmp);
+    sh('git config user.email t@t.t', tmp);
+    sh('git config user.name t', tmp);
+    write(path.join(feat, 'tasks.json'), JSON.stringify({
+      tasks: [{ id: 'T1', layer: 1, files: ['index.js'], steps: ['do'], verify: 'echo ok', covers: ['AC-1'], mutationTargets: ['index.js'] }],
+    }));
+    write(path.join(tmp, 'index.js'), 'console.log("v1");\n');
+    sh('git add -A', tmp);
+    sh('git commit -qm init', tmp);
+    // 改动并冻结
+    write(path.join(tmp, 'index.js'), 'console.log("v2");\n');
+    sh('git add -A', tmp);
+    const fz = run('freeze-target.js', ['-Root', tmp, '-Feature', 'feat1', '-Round', '1'], tmp);
+    check('冻结 → exit 0', fz.code === 0, 'got ' + fz.code + '\n' + fz.out);
+    check('生成 review-target.json', fs.existsSync(path.join(feat, 'review-target.json')));
+    const fv = run('freeze-target.js', ['-Root', tmp, '-Feature', 'feat1', '-Round', '1', '-Verify'], tmp);
+    check('未漂移 → exit 0', fv.code === 0, 'got ' + fv.code);
+    // 改文件 → 漂移 → exit 1
+    write(path.join(tmp, 'index.js'), 'console.log("v3 tampered");\n');
+    sh('git add -A', tmp);
+    const fdrift = run('freeze-target.js', ['-Root', tmp, '-Feature', 'feat1', '-Round', '1', '-Verify'], tmp);
+    check('目标被改 → exit 1 (TargetMoved)', fdrift.code === 1, 'got ' + fdrift.code);
+  }
+
+  // ==== 7. install.js（dry-run 安全 + 真装到假 home）====
+  console.log('');
+  console.log(C.cyan('【7】install.js'));
+  const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), 'agentrd-home-'));
+  const dry = spawnSync(process.execPath, [path.join(ROOT, 'install.js'), '-ClaudeHome', fakeHome], { cwd: ROOT, encoding: 'buffer' });
+  check('dry-run → exit 0', dry.status === 0, 'got ' + dry.status);
+  check('dry-run 不创建 skills/', !fs.existsSync(path.join(fakeHome, 'skills')));
+  const apply = spawnSync(process.execPath, [path.join(ROOT, 'install.js'), '-Apply', '-EnableAgentTeams', '-ClaudeHome', fakeHome], { cwd: ROOT, encoding: 'buffer' });
+  check('apply → exit 0', apply.status === 0, 'got ' + apply.status);
+  // skill 数量与源目录一致（不写死个数，目录可能增减）
+  const srcCount = fs.readdirSync(path.join(ROOT, 'skills'), { withFileTypes: true }).filter((e) => e.isDirectory()).length;
+  const dstCount = fs.existsSync(path.join(fakeHome, 'skills')) ? fs.readdirSync(path.join(fakeHome, 'skills')).filter((d) => fs.statSync(path.join(fakeHome, 'skills', d)).isDirectory()).length : 0;
+  check(`install 全部 ${srcCount} 个 skill`, srcCount > 0 && dstCount === srcCount, `src=${srcCount} dst=${dstCount}`);
+  let settingsOk = false;
+  try {
+    const s = JSON.parse(fs.readFileSync(path.join(fakeHome, 'settings.json'), 'utf8'));
+    settingsOk = s.env && s.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS === '1';
+  } catch { settingsOk = false; }
+  check('settings.json 写入 AGENT_TEAMS=1', settingsOk);
+} finally {
+  // 清理
+  try { fs.rmSync(tmp, { recursive: true, force: true }); } catch { /* ignore */ }
+}
+
+console.log('');
+console.log(C.cyan(`结果: ${pass} 通过 / ${fail} 失败`));
+if (fail > 0) {
+  console.log(C.red('失败用例：'));
+  for (const f of failures) console.log(C.red('  - ' + f));
+  process.exit(1);
+}
+console.log(C.green('全部通过 ✓'));
+process.exit(0);
