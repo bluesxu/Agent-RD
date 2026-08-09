@@ -117,9 +117,17 @@ blocking: {n}  important: {n}  nit: {n}
 
 ## nit
 ...
+
+<!-- RD-DONE stage=review artifact=l2-round{N} at={ISO8601} -->
 ```
 
 同时把这份报告写入 `.rd/features/{slug}/reports/l2-round{N}.md`。
+
+**末行的 `RD-DONE` 必须真的最后写。**`check-artifacts` 靠它区分
+「审完了」和「审到一半被中断」——没有它，这份报告一律按未完成处理，
+`审查结论` / `blocking` / `important` / `nit` 四节还会逐个查是不是真有内容。
+四节里没发现就写「无」，**别留空标题** —— 空标题会被判成空壳，
+而且「空着」和「审了但没发现」本来就该分得清。
 
 ## follow-up 复审
 
@@ -129,6 +137,15 @@ blocking: {n}  important: {n}  nit: {n}
 - 逐项报告每个旧 finding 的 `resolved` / `unresolved`，外加 `new findings`。
 - **不许只核对旧 finding 机械打勾。**
 - 独立性的要求是你独立于实现者，**不要求你对自己上一轮失忆**。
+
+## 模型档位
+
+**L2 审查必须用 opus 级模型。**只有 `rd-build` 里按 `tasks.json` 写代码的 agent
+可以用 Sonnet 这种级别的模型。
+
+> 理由很直白：**审查者比被审者弱，等于没审。**
+> 派一个弱模型去审一个强模型写的代码，它读不出来的问题会变成「本轮无 blocking」，
+> 而这份「通过」在流程上和真的通过完全不可区分。
 
 ## 硬门槛
 

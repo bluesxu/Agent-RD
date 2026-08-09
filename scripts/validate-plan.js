@@ -95,6 +95,70 @@ if (fs.existsSync(checkArt)) {
   if (caCode === 3) {
     addWarn('存在孤儿证据（evidence/ 下有文件没被任何报告引用）。跑 check-artifacts.js 看清单 —— 要么在报告里认领，要么删掉。无主证据会被后人误当成有效依据。');
   }
+
+  // ---------- 方案扇出点数（只在 -Stage plan）----------
+  /*
+    rd-plan 要求 2~3 个 agent 独立出方案。实跑里派了 3 个，A 中断后内容归零、
+    B/C 正常返回，仲裁拿 2 份照常做完 —— 而且当时不知道自己少了一份。
+    「仲裁前先点数」写在 SKILL.md 里是一句自觉要求，没有守卫；
+    寄生到 validate-plan 上它才真的拦得住：这里不过，就不许进 rd-build。
+  */
+  if (Stage === 'plan') {
+    try {
+      const rj = spawnSync(process.execPath, [checkArt, '-Root', Root, '-Feature', Feature, '-Json'], { cwd: Root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+      const info = JSON.parse(rj.stdout);
+      const done = info.proposalsComplete || 0;
+      const total = asList(info.proposals).length;
+      const lost = asList(info.proposalsLost);
+      if (total === 0) {
+        addErr('proposals/ 下一份方案都没有。方案必须落盘到 .rd/features/' + Feature + '/proposals/plan-{a,b,c}.md —— 只存在于返回消息里的方案，中断即归零，事后连「本该有几份」都无从查证。');
+      } else if (done < 2) {
+        addErr(`proposals/ 只有 ${done} 份完整方案（共 ${total} 份文件）。rd-plan 要求 2~3 份独立方案：不足 2 份时「被排除的方案」写不出来，仲裁等于走过场。先补派，不要跳过。`);
+      }
+      for (const x of lost) {
+        addErr('方案丢失：' + x + '。先重派一次；重派仍失败才允许降级，且必须在 design.md 的「未决风险」里写明少了哪一份。降级本身可以接受，降级得悄无声息不行。');
+      }
+      for (const p of asList(info.proposals)) {
+        if (p.state !== 'ok') {
+          addErr(`proposals/${p.name} 只写了一半：${asList(p.why).join('；')}`);
+        }
+      }
+
+      /*
+        提示词差异化：三份提示词完全一样时，换三个模型也只是换三种措辞。
+        提示词本身没法事后检查，但派发时登记的「切入角度」可以 ——
+        缺角度、或角度雷同，都说明这次扇出没有真的差异化。
+        ⚠️ 这里只抓得住【字面重复】。角度写得不同但实质是一回事，机器分辨不了，
+        那一层只能靠 design.md 的「被排除的方案」是否真有分量来反推。
+      */
+      const runP = path.join(dir, 'run.json');
+      if (fs.existsSync(runP)) {
+        let fanout = null;
+        try { fanout = JSON.parse(fs.readFileSync(runP, 'utf8')).planFanout; } catch (e) { fanout = null; }
+        const dispatched = asList(fanout && fanout.dispatched);
+        if (dispatched.length > 0) {
+          const norm = (s) => String(s === null || s === undefined ? '' : s)
+            .toLowerCase().replace(/[\s，。、；;,.!！?？"'"'`]/g, '');
+          const seen = new Map();
+          for (const d of dispatched) {
+            const who = d.name || d.reportPath || '?';
+            const key = norm(d.angle);
+            if (key === '') {
+              addErr(`planFanout 里 ${who} 没写 angle（切入角度）。三份提示词不许完全一样 —— 角度是差异所在，不登记就无从检查这次扇出到底有没有差异化。`);
+              continue;
+            }
+            if (seen.has(key)) {
+              addErr(`planFanout 里 ${who} 的 angle 与 ${seen.get(key)} 字面重复（「${d.angle}」）。同一个角度派两遍，拿回来的是同一份方案的两种措辞。`);
+            } else {
+              seen.set(key, who);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      addWarn('方案扇出点数没跑成（' + e.message + '）—— 请手动跑 check-artifacts.js -Json 核对 proposalsComplete。');
+    }
+  }
 }
 
 // ---------- spec.md ----------

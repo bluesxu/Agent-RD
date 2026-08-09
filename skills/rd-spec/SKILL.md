@@ -61,7 +61,13 @@ argument-hint: "[需求描述]"
 
 ## 已确认的决策
 {拷问过程中用户拍板的东西，带上理由}
+
+<!-- RD-DONE stage=spec artifact=spec at={ISO8601} -->
 ```
+
+**末行的 `RD-DONE` 是收尾标记，必须真的写在最后一步。**
+`check-artifacts` 靠它区分「写完的 spec.md」和「被中断在半路的 spec.md」——
+没有标记的一律按未完成处理，四个必填小节也会逐个查是不是真有内容（空壳不算数）。
 
 ### `spec-internal.md` —— 你的顾虑和打算。**L3 验收者禁读**
 
@@ -75,6 +81,8 @@ argument-hint: "[需求描述]"
 
 ## 怎么确认算对了
 {这东西最可能怎么静默出错？你打算靠什么抓住它？}
+
+<!-- RD-DONE stage=spec artifact=spec-internal at={ISO8601} -->
 ```
 
 ### 为什么必须分成两份
@@ -189,6 +197,17 @@ node <agent-rd>/scripts/validate-plan.js -Feature {slug} -Stage spec
    acceptance.json  {X} 条场景（machine {a} / agent {b}）
    📍 Next: 调用 rd-plan 进入技术选型
 ```
+
+## 收尾标记与模型档位
+
+**收尾**：`spec.md` / `spec-internal.md` 末行盖 `<!-- RD-DONE ... -->`；
+`acceptance.json` 顶层加 `"_complete": true`。两者都是**写文件的最后一个动作**——
+中断可能发生在任何时刻，标记写在最后，才谈得上「有标记 = 写完了」。
+
+**档位**：本阶段**必须 opus 级**。只有 rd-build 里按 tasks.json 写代码的 agent
+可以用 Sonnet 这种级别的模型。
+理由：这一阶段产出的 `acceptance.json` 是后面全部三道门的燃料 ——
+判据错了，L1/L2/L3 会拿着错判据一路绿灯，没有任何机制能反过来质疑判据本身。
 
 ## 硬门槛
 

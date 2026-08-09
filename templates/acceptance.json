@@ -1,6 +1,8 @@
 {
   "version": 1,
   "feature": "user-login",
+  "_complete": false,
+  "_completeRule": "⛔ 收尾检测点。写完这份文件的【最后一个动作】是把 _complete 改成 true —— 在此之前它一律被 check-artifacts 判为「未完成或只完成了一半」。为什么需要它：截断的 JSON parse 会失败，这挡得住写到一半被掐断；但「语法合法、内容只写了三条 AC」挡不住，那种文件看上去和写完的一模一样。标记写在最后，中断发生在任何时刻都不可能让它出现，所以「有标记 = 写完了」才成立。反过来也一样：不许一开始就填 true 占位，那是把检测点变成谎话。",
   "scenarios": [
     {
       "id": "AC-1",

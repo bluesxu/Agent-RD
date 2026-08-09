@@ -1,6 +1,8 @@
 {
   "version": 1,
   "feature": "user-login",
+  "_complete": false,
+  "_completeRule": "⛔ 收尾检测点。切完 DAG 的【最后一个动作】是把 _complete 改成 true —— 在此之前 check-artifacts 一律判「未完成」。截断的 JSON parse 会失败，那挡得住写到一半被掐断；但「语法合法、只切了一半的 task」挡不住。不许一开始就填 true 占位。",
   "tasks": [
     {
       "id": "T1",

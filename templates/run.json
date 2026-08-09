@@ -36,6 +36,9 @@
     "l1_verified_by": "agent | orchestrator | human —— 谁下的这个判定",
     "l1_evidence": "证据文件路径（相对 feature 目录）。⛔ verified_by 不是 agent 时必填：编排者/人工的判定不经过三层门，必须自带可复核产物。check-artifacts 会核对该文件是否存在。"
   },
+  "planFanout": null,
+  "_planFanoutRule": "rd-plan 派方案 agent 的那一刻写死的名单，形如 { at, dispatched: [ { name, model, angle, reportPath } ] }。angle 是这个 agent 被要求优先照顾什么（「优先最小改动」/「优先长期可维护」/「优先风险最低」），必填且互不相同 —— 三份提示词完全一样时，换三个模型也只是换三种措辞，validate-plan 会机械拦截缺失与字面重复（实质雷同它分辨不了，那一层只能靠「被排除的方案」有没有分量来反推）。规格部分（spec/acceptance 全文）三份必须一字不差：那是输入不是变量，差异只许加在 angle 上。⛔ 写了就不许清、不许改 —— 它记的是「本该有几份」。为什么不能只靠 inflight：inflight 收齐后会被清空（那是它的正确行为），而只要它被清空，「本该有三份」这个事实就跟着消失了。实跑里派 3 个方案 agent，B/C 正常返回、A 中断后内容完全丢失也没有重试，最后拿 2 份做完仲裁，当时并不知道自己少了一份 —— 而「≥2 份完整方案」这条门槛恰好过线。planFanout 让 check-artifacts 和 validate-plan 在任何时刻都能对出差额。",
+  "_completeRule": "⛔ 收尾检测点（D-1）：完成的文件必须有收尾标记，没有标记的一律视为未完成或只完成了一半。Markdown 产物（spec.md / design.md / proposals/plan-*.md / reports/l2-*.md / l3-*.md）末行写 <!-- RD-DONE stage=... artifact=... at=... -->；JSON 产物（acceptance.json / tasks.json）顶层写 \"_complete\": true。标记是写文件的最后一个动作，所以中断发生在任何时刻都不可能让一个没写完的文件带上它。⛔ 但光有标记不够：check-artifacts 同时查必填小节是不是真有内容，空壳配齐标记照样判未完成 —— 一个对空壳也放行的检测点没有判别力（同 A18「证伪优先」）。⛔ 本文件（run.json）自己不在此列：它是活状态文件，全程被反复改写，它的「完成」由 stage/status 表示。给一个每轮都要更新的文件盖「完成」章，章本身就是谎话。",
   "_inflightRule": "⛔ 中断可以发生在任何时刻，所以不要去预估「这一步能不能一口气跑完」—— 预估必然出错。要求是：任何时刻的状态都能从产物恢复。inflight 就是为此存在的：它记录「此刻正在做什么、派了谁出去」。派 agent 之前写，拿到结果立刻清空并把结果落进 rounds。**inflight 非 null 就意味着上一次运行是被中断在这里的** —— 恢复时先读它，不要凭记忆接着走。",
   "_inflightShape": {
     "stage": "spec | plan | build | review | eval | keep",
