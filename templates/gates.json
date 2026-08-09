@@ -7,6 +7,14 @@
   ],
 
   "_note": "按你的项目改。required=false 的项失败只警告不阻塞。顺序即执行顺序，越便宜的放越前面，早失败早退出。",
+
+  "_syntaxGate": {
+    "_why": "给不在编译器覆盖范围里的目录（public/、静态前端、脚本目录）加一条零成本的语法下限。实跑教训：public/ 完全在机器门之外，一个渲染缺陷靠 L3 真实浏览器才暴露，白跑一整轮 —— 而在那之前连语法层都没有门。tsc 不覆盖 public/ 是设计，但逐文件 node --check 不要钱。",
+    "_howToUse": "把下面这条复制进上面的 l1 数组，改掉 dirs。gate-l1 内建执行，不走 shell —— 因为 `node --check` 一次只吃一个文件，写成 `node --check public/*.js` 在任何 shell 下都是错的。",
+    "_example": { "name": "frontend-syntax", "kind": "syntax", "dirs": ["public", "src/web"], "ext": [".js", ".mjs"], "required": true },
+    "_defaults": "ext 默认 .js/.mjs/.cjs；exclude 默认只有 node_modules/.git（dist/build/coverage **会被检查** —— 按目录名排除会把叫 build/ 的真源码目录一起跳过，少查一半文件还照样报 PASS，所以默认宁可多查）。声明的目录下一个文件都没找到时判**空过**（FAIL），不会静悄悄报绿。"
+  },
+
   "_presets": {
     "python": [
       { "name": "typecheck", "cmd": "mypy .",            "required": true },

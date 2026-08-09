@@ -50,6 +50,102 @@ const Root = args.Root || process.cwd();
 const Feature = args.Feature || '';
 const Round = args.Round;
 
+/* ---- 语法门（kind: "syntax"）----
+
+   为什么要内建而不是写成一条 cmd：`node --check` **一次只吃一个文件**，
+   `node --check public/*.js` 在 shell 展开成多个参数后直接报错；
+   而且通配的展开行为 cmd 与 sh 还不一样。于是「给前端加个语法下限」
+   这件本该零成本的事，写成 cmd 反而没人写得对。
+
+   实跑教训：public/ 完全在机器门之外，一个 canvas 渲染缺陷靠 L3 真实浏览器
+   才暴露，白跑一整轮 —— 而在那之前，连语法层都没有门。
+   tsc 不覆盖 public/ 是设计，但逐文件 node --check 是零成本的下限。
+
+   配置形如：
+     { "name": "frontend-syntax", "kind": "syntax",
+       "dirs": ["public", "src/web"], "ext": [".js", ".mjs"] }
+   不写 ext 时默认 .js / .mjs / .cjs。exclude 默认排除 node_modules / .git。 */
+const DEFAULT_SYNTAX_EXT = ['.js', '.mjs', '.cjs'];
+
+/* ⚠ 默认排除**只有** node_modules 和 .git，不含 dist / build / coverage。
+
+   原先带上了后三个，而排除是按 basename 在**每一层**匹配的 ——
+   于是任何叫 `build/` 的业务目录（构建脚本源码、`src/dist/` 这种命名的产物页）
+   会被整体跳过，而「空过防护」只在一个文件都没找到时才触发，
+   少检查一半文件照样报 PASS。实测 `src/build/broken.js` 里一个确定的语法错误被判绿。
+
+   两种错的代价不对称：多查一个产物目录只是慢一点，
+   漏查一个真源码目录会让 L1 报出一个伪造的绿。所以默认宁可多查。
+   项目确有需要就自己写 exclude。 */
+const DEFAULT_SYNTAX_EXCLUDE = ['node_modules', '.git'];
+
+function collectFiles(root, dirs, exts, excludes) {
+  const acc = [];
+  let symlinks = 0;
+  for (const d of dirs) {
+    const base = path.resolve(root, d);
+    if (!fs.existsSync(base)) continue;
+    const stack = [base];
+    while (stack.length > 0) {
+      const cur = stack.pop();
+      let entries = [];
+      try { entries = fs.readdirSync(cur, { withFileTypes: true }); } catch { continue; }
+      for (const e of entries) {
+        if (excludes.indexOf(e.name) >= 0) continue;
+        const full = path.join(cur, e.name);
+        if (e.isDirectory()) { stack.push(full); continue; }
+        if (e.isFile()) {
+          if (exts.indexOf(path.extname(e.name).toLowerCase()) >= 0) acc.push(full);
+          continue;
+        }
+        // 符号链接：不跟随（避免软链环导致无限递归），但要计数 ——
+        // 静默跳过会让 monorepo 里 symlink 的源码目录整体漏检而无人知晓。
+        if (e.isSymbolicLink() && exts.indexOf(path.extname(e.name).toLowerCase()) >= 0) symlinks++;
+      }
+    }
+  }
+  return { files: acc.sort(), symlinks };
+}
+
+/* ⚠ 不再做「进程内 vm 编译」快路径 —— N6 当初为了省 spawn 开销加过，被 L2 复审
+   抓出假绿：`vm.Script` 按传统脚本解析，接受 `var await = 1` / `with(...)`，
+   而 `node --check` 对 ESM 文件（.mjs，或 type:module 项目的 .js）会拒绝它们。
+   于是「vm 成功就跳过 spawn」的快路径对 ESM 文件是**反向判据**：
+   该 FAIL 的反而直接过，L1 报绿 —— 正是 F4 要消灭的伪造绿。
+   `node --check` 一次只吃一个文件（多文件只查第一个就 exit 0），也没有别的
+   进程内等价物。逐文件 spawn 每个约 50-80ms，几千文件约一两分钟 ——
+   这是「最便宜的闸」能接受的量级，换一个不伪造绿的保证。 */
+function runSyntaxGate(g, cwd) {
+  const dirs = Array.isArray(g.dirs) ? g.dirs : [];
+  if (dirs.length === 0) {
+    return { code: 1, text: `[gate-l1] kind:"syntax" 的门 "${g.name}" 没有声明 dirs，无从检查。` };
+  }
+  const exts = (Array.isArray(g.ext) && g.ext.length > 0 ? g.ext : DEFAULT_SYNTAX_EXT)
+    .map((x) => String(x).toLowerCase());
+  const excludes = Array.isArray(g.exclude) ? g.exclude : DEFAULT_SYNTAX_EXCLUDE;
+
+  const { files, symlinks } = collectFiles(cwd, dirs, exts, excludes);
+  if (files.length === 0) {
+    // 空过防护：声明了要查却一个文件都没查到，多半是目录名写错了。
+    return { code: -101, text: `[gate-l1] 语法门 "${g.name}" 在 ${dirs.join(', ')} 下没找到任何 ${exts.join('/')} 文件 —— 判定为空过。目录名是不是写错了？` };
+  }
+
+  const bad = [];
+  for (const f of files) {
+    const r = spawnSync(process.execPath, ['--check', f], { cwd, encoding: 'buffer', maxBuffer: 8 * 1024 * 1024 });
+    const code = r.error ? 1 : (r.status === null ? 1 : r.status);
+    if (code !== 0) {
+      const se = r.stderr ? r.stderr.toString('utf8') : '';
+      bad.push(`${path.relative(cwd, f).split(path.sep).join('/')}\n${se.trim()}`);
+    }
+  }
+  const note = symlinks > 0 ? `（另有 ${symlinks} 个符号链接未跟随）` : '';
+  if (bad.length === 0) {
+    return { code: 0, text: `[gate-l1] 语法门 "${g.name}": ${files.length} 个文件全部通过 node --check${note}` };
+  }
+  return { code: 1, text: `[gate-l1] 语法门 "${g.name}": ${bad.length}/${files.length} 个文件语法错误${note}\n\n` + bad.join('\n\n') };
+}
+
 // 跑一条命令：shell=true 让 Node 选 cmd / sh。合并 stdout+stderr，返回 {code, text}。
 function runShell(cmd, cwd) {
   try {
@@ -77,7 +173,16 @@ try {
   out(C.red(`[L1] gates.json 不是合法 JSON: ${e.message}`));
   process.exit(2);
 }
+function asArr(v) { return Array.isArray(v) ? v : (v === null || v === undefined ? [] : [v]); }
+
 const gates = Array.isArray(config.l1) ? config.l1 : [];
+// 每条门要么有 cmd，要么是 kind:"syntax"。两者都没有的话它什么也不做却照常报 PASS。
+for (const g of gates) {
+  if (g.kind !== 'syntax' && (g.cmd === null || g.cmd === undefined || String(g.cmd).trim() === '')) {
+    out(C.red(`[L1] gates.json 里的门 "${g.name || '(无名)'}" 既没有 cmd 也不是 kind:"syntax"`));
+    process.exit(2);
+  }
+}
 if (gates.length === 0) {
   out(C.red('[L1] gates.json 的 l1 为空，没有可执行的机械门。'));
   process.exit(2);
@@ -121,11 +226,13 @@ const tailLines = 40;
 for (const g of gates) {
   const required = g.required === undefined || g.required === null ? true : Boolean(g.required);
 
+  const isSyntax = g.kind === 'syntax';
+
   out('');
-  out(C.gray(`  -> ${g.name}: ${g.cmd}`));
+  out(C.gray(`  -> ${g.name}: ${isSyntax ? `node --check（${asArr(g.dirs).join(', ')}）` : g.cmd}`));
 
   const t0 = Date.now();
-  const { code: rawCode, text: text } = runShell(g.cmd, Root);
+  const { code: rawCode, text: text } = isSyntax ? runSyntaxGate(g, Root) : runShell(g.cmd, Root);
   const seconds = Math.round(((Date.now() - t0) / 1000) * 10) / 10;
 
   let lines = text.split(/\r?\n/);
@@ -145,10 +252,25 @@ for (const g of gates) {
   }
 
   results.push({
-    name: g.name, cmd: g.cmd, required, exitCode: code, ok, seconds, tail: tail.replace(/\s+$/, ''),
+    name: g.name,
+    cmd: isSyntax ? `node --check [${asArr(g.dirs).join(', ')}]` : g.cmd,
+    kind: isSyntax ? 'syntax' : 'cmd',
+    required, exitCode: code, ok, seconds, tail: tail.replace(/\s+$/, ''),
   });
 
-  if (ok) {
+  /* ⛔ 空过（-100 / -101）无视 required。
+     `required:false` 的语义是「这道检查没通过可以先放行」，
+     不是「这道检查根本没检查到东西也可以放行」—— 后者是反自欺机制被自己关掉。
+     实测：给一个目录名写错的语法门加上 required:false，就能拿到 L1 PASS。 */
+  const isEmptyPass = code === -100 || code === -101;
+  if (!ok && isEmptyPass && !required) {
+    out(C.red(`     FAIL  exit=${code}  (${seconds}s) ← 空过防护无视 required:false`));
+    failed = true;
+    if (!args.ContinueOnFailure) {
+      out(C.dark('     后续项跳过（early exit）。加 -ContinueOnFailure 可跑完全部。'));
+      break;
+    }
+  } else if (ok) {
     out(C.green(`     PASS  (${seconds}s)`));
   } else if (required) {
     out(C.red(`     FAIL  exit=${code}  (${seconds}s)`));

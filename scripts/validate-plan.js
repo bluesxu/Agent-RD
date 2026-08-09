@@ -418,6 +418,58 @@ if (Stage === 'plan') {
       }
     }
 
+    /* 【F3】covers 与 verify 锚点的**跨 task 聚合**检查。
+
+       `check-ac -MustMatch` 只卡它自己列出的那几个锚点。所以一个 task
+       covers 了 AC-1 + AC-8、而 verify 只锚 AC-1 时，AC-8 的测试
+       **悄悄消失也不会有任何东西变红** —— 实跑里 T6（AC-1+AC-8）和
+       T10（AC-2/3/4）都是这个形状，validate-plan 当时照常放行。
+
+       规则：每条 **machine 判定**的 AC，必须被**某个** task 的 verify
+       用 -MustMatch 锚住。跨 task 聚合，不要求本 task 自锚 ——
+       实现和测试完全可以分在两个 task 里。
+
+       agent 判定的 AC 不在此列：它们本来就没有机器检查，由 L3 验收者判。 */
+    /* 提取命令里的 -MustMatch 值。三个坑都踩过：
+       ① 必须锚在词首（`(?:^|\s)`）—— 否则 `--no-MustMatch AC-9` 这种**显式关掉**锚点的
+          选项反而会被当成一个锚点，让 AC-9 白白通过校验。
+       ② 引号内要允许 `\"` 转义 —— `-MustMatch "say \"AC-8\" done"` 若在第一个 \" 处截断，
+          AC-8 会丢掉，然后报「没有任何 verify 锚住它」，作者去补一个已经存在的锚点。
+       ③ 一条命令里可能有多个 -MustMatch，要全取。 */
+    function extractMustMatch(cmd) {
+      const s = String(cmd === null || cmd === undefined ? '' : cmd);
+      const acc = [];
+      const re = /(?:^|\s)-{1,2}MustMatch(?:=|\s+)("((?:\\.|[^"\\])*)"|'((?:\\.|[^'\\])*)'|(\S+))/gi;
+      let m;
+      while ((m = re.exec(s)) !== null) {
+        const raw = m[2] !== undefined ? m[2] : (m[3] !== undefined ? m[3] : m[4]);
+        acc.push(String(raw).replace(/\\(["'])/g, '$1'));
+      }
+      return acc;
+    }
+
+    const anchorBlob = tasks
+      .map((t) => extractMustMatch(t.verify).join(' ;; '))
+      .filter((x) => x !== '')
+      .join(' ;; ');
+
+    for (const id of machineAcIds) {
+      if (!covered[id]) continue; // 「压根没被覆盖」上面已经报过，不重复报
+      const esc = String(id).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // 整词匹配：两侧都不许接字母/数字/下划线 —— AC-1 既不能被 AC-10 冒充，也不能被 AC-1a 冒充
+      const re = new RegExp('(^|[^0-9A-Za-z_])' + esc + '([^0-9A-Za-z_]|$)');
+      if (re.test(anchorBlob)) continue;
+      const owners = tasks
+        .filter((t) => asList(t.covers).indexOf(id) >= 0)
+        .map((t) => t.id)
+        .join(' / ');
+      addErr(`${id} 是 machine 判定、被 ${owners} 的 covers 声明，但**没有任何 task 的 verify 用 -MustMatch 锚住它**。` +
+        `-MustMatch 只卡它列出的锚点，所以这条 AC 的测试就算根本没写、或以后被悄悄删掉，L1 和 verify 也全是绿的。` +
+        `在负责它的 task 的 verify 里补上锚点（可以和别的 AC 合并在同一条命令里，用 ;; 分隔）。` +
+        `⚠ 注意：acceptance.json 里这条 AC 自带的 check -MustMatch **不算数** —— 那条命令是 L3 验收时才跑的，` +
+        `而这里要求的是**实现阶段**（task 完成时）就有机器守卫。两者都要有，不是重复。`);
+    }
+
     // gates.json 的语法门是否覆盖了 tasks.json 声明的全部源文件。
     const gatesPath = path.join(Root, '.rd', 'gates.json');
     if (!fs.existsSync(gatesPath)) {
@@ -426,10 +478,21 @@ if (Stage === 'plan') {
       try {
         const gatesCfg = JSON.parse(fs.readFileSync(gatesPath, 'utf8'));
         const l1arr = asList(gatesCfg.l1);
-        const cmds = l1arr.map((g) => g.cmd).join(' ; ');
+
+        /* kind:"syntax" 的门没有 cmd —— 它由 gate-l1 内建执行（逐文件 node --check）。
+           不认识它的话：只配语法门时 cmds 为空串，会被误报「l1 为空」；
+           混配时它覆盖的源文件也不算数，会被误报「只覆盖了 0/N 个源文件」。
+           两种都是**让一份正确的配置过不了门**，比漏报更劝退。
+           语法门声明的 dirs 视同对该目录下所有文件的覆盖。 */
+        const syntaxGates = l1arr.filter((g) => g.kind === 'syntax');
+        const syntaxDirs = [];
+        for (const g of syntaxGates) {
+          for (const d of asList(g.dirs)) syntaxDirs.push(String(d).replace(/\\/g, '/').replace(/\/+$/, ''));
+        }
+        const cmds = l1arr.filter((g) => g.kind !== 'syntax').map((g) => g.cmd).join(' ; ');
         const declaresAll = l1arr.filter((g) => g.coversAllSrc === true).length > 0;
 
-        if (isBlank(cmds)) {
+        if (isBlank(cmds) && syntaxGates.length === 0) {
           addErr('gates.json 的 l1 为空');
         } else if (declaresAll) {
           // 有 gate 声明了 coversAllSrc，跳过文件级覆盖检查
@@ -444,7 +507,9 @@ if (Stage === 'plan') {
           const srcUniq = Array.from(new Set(srcFiles)).sort();
 
           const cmdsNorm = cmds.replace(/\\/g, '/');
-          const literal = srcUniq.filter((sf) => cmdsNorm.indexOf(sf) >= 0);
+          // 语法门按目录覆盖：dirs 里任一目录是该源文件的前缀，就算被覆盖。
+          const underSyntaxDir = (sf) => syntaxDirs.some((d) => d !== '' && (sf === d || sf.indexOf(d + '/') === 0));
+          const literal = srcUniq.filter((sf) => cmdsNorm.indexOf(sf) >= 0 || underSyntaxDir(sf));
           const hasGlob = /\*/.test(cmds);
 
           if (!hasGlob && literal.length < srcUniq.length) {

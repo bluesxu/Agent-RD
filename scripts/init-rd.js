@@ -134,20 +134,54 @@ const gatesCfg = JSON.parse(fs.readFileSync(gatesDst, 'utf8'));
 out('');
 out(C.cyan('  --- gate 命令冒烟（只验能否执行，失败不阻塞）---'));
 for (const g of (Array.isArray(gatesCfg.l1) ? gatesCfg.l1 : [])) {
+  if (g.kind === 'syntax') {
+    out(C.dark(`    ✓ ${g.name}: 内建语法门，无需外部命令`));
+    continue;
+  }
   let code;
+  let errText = '';
   try {
     const r = spawnSync(String(g.cmd), { cwd: Root, shell: true, encoding: 'buffer', maxBuffer: 8 * 1024 * 1024 });
     code = r.error ? -1 : (r.status === null ? -1 : r.status);
+    errText = r.stderr ? r.stderr.toString('utf8') : '';
   } catch (e) {
     code = -1;
   }
-  // 127 / 9009 = 命令不存在；-1 = 抛异常。这几种是「跑不起来」，其余退出码只是「没通过」，正常。
-  if (code === 127 || code === 9009 || code === -1) {
-    out(C.yellow(`    ⚠ ${g.name}: 命令跑不起来 (exit ${code}) — ${g.cmd}`));
+
+  /* ⚠ Windows 上 spawnSync 返回的是**无符号 32 位**退出码：
+     一个失败进程可能报成 4294963238，而它其实是 -4058。
+     旧判据只认 127 / 9009 / -1，于是这类「压根没跑起来」被判成「✓ 可执行」——
+     和「freeze 冻出空 diff」同一个形状：门坏了却报绿，
+     而绿是这条流水线上最不该被伪造的信号。 */
+  const norm = code > 0x7fffffff ? (code | 0) : code;
+
+  /* ⛔ 不要靠 stderr 的文案判断「命令不存在」。
+     cmd.exe 用**系统代码页**输出（中文 Windows 是 GBK），按 utf8 解出来是乱码，
+     匹配中文错误串必然落空 —— 这个坑本身就是写这段时踩出来的。
+     只留 ASCII 且跨 shell 稳定的几个标记，其余一律靠退出码分档。 */
+  const asciiNotFound = /not recognized|command not found|ENOENT|No such file/i.test(errText);
+  const cannotRun = norm === 127 || norm === 9009 || norm < 0 || asciiNotFound;
+
+  if (code === 0) {
+    out(C.dark(`    ✓ ${g.name}: 可执行且当前通过`));
+  } else if (cannotRun) {
+    out(C.yellow(`    ⚠ ${g.name}: 命令跑不起来 (exit ${code}${norm !== code ? ` → 归一 ${norm}` : ''}) — ${g.cmd}`));
     out(C.yellow('      L1 会一直挂在这里。装好依赖或改掉这条命令。'));
   } else {
-    out(C.dark(`    ✓ ${g.name}: 可执行 (exit ${code})`));
+    /* 退出码非 0 但不在上面那几个已知形态里。**这里不许猜**：
+       Windows 的 cmd.exe 对「命令根本不存在」返回的也是 1，
+       而它的错误文案是系统代码页编码的（中文 Windows 上按 utf8 解出来是乱码），
+       所以脚本没有可靠办法区分「命令不存在」和「lint 真的有问题」。
+       原先这里写「确认这是预期的（比如测试还没写）」—— 对一个拼错的命令说这句话，
+       等于把人往错误方向推。分不清就说分不清，两条排查路径都给出来。 */
+    out(C.yellow(`    ⚠ ${g.name}: 当前不通过 (exit ${code}) — ${g.cmd}`));
+    out(C.dark('      L1 会在这条门 FAIL。两种可能，都要排查：'));
+    out(C.dark('        ① 命令不存在或依赖没装（Windows 下这种情况也返回 exit 1，看不出来）'));
+    out(C.dark('        ② 命令跑通了但检查没过（测试还没写、lint 真有问题）'));
+    out(C.dark('      手动跑一遍这条命令，看输出属于哪种。'));
   }
+  const firstLine = errText.split(/\r?\n/).filter((x) => x.trim())[0];
+  if (code !== 0 && firstLine) out(C.dark(`      stderr: ${firstLine.substring(0, 120)}`));
 }
 
 // ---- .gitignore：直接创建 ----
@@ -184,9 +218,9 @@ if (fs.existsSync(giPath)) {
 }
 
 out('');
-out(C.dark('  ⛔ 忽略清单里故意不含 .rd 下的任何东西：'));
-out(C.dark('     run.json / reports/ / review-target.json / lessons/ 全都要进 git —— 它们是证据链，'));
-out(C.dark('     不是运行时垃圾。spec / acceptance / design / tasks 同理。'));
+out(C.dark('  ⛔ .rd/ 整个是**本地工作区**，会被忽略、不进 git（用户裁决：不污染共享仓库）。'));
+out(C.dark('     run.json / reports/ / review-target.json / lessons/ 都是它的产物 ——'));
+out(C.dark('     换机器 / clone 一份不会带走它们。lessons 想长期保留就手动复制出来。'));
 out('');
 out(C.green('=== 完成。在 Claude Code 里调用 /rd 开始 ==='));
 out('');

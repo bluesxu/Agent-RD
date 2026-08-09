@@ -13,6 +13,33 @@ argument-hint: "[诉求]"
 > 反过来，对一个跨模块的新功能走轻量路径，会漏掉只有第三层门才抓得到的假绿。
 > **策略必须与任务相称。**
 
+## `<agentrd>` 是什么 —— 先解析它，别猜
+
+所有 skill 文本里的 `<agentrd>/scripts/...`、`<agentrd>/skills/...`，
+`<agentrd>` 一律指 **Agent-RD 源仓的根目录**。
+
+**它永远不是 `~/.claude`。** 理由是结构性的，不是约定：
+
+| 目录 | 源仓 | `~/.claude`（安装副本） |
+|---|---|---|
+| `skills/` | ✅ | ✅ |
+| `scripts/` | ✅ | ❌ **从来没有** |
+| `templates/` | ✅ | ❌ **从来没有** |
+
+`install.js` 只复制 `skills/`。把 `<agentrd>` 解析成 `~/.claude`，
+所有脚本调用都会 404 —— 而报错长得像「脚本坏了」，不像「路径解析错了」。
+
+**解析顺序**：
+
+1. 环境变量 `AGENTRD_HOME`（存在且其下有 `scripts/` 即采用）
+2. 本机约定路径 —— 找一个同时含 `scripts/`、`skills/`、`templates/` 三者的目录
+3. **前两条都定不下来 → 问用户，不要猜**
+
+⛔ **第 3 条不是客套话。**实跑里编排者全盘搜索后挑了唯一命中的那个目录，
+没问用户就往下走了 —— 那次恰好猜对，但同一个动作在有多份副本时会静默选错，
+而且后面所有「规则说的是什么」的争议都从这里开始。
+**猜对一次的代价是养成不问的习惯。**
+
 ## Phase 0 逃生舱
 
 先检查用户是否明确表示要跳过流程：
@@ -269,6 +296,26 @@ Read("<agent-rd>/skills/rd/strategies/{strategy}.md")
   "ifNotDone": "它会跑满 8 次预算后判 blocked，结论相同但多花约 3 万 token",
   "userDecision": "approved", "ts": "..." }
 ```
+
+**字段名是固定的，不许按直觉另起一套**（`check-artifacts` 按这张表校验）：
+
+| 字段 | 必填 | 取值 |
+|---|---|---|
+| `action` | ✅ | `kill-agent` / `modify-framework` / `skip-gate` / `manual-verdict` / `change-acceptance` / `relax-rule` / `extra-step` |
+| `target` | ✅ | 动作作用在谁身上（agent 名 / 文件路径 / 门名 / AC 号） |
+| `reason` | ✅ | 为什么要做 |
+| `ifNotDone` | ✅ | **不做会怎样** —— 如实写，包括「其实也能继续，只是更慢」 |
+| `userDecision` | ✅ | `approved` / `rejected` |
+| `ts` | — | ISO 时间戳 |
+
+> **为什么专门列一张表**：实跑里编排者按直觉写了 `{ when, what, actor, detail }`，
+> 脚本渲染成「? undefined → undefined [无裁决]」并把它计进**自作主张**清单 ——
+> 一个纯粹的格式问题，看起来像严重的流程违规，查了很久。
+> 现在脚本对字段名不符的条目会降级报「实际字段: when, what, actor, detail」，
+> 但**最省事的仍然是照这张表写**。
+>
+> 拿不准时跑 `node <agentrd>/scripts/check-artifacts.js -Feature {slug}`，
+> 它会把不符 schema 的条目和真正的违规分开列出来。
 
 **`check-artifacts` 的联锁**：框架指纹漂移（规则被改过）却在
 `outOfFlowActions` 里找不到对应的用户裁决 → 报警。

@@ -88,6 +88,12 @@ source: features/user-login
 
 只是相关但没改变行为的，不要制造复用证据。
 
+## ⛔ lessons 只存本地
+
+`.rd/` 是**本地工作区**（不进 git，不污染共享仓库）。lessons 和 attention 都只活在本机：
+换机器、clone、清理工作区都会丢。要长期保留的条目，收尾时**手动复制到仓外**（比如
+`~/notes/rd-lessons/`）—— 框架不做这件事，因为「哪些值得跨机器」是只有你知道的判断。
+
 ## attention.md
 
 `.rd/attention.md` 是**每次开工必读**的那张便签。

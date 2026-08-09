@@ -14,6 +14,7 @@
   用法：
     node check-artifacts.js [-Root <dir>] [-Feature <slug>] [-Json]
     node check-artifacts.js -SelfTest        # 证伪自检：喂已知应失败的输入，确认检查报得出失败
+    node check-artifacts.js -Sections        # 打印各产物的必填小节表（写报告的 agent 照它写）
 
   退出码（validate-plan 与 gate-l1 依赖这个划分，不要改动语义）：
     0  干净
@@ -43,11 +44,12 @@ function out(s) { process.stdout.write(s + '\n'); }
 
 // ---- 参数解析：兼容 -Key value 与 --Key=value；-Json 是开关 ----
 function parseArgs(argv) {
-  const args = { Json: false, SelfTest: false };
+  const args = { Json: false, SelfTest: false, Sections: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '-Json' || a === '--Json') { args.Json = true; continue; }
     if (a === '-SelfTest' || a === '--SelfTest') { args.SelfTest = true; continue; }
+    if (a === '-Sections' || a === '--Sections') { args.Sections = true; continue; }
     const m = a.match(/^--?([A-Za-z]+)(?:=(.*))?$/);
     if (!m) continue;
     const key = m[1].toLowerCase();
@@ -134,6 +136,33 @@ const REQUIRED_SECTIONS = {
   'l3': ['验收结论', '逐条', '收尾附录'],
   'dispatch.md': [],
 };
+
+/*
+  -Sections：把上面这张表打印出来。
+
+  这是 F7 的解法：必填小节原本**只存在于本文件里**，写报告的 agent（reviewer /
+  evaluator）看不到它，于是每次都靠撞门才知道缺哪节，编排者事后手工补 ——
+  实跑里补了三份。让「写报告的人」和「检查报告的人」看同一张表，
+  唯一可靠的办法是这张表能被打印出来，而不是在两处各抄一遍。
+*/
+function printSections() {
+  out('');
+  out(C.cyan('=== 各产物的必填小节（权威来源：check-artifacts.js REQUIRED_SECTIONS）==='));
+  out('');
+  for (const key of Object.keys(REQUIRED_SECTIONS)) {
+    const secs = REQUIRED_SECTIONS[key];
+    if (secs.length === 0) {
+      out(`  ${key.padEnd(12)} —— 只查尾标记，不查小节`);
+    } else {
+      out(`  ${key.padEnd(12)} ${secs.map((s) => '「' + s + '」').join(' ')}`);
+    }
+  }
+  out('');
+  out(C.dark('  判据是两条同时成立：① 尾部有 <!-- RD-DONE ... --> 标记；'));
+  out(C.dark('  ② 每个必填小节都有实际内容（只有标题或只剩模板占位符 = 空壳，不算）。'));
+  out(C.dark('  JSON 产物（tasks.json / acceptance.json）用 "_complete": true 代替尾标记。'));
+  out('');
+}
 
 // 把 Markdown 切成小节。围栏代码块里的 # 不算标题。
 function parseSections(txt) {
@@ -247,6 +276,12 @@ function missLine(label, res, hint) {
   if (res.state === 'ok') return [];
   if (res.state === 'missing') return [label + (hint ? '  ← ' + hint : '')];
   return [`${label}  ⚠ 只写了一半：${res.why.join('；')}`];
+}
+
+// ---- 只打印必填小节表就退出 ----
+if (args.Sections) {
+  printSections();
+  process.exit(0);
 }
 
 // ---- 证伪自检：先确认这套检查有判别力，再让它去下结论 ----
@@ -466,6 +501,16 @@ if (l3.length === 0) l3Missing.push('l3-round{N}.md  ← 一轮场景验收都�
 for (const n of listDirFiles(reports, (x) => /^l3-round.*\.md$/i.test(x))) {
   l3Missing.push(...missLine('reports/' + n, checkMarkdown(path.join(reports, n), REQUIRED_SECTIONS.l3)));
 }
+/* 跑过 L3 就必须留下运行手册。
+
+   它是与 acceptance.json 并列的一等产物，只写「怎么观察」不写「怎么实现」。
+   没有它，下一轮验收者会把时间花在重走上一轮已经走通的路上 ——
+   实跑里第 1 轮 344 次工具调用、第 2 轮 122 次，其中大量是重复摸索
+   （浏览器怎么驱动、页面什么结构、哪个标的数据不足、哪个控件点不动）。
+   同时环境事实会随验收者退出而丢失，每轮判定口径也可能各自漂移。 */
+if (l3.length > 0 && !exists(path.join(fdir, 'acceptance-runbook.md'))) {
+  l3Missing.push('acceptance-runbook.md  ← 跑过 L3 却没留下运行手册，下一轮验收者要从零重新摸索一遍');
+}
 stages.push({ name: 'eval', label: 'L3 场景验收', missing: l3Missing });
 
 // keep：允许「本次无采纳」，但必须有痕迹
@@ -535,18 +580,52 @@ if (run !== null && fwNow !== null) {
 }
 
 // ---- 流程外动作 ----
+// schema（唯一权威定义，rd/SKILL.md 铁律 7 里有同一张表）：
+//   action       必填  kill-agent | modify-framework | skip-gate | manual-verdict
+//                      | change-acceptance | relax-rule | extra-step
+//   target       必填  动作作用在谁身上（agent 名 / 文件路径 / 门名 / AC 号）
+//   reason       必填  为什么要做
+//   ifNotDone    必填  不做会怎样（如实写，包括「其实也能继续，只是更慢」）
+//   userDecision 必填  approved | rejected
+//   ts           选填  ISO 时间戳
+const OOF_KNOWN = ['action', 'target', 'reason', 'ifNotDone', 'userDecision', 'ts'];
+const OOF_ACTIONS = ['kill-agent', 'modify-framework', 'skip-gate', 'manual-verdict',
+  'change-acceptance', 'relax-rule', 'extra-step'];
+
 const oof = run ? asList(run.outOfFlowActions) : [];
 const oofNoDecision = [];
+const oofMalformed = []; // 字段名对不上 schema 的：格式问题，不是违规
+const oofBadAction = []; // 字段名对、但 action 取值未定义的：与上面分开计数
 let oofFrameworkApproved = false;
 for (const a of oof) {
+  const keys = (a !== null && typeof a === 'object') ? Object.keys(a) : [];
+  const knownHits = keys.filter((k) => OOF_KNOWN.indexOf(k) >= 0);
+
+  // ⚠ 字段名不符时**不要**照常渲染。照常渲染会输出「? undefined → undefined [无裁决]」，
+  //   并把这条计进「自作主张」——实跑里就是这么发生的：编排者按直觉写了
+  //   { when, what, actor, detail }，结果被报成流程违规，查了半天才发现只是 schema 不对。
+  //   降级为「列出实际见到的字段名」，让人一眼分清是格式问题还是真违规。
+  if (knownHits.length === 0 || (a.action === undefined && a.target === undefined)) {
+    oofMalformed.push(keys.length > 0 ? keys.join(', ') : '(空对象)');
+    continue;
+  }
+
+  const missing = ['action', 'target', 'reason', 'ifNotDone', 'userDecision'].filter((k) => !a[k]);
+  const label = `${a.action || '(缺 action)'} → ${a.target || '(缺 target)'}`;
+
   if (!a.userDecision) {
-    oofNoDecision.push(`${a.action} → ${a.target}`);
+    oofNoDecision.push(label);
+  } else if (missing.length > 0) {
+    oofNoDecision.push(`${label}（缺 ${missing.join(' / ')}${missing.indexOf('ifNotDone') >= 0 ? '：没写清「不做会怎样」，等于诱导式提问' : ''}）`);
   }
   if (a.action === 'modify-framework' && a.userDecision === 'approved') {
     oofFrameworkApproved = true;
   }
-  if (a.userDecision && !a.ifNotDone) {
-    oofNoDecision.push(`${a.action} → ${a.target}（缺 ifNotDone：没写清「不做会怎样」，等于诱导式提问）`);
+  // 字段名对但 action 取值没定义 —— 与「字段名不符」分开计数。
+  // 混在一个计数器里会汇总成「N 条流程外动作**字段名**不符 schema」，
+  // 而 F2 的立意正是让人一眼分清问题类别。
+  if (a.action && OOF_ACTIONS.indexOf(a.action) < 0) {
+    oofBadAction.push(`action="${a.action}"（应为 ${OOF_ACTIONS.join(' | ')}）`);
   }
 }
 
@@ -743,12 +822,22 @@ if (fwState === 'captured') {
 }
 
 // 流程外动作
-if (oof.length > 0 || oofNoDecision.length > 0) {
+if (oof.length > 0 || oofNoDecision.length > 0 || oofMalformed.length > 0 || oofBadAction.length > 0) {
   out('');
   out(C.gray(`  流程外动作：${oof.length} 条（铁律 7 要求先问用户）`));
   for (const a of oof) {
+    if (a === null || typeof a !== 'object' || (a.action === undefined && a.target === undefined)) continue;
     const mark = a.userDecision === 'approved' ? '✓' : (a.userDecision === 'rejected' ? '✗' : '?');
-    out(C.dark(`     ${mark} ${a.action} → ${a.target}  [${a.userDecision ? a.userDecision : '无裁决'}]`));
+    out(C.dark(`     ${mark} ${a.action || '(缺 action)'} → ${a.target || '(缺 target)'}  [${a.userDecision ? a.userDecision : '无裁决'}]`));
+  }
+  if (oofMalformed.length > 0) {
+    out(C.yellow('     ⚠ 下面这些**字段名对不上 schema**（是格式问题，不是流程违规）：'));
+    for (const x of oofMalformed) out(C.yellow('        · 实际字段: ' + x));
+    out(C.dark(`       应为: { ${OOF_KNOWN.join(', ')} }`));
+  }
+  if (oofBadAction.length > 0) {
+    out(C.yellow('     ⚠ 下面这些**字段名是对的，但 action 取值未定义**：'));
+    for (const x of oofBadAction) out(C.yellow('        · ' + x));
   }
   if (oofNoDecision.length > 0) {
     out(C.red('     ⛔ 下面这些是自作主张（没有用户裁决，或提问时没写清「不做会怎样」）：'));
@@ -827,9 +916,11 @@ if (totalMissing > 0) {
   out('');
   process.exit(1);
 }
-if (orphans.length > 0 || roundGaps.length > 0 || fwState === 'drifted' || oofNoDecision.length > 0) {
+if (orphans.length > 0 || roundGaps.length > 0 || fwState === 'drifted' || oofNoDecision.length > 0 || oofMalformed.length > 0 || oofBadAction.length > 0) {
   const why = [];
   if (oofNoDecision.length > 0) why.push(`${oofNoDecision.length} 条流程外动作没有用户裁决`);
+  if (oofMalformed.length > 0) why.push(`${oofMalformed.length} 条流程外动作字段名不符 schema`);
+  if (oofBadAction.length > 0) why.push(`${oofBadAction.length} 条流程外动作的 action 取值未定义`);
   if (fwState === 'drifted') why.push('评判标准中途被改过且无书面说明');
   if (orphans.length > 0) why.push(`${orphans.length} 个孤儿证据`);
   if (roundGaps.length > 0) why.push(`${roundGaps.length} 处轮次记录对不上`);
