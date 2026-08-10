@@ -92,10 +92,10 @@ function getDeclaredFiles(featureDir) {
   return Array.from(new Set(outArr)).sort();
 }
 
-// ---- .rd 下的测试文件：被 gitignore 后 git diff 看不见，只能走磁盘 ----
-// AC 测试由 Builder 写在 .rd/features/{Feature}/tests/，整体不进 git。
-// git diff 对它们不可见（gitignored），但 L2 判断「这份绿是不是真的」必须读它们 ——
-// 所以这里从磁盘 walk，纳入冻结目标与 diff。相对路径与 tasks.json 的 files 同基准（项目根）。
+// ---- .rd 下的测试文件：git diff 看不见它们，只能走磁盘 ----
+// AC 测试由 Builder 写在 .rd/features/{Feature}/tests/（git 策略由开发者自定）。
+// 无论 .rd/ 是否被跟踪/忽略，本框架都要把测试从磁盘收集进审查目标 ——
+// L2 判断「这份绿是不是真的」必须读它们。相对路径与 tasks.json 的 files 同基准（项目根）。
 function readTestFiles(featureDir) {
   const tdir = path.join(featureDir, 'tests');
   const out = [];
@@ -217,10 +217,11 @@ function getCurrentDiff(repoRoot, scope, opts) {
   // ① 未跟踪文件必须在任何 diff 之前纳入，否则新文件对 diff 不可见。
   //
   // ⛔ `.rd/` 要排除掉：它装的是本框架自己的产物（reports/、run.json、上一轮的 .diff）。
-  //    .rd 是**本地工作区**（用户裁决：不进 git，不污染共享仓库），所以它们全是「未跟踪」的。
+  //    git 策略由开发者自定，但无论 .rd/ 是否被跟踪，它都不是「本轮交付物」——
   //    不排除的话有两个后果：全仓兜底时把上一轮的 diff 文件冻进本轮 diff（自己包含自己）；
   //    以及每轮都把一堆 .rd/reports/*.diff 报成「agent 越界改了文件」—— 狼来了喊多了，
-  //    真正的越界就没人看了。任务显式在 tasks.json 里声明的 .rd 文件不受影响（走 pathspec）。
+  //    真正的越界就没人看了。`.rd/features/{Feature}/tests/` 的 AC 测试单独从磁盘收集，
+  //    见 readTestFiles —— 不走 git pathspec。
   // `.rd/` 可能位于仓库根，也可能位于项目根（项目嵌在更大的仓库里时）。两种都要认。
   const prefix = repoPrefix(repoRoot);
   const isRdInternal = (p) => /(^|\/)\.rd\//.test(p);
@@ -332,8 +333,8 @@ try {
   process.exit(2);
 }
 
-// 测试文件在 .rd/features/{Feature}/tests/、被 gitignore，git diff 看不见 —— 从磁盘收集，
-// 与 git diff 拼成同一份可哈希的审查文本（freeze 与 -Verify 用同一条路径重算）。
+// 测试文件在 .rd/features/{Feature}/tests/，git diff 看不见它们（无论 .rd/ 是否被忽略）——
+// 从磁盘收集，与 git diff 拼成同一份可哈希的审查文本（freeze 与 -Verify 用同一条路径重算）。
 const testFiles = readTestFiles(dir);
 const prevSnap = loadSnap(diffDir, Round - 1);
 const testSection = buildTestSection(testFiles, prevSnap);

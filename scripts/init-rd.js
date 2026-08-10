@@ -184,45 +184,14 @@ for (const g of (Array.isArray(gatesCfg.l1) ? gatesCfg.l1 : [])) {
   if (code !== 0 && firstLine) out(C.dark(`      stderr: ${firstLine.substring(0, 120)}`));
 }
 
-// ---- .gitignore：直接创建 ----
-const giPath = path.join(Root, '.gitignore');
-
-const common = ['# --- Agent-RD init ---', '.DS_Store', 'Thumbs.db', '*.log', '.rd/'];
-let langIgnore;
-if (kind === 'python') langIgnore = ['__pycache__/', '*.py[cod]', '.venv/', 'venv/', '.pytest_cache/', '.mypy_cache/', 'dist/', 'build/', '*.egg-info/'];
-else if (kind === 'go') langIgnore = ['bin/', '*.exe', '*.test', 'coverage.out'];
-else if (kind === 'rust') langIgnore = ['target/', 'Cargo.lock.orig'];
-else langIgnore = ['node_modules/', 'dist/', 'build/', 'coverage/', '.env', '.env.local'];
-const want = common.concat(langIgnore);
-
-function escapeRegExp(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
-
-if (fs.existsSync(giPath)) {
-  const gi = fs.readFileSync(giPath, 'utf8');
-  const missing = want.filter((w) => w.charAt(0) !== '#' && gi.indexOf(w) < 0);
-  if (missing.length > 0) {
-    let app = '\n# --- Agent-RD init [' + kind + '] ---\n' + missing.join('\n') + '\n';
-    fs.appendFileSync(giPath, app, 'utf8');
-    out('');
-    out(C.green(`  appended .gitignore  追加 ${missing.length} 条 [${kind}]`));
-  } else {
-    out('');
-    out(C.dark('  exists   .gitignore（已覆盖依赖/构建产物，未改动）'));
-  }
-} else {
-  fs.writeFileSync(giPath, want.join('\n') + '\n', 'utf8');
-  out('');
-  out(C.green(`  created  .gitignore  [${kind} 预设，${want.length} 条]`));
-  out(C.dark('           没有它，git add -A 会把依赖目录 staged，'));
-  out(C.dark('           freeze-target 就会冻出一个几百个文件的审查目标。'));
-}
-
 out('');
-out(C.dark('  ⛔ .rd/ 整个是**本地工作区**，会被忽略、不进 git。'));
-out(C.dark('     项目树里只放产品代码。skill 的所有产物 —— spec / design / acceptance /'));
-out(C.dark('     run.json / reports / lessons / **AC 测试** —— 一律进 .rd/，都不进 git。'));
-out(C.dark('     换机器 / clone 一份不会带走它们。lessons 想长期保留就手动复制出来。'));
+out(C.dark('  ⛔ .rd/ 的 git 策略由开发者自行决定 —— skill 不写 .gitignore、不做忽略决定。'));
+out(C.dark('     要不要把 .rd/（spec / design / acceptance / 报告 / AC 测试）提交进 git，你说了算。'));
+out(C.dark('     freeze 无论 .rd/ 是否被忽略，都会排除它的运行产物、单独从磁盘收集测试，流程不受影响。'));
 out('');
+out(C.green('=== 完成。在 Claude Code 里调用 /rd 开始 ==='));
+out('');
+process.exit(0);
 out(C.green('=== 完成。在 Claude Code 里调用 /rd 开始 ==='));
 out('');
 process.exit(0);

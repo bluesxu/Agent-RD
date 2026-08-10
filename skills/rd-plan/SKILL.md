@@ -199,9 +199,9 @@ node <agent-rd>/scripts/check-artifacts.js -Feature {slug} -Json
 （service / route / controller / component），layer 3 是集成与端到端测试。
 
 ⛔ **测试文件一律进 `.rd/features/{slug}/tests/`，不许写进项目树。** 项目树里只放产品代码；
-   AC 测试（含 `files` 白名单里的测试路径）全部落在 `.rd/features/{slug}/tests/` 下，
-   该目录整体被 gitignore、不进 git。所有 `check` / `verify` 命令以项目根为 cwd 执行，
-   显式指向 `.rd/features/{slug}/tests/...`，不许依赖语言默认发现（项目树里已经没有测试）。
+   AC 测试（含 `files` 白名单里的测试路径）全部落在 `.rd/features/{slug}/tests/` 下。
+   所有 `check` / `verify` 命令以项目根为 cwd 执行，显式指向 `.rd/features/{slug}/tests/...`，
+   不许依赖语言默认发现（项目树里没有测试）。`.rd/` 的 git 策略由开发者自定，与本条无关。
    **例外（语言硬约束）**：Go / Rust 的测试只能留在包内（`go test ./...` / `cargo test`
    只发现包内测试），这类语言的测试随产品代码走、留在项目树，视为产品代码的一部分。
 

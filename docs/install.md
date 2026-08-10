@@ -54,7 +54,7 @@ Agent-RD 是一套给 Claude Code 用的「多 AI 审核交付流程」：把写
 | Agent-RD 仓库本体 | `~/.agent-rd/repo/`（Windows：`%USERPROFILE%\.agent-rd\repo\`） |
 | 安装后的 skill | `~/.claude/skills/` |
 | Claude Code 配置 | `~/.claude/settings.json` |
-| 项目内 skill 完整工作区 | `<用户项目>/.rd/`（规格 / 报告 / 守卫脚本 / **AC 测试**，整体不进 git） |
+| 项目内 skill 完整工作区 | `<用户项目>/.rd/`（规格 / 报告 / 守卫脚本 / **AC 测试**，git 策略由开发者自定） |
 | 临时文件 | 系统临时目录 |
 
 **仓库位置是固定的，不要「随便挑个地方」**：以后升级要回到这里 `git pull`，
@@ -174,11 +174,9 @@ node ~/.agent-rd/repo/scripts/init-rd.js
 ```
 
 它是增量的、不覆盖已有文件：自动识别项目语言、按类型配好 `.rd/gates.json` 的检查命令、
-下发守卫脚本到 `.rd/bin/`、在 `.gitignore` 里加 `.rd/`，并把配好的命令实际跑一遍确认能执行。
-一个项目只需要跑一次。
-
-**仓库会只剩产品代码**：skill 的所有产物（spec / design / acceptance / 报告 / **AC 测试**）
-都进 `.rd/`，整体被 gitignore、不进 git。项目树里出现的只有产品代码本身。
+下发守卫脚本到 `.rd/bin/`，并把配好的命令实际跑一遍确认能执行。一个项目只需要跑一次。
+**不碰你的 git**：skill 不写 .gitignore、不做任何忽略决定 —— `.rd/` 和依赖目录的 git 策略
+都是开发者自己定。
 
 **Agent 注意**：把这条命令**给用户看**就行，**不要替 ta 跑**——
 你不知道 ta 想在哪个项目里用，猜错就是往别人的仓库里写文件。

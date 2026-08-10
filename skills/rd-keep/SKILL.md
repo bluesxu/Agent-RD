@@ -73,9 +73,11 @@ frontmatter 带 `title` / `date` / `category` / `module` / `problem_type` / `sev
 
 ## ⛔ lessons 只存本地
 
-`.rd/` 是**本地工作区**（不进 git，不污染共享仓库）。lessons 和 attention 都只活在本机：
-换机器、clone、清理工作区都会丢。要长期保留的条目，收尾时**手动复制到仓外**（比如
-`~/notes/rd-lessons/`）—— 框架不做这件事，因为「哪些值得跨机器」是只有你知道的判断。
+`.rd/` 的 git 策略由开发者自行决定 —— 框架不做忽略决定，也不承诺任何同步。
+lessons 和 attention 是否随仓库存活，取决于你把不把 `.rd/` 提交进 git：
+不提交 → 换机器、clone、清理工作区都会丢；提交 → 它们就是普通跟踪文件。
+要跨机器长期保留的条目，收尾时**手动复制到仓外**（比如 `~/notes/rd-lessons/`）——
+框架不做这件事，因为「哪些值得跨机器」是只有你知道的判断。
 
 ## attention.md
 
