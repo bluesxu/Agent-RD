@@ -1,6 +1,6 @@
 ---
 name: rd-plan
-description: 阶段 1 技术选型与方案设计。派多个异构 agent 并行独立出方案，主 agent 仲裁，产出 design.md 和文件级任务 DAG tasks.json。全自动，不需要人工审批。
+description: 阶段 1 技术选型与方案设计。派多个异构 agent 并行独立出方案，主 agent 仲裁，产出 design.md、文件级任务 DAG tasks.json 与跨任务契约 contracts.json。全自动，不需要人工审批。
 argument-hint: "[feature slug]"
 ---
 
@@ -253,6 +253,7 @@ node <agent-rd>/scripts/validate-plan.js -Feature {slug} -Stage plan
 | `proposals/plan-{x}.md` | 末行 `<!-- RD-DONE stage=plan artifact=plan-x at={ISO8601} -->` |
 | `design.md` | 末行 `<!-- RD-DONE stage=plan artifact=design at={ISO8601} -->` |
 | `tasks.json` | 顶层加 `"_complete": true` |
+| `contracts.json`（有跨层依赖时） | 顶层加 `"_complete": true` —— 与 tasks.json **同时冻结**：跨任务接口契约（类型签名 / API 形状 / DOM id），下游 Builder 照契约写，不必等上游实现完。模板 `templates/contracts.json`，`validate-plan -Stage plan` 校验它覆盖每条跨层依赖 |
 
 标记写在最后，所以中断发生在任何时刻，都不可能让一个没写完的文件带上它 ——
 这是区分「写完了」和「写了一半」唯一不依赖记忆的办法。

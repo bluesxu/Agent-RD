@@ -462,6 +462,54 @@ if (Stage === 'plan') {
         addErr('gates.json 不是合法 JSON: ' + e.message);
       }
     }
+
+    // ---------- contracts.json：跨层契约先行（改动三）----------
+    // 下游任务依赖「契约已定义」而非「上游 task 已 done」—— 契约是并行的前提。
+    // 校验：存在 + _complete + 每条契约字段合法 + 每个跨层依赖被某条契约覆盖。
+    const crossLayer = [];
+    for (const t of tasks) {
+      const layer = parseInt(t.layer, 10);
+      for (const d of asList(t.depends_on)) {
+        const up = byId[d];
+        if (up && parseInt(up.layer, 10) < layer) crossLayer.push({ up: d, down: t.id });
+      }
+    }
+    const contractsPath = path.join(dir, 'contracts.json');
+    const hasCrossLayer = crossLayer.length > 0;
+    if (hasCrossLayer && !fs.existsSync(contractsPath)) {
+      addErr('有跨层依赖但缺 contracts.json —— 下游 task 依赖「上游 task 已 done」等于串行等实现。先把跨任务接口冻结成契约（模板 templates/contracts.json），再谈并行。');
+    } else if (fs.existsSync(contractsPath)) {
+      let ccfg = null;
+      try { ccfg = JSON.parse(fs.readFileSync(contractsPath, 'utf8')); }
+      catch (e) { addErr('contracts.json 不是合法 JSON: ' + e.message); }
+      if (ccfg !== null) {
+        if (ccfg._complete !== true) addErr('contracts.json 缺 "_complete": true —— 按 D-1 视为未写完');
+        const cList = asList(ccfg.contracts);
+        if (cList.length === 0 && hasCrossLayer) addErr('contracts.json 的 contracts 为空，但有跨层依赖待覆盖');
+        const cSeen = {};
+        const edges = new Set();
+        for (const c of cList) {
+          const cid = c.id;
+          if (isBlank(cid)) { addErr('有契约缺 id'); continue; }
+          if (cSeen[cid]) addErr(`契约 ${cid} 重复`); else cSeen[cid] = true;
+          if (['type-signature', 'api-shape', 'dom-id', 'config', 'protocol'].indexOf(c.kind) < 0) {
+            addErr(`契约 ${cid} 的 kind "${c.kind}" 不在合法集合 {type-signature, api-shape, dom-id, config, protocol}`);
+          }
+          if (isBlank(c.pattern)) addErr(`契约 ${cid} 缺 pattern（机械抽检字面量）`);
+          if (asList(c.files).length === 0) addErr(`契约 ${cid} 缺 files`);
+          for (const p of asList(c.producers)) if (!byId[p]) addErr(`契约 ${cid} 的 producer ${p} 不是合法 task id`);
+          for (const p of asList(c.consumers)) if (!byId[p]) addErr(`契约 ${cid} 的 consumer ${p} 不是合法 task id`);
+          for (const pr of asList(c.producers)) {
+            for (const cs of asList(c.consumers)) edges.add(pr + '->' + cs);
+          }
+        }
+        for (const x of crossLayer) {
+          if (!edges.has(x.up + '->' + x.down)) {
+            addErr(`跨层依赖 ${x.up} → ${x.down} 没有被任何契约覆盖 —— 契约先行要覆盖每条跨层依赖，否则这条边还是实现依赖`);
+          }
+        }
+      }
+    }
   }
 }
 

@@ -238,6 +238,34 @@ try {
   const vpPlanOk = run('validate-plan.js', ['-Root', tmp, '-Feature', 'feat1', '-Stage', 'plan'], tmp);
   check('plan 阶段合规 → exit 0', vpPlanOk.code === 0, 'got ' + vpPlanOk.code + '\n' + vpPlanOk.out);
 
+  // contracts.json：跨层依赖必须被契约覆盖（改动三）
+  write(path.join(tmp, '.rd', 'gates.json'), JSON.stringify({ l1: [{ name: 'noop', cmd: 'node --check *.js', required: true }] }));
+  write(path.join(feat, 'tasks.json'), JSON.stringify({
+    tasks: [
+      { id: 'T1', layer: 1, files: ['a.js'], steps: ['do'], selfCheck: 'node --check a.js', covers: ['AC-1'], mutationTargets: [] },
+      { id: 'T2', layer: 2, depends_on: ['T1'], files: ['b.js'], steps: ['do'], selfCheck: 'node --check b.js', covers: ['AC-1'], mutationTargets: [] },
+    ],
+  }));
+  const vpNoC = run('validate-plan.js', ['-Root', tmp, '-Feature', 'feat1', '-Stage', 'plan'], tmp);
+  check('跨层依赖缺 contracts.json → exit 1', vpNoC.code === 1, 'got ' + vpNoC.code);
+  write(path.join(feat, 'contracts.json'), JSON.stringify({
+    _complete: true,
+    contracts: [{ id: 'C1', name: 'T1 提供接口', kind: 'type-signature', pattern: 'foo', files: ['a.js', 'b.js'], producers: ['T1'], consumers: ['T2'] }],
+  }));
+  const vpC = run('validate-plan.js', ['-Root', tmp, '-Feature', 'feat1', '-Stage', 'plan'], tmp);
+  check('契约覆盖跨层依赖 → exit 0', vpC.code === 0, 'got ' + vpC.code + '\n' + vpC.out);
+
+  // verify-contracts：机械对账
+  write(path.join(tmp, 'a.js'), 'function foo() {}\n');
+  write(path.join(tmp, 'b.js'), 'import { foo } from "./a.js";\n');
+  const vcOk = run('verify-contracts.js', ['-Root', tmp, '-Feature', 'feat1'], tmp);
+  check('契约兑现 → exit 0', vcOk.code === 0, 'got ' + vcOk.code + '\n' + vcOk.out);
+  write(path.join(tmp, 'a.js'), 'function bar() {}\n');
+  const vcFail = run('verify-contracts.js', ['-Root', tmp, '-Feature', 'feat1'], tmp);
+  check('契约被破坏 → exit 1', vcFail.code === 1, 'got ' + vcFail.code);
+  const vcNo = run('verify-contracts.js', ['-Root', tmp, '-Feature', 'feat2'], tmp);
+  check('无 contracts.json → exit 2', vcNo.code === 2, 'got ' + vcNo.code);
+
   // ==== 6. freeze-target（需要 git）====
   console.log('');
   console.log(C.cyan('【6】freeze-target'));

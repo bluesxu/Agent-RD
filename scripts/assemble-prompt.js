@@ -108,6 +108,27 @@ const acText = covered.length > 0
     ).join('\n')
   : `（task ${TaskId} 的 covers 没有命中任何 acceptance.json 场景 —— 确认 covers 写对了）`;
 
+// ---- 本 task 相关的契约片段（contracts.json 里它是 producer 或 consumer）----
+let contractText = '';
+const contractsCfg = readJson(path.join(fdir, 'contracts.json'));
+const contracts = contractsCfg && Array.isArray(contractsCfg.contracts) ? contractsCfg.contracts : [];
+const myContracts = contracts.filter((c) =>
+  (Array.isArray(c.producers) && c.producers.indexOf(task.id) >= 0) ||
+  (Array.isArray(c.consumers) && c.consumers.indexOf(task.id) >= 0)
+);
+if (myContracts.length > 0) {
+  contractText = '（跨任务契约 —— 你与上下游的接口约定，照它写，别自己发明）\n' + myContracts.map((c) =>
+    `### ${c.id} ${c.name || ''} [${c.kind || ''}]\n`
+    + `- pattern: ${c.pattern || ''}\n`
+    + `- files: ${(Array.isArray(c.files) ? c.files : []).join(', ')}\n`
+    + `- producers: ${(Array.isArray(c.producers) ? c.producers : []).join(', ')}\n`
+    + `- consumers: ${(Array.isArray(c.consumers) ? c.consumers : []).join(', ')}\n`
+    + (c.note ? `- note: ${c.note}\n` : '')
+  ).join('\n');
+} else {
+  contractText = '（本 task 不涉及跨任务契约）';
+}
+
 // ---- 模板 ----
 if (!fs.existsSync(builderTpl)) {
   err(`找不到 builder 模板 ${builderTpl}`);
@@ -123,6 +144,7 @@ const replace = {
   '{task.files 逐行列出}': (Array.isArray(task.files) ? task.files : []).join('\n'),
   '{design.md 的「选定方案」和「契约变化」两节全文}': designSections,
   '{本 task covers 的那几条 AC 的完整内容}': acText,
+  '{本 task 相关的契约片段}': contractText,
   '{task.steps}': (Array.isArray(task.steps) ? task.steps : []).join('\n'),
   '{task.selfCheck}': task.selfCheck || '(缺 selfCheck)',
 };

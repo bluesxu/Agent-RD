@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "feature": "user-login",
+  "_complete": false,
+  "_completeRule": "⛔ 收尾检测点。与 tasks.json 同时冻结 —— 切完所有跨层契约的【最后一个动作】是把 _complete 改成 true。在此之前 check-artifacts 一律判「未完成」。",
+  "contracts": [
+    {
+      "id": "C1",
+      "name": "buildProjection 类型签名",
+      "kind": "type-signature",
+      "pattern": "buildProjection",
+      "files": ["src/services/scanner.ts"],
+      "producers": ["T3"],
+      "consumers": ["T4"],
+      "note": "下游只认这个签名，不认 T3 的实现细节"
+    },
+    {
+      "id": "C2",
+      "name": "/api/board 响应字段",
+      "kind": "api-shape",
+      "pattern": "priceChangePercent",
+      "files": ["src/routes/board.ts"],
+      "producers": ["T5"],
+      "consumers": ["T8"],
+      "note": "前端渲染依赖这个字段名"
+    },
+    {
+      "id": "C3",
+      "name": "符号下拉框 DOM id",
+      "kind": "dom-id",
+      "pattern": "symbol-dropdown",
+      "files": ["src/web/index.html"],
+      "producers": ["T8"],
+      "consumers": ["T9"],
+      "note": "前端脚本按 id 绑定事件"
+    }
+  ],
+  "_schema": {
+    "id": "必填，C-N 形式，全文唯一",
+    "name": "必填，一句话说明这个契约是什么",
+    "kind": "必填，type-signature | api-shape | dom-id | config | protocol",
+    "pattern": "必填，机械抽检用的字面量（函数名 / 字段名 / DOM id / 配置键）—— verify-contracts 会在 files 里 grep 它。不许用正则，纯字面量",
+    "files": "必填非空。契约落地的文件（相对项目根）。verify-contracts 在这些文件里找 pattern",
+    "producers": "产方 task id 数组（谁定义这个接口）",
+    "consumers": "消费方 task id 数组（谁依赖这个接口）",
+    "note": "选填，为什么这个契约需要冻结"
+  },
+  "_rule": "契约 = 跨任务的接口约定，不是实现。下游依赖「契约已定义」而非「上游 task 已 done」—— 这样 5 层串行才能变成契约根 + 其余按契约并行。verify-contracts.js 在全部任务完成后机械对账：pattern 没在 files 里出现 = 契约被实现悄悄破坏。"
+}

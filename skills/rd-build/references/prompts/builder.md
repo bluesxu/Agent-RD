@@ -22,6 +22,7 @@
 ## 上下文
 {design.md 的「选定方案」和「契约变化」两节全文}
 {本 task covers 的那几条 AC 的完整内容}
+{本 task 相关的契约片段}
 
 ## 实施步骤
 {task.steps}
