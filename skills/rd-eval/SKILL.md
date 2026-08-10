@@ -48,17 +48,19 @@ argument-hint: "[feature slug]"
 
 ## 执行
 
-### machine 场景（`judge: "machine"`）
+### machine 场景（`judge: "machine"`）—— 不重跑
 
-跑 `check` 命令。退出码 0 = 通过。
+machine AC 已由**测试层**（gate-test）带 `-MustMatch` 锚点跑过，**验收层不重跑**。
+每次 fix 后测试层都会重跑，机械判定不丢。
 
-- **必须贴出真实输出**，不许只说"通过了"。
-- 命令跑不起来（依赖缺失、环境问题）→ 判定 `blocked`，不是 `pass`，也不是 `fail`。
-  说明卡在哪（blocked 判定细则见 edge-outcomes.md）。
+你只处理 `judge: "agent"` 的场景。若某条 agent AC 的验证需要参照机械判定结果，
+读测试层的 `l1-round{N}.json`，但**不重跑**它的 check 命令。
 
-> **⚠️ 隔离边界写死在这里，不要自己琢磨**：
-> 你**运行** `check` 命令，但**不读它跑的测试代码**。
-> 一句话：**命令的输出可以看，命令背后的源码不可以。**
+### 分片验收（并行 evaluator 时）
+
+`rd-build` 可能把 agent AC 拆给 2-3 个 evaluator 并行，每个拿一份子集。
+你可能只收到**部分 AC** —— 逐条验你分到的，报告的「逐条」只列你实际验的。
+验收结论里写清楚「本份验了哪些 AC」，不要替你之外的 evaluator 下结论。
 
 ### agent 场景（`judge: "agent"`）
 
@@ -104,17 +106,16 @@ feature: {slug}
 （{b}+{c}+{d} 全为 0 才是「通过」；{d}>0 时额外注明「有外部阻塞待用户裁决」）
 
 ## 逐条
-### AC-1 {name}  ✅ pass
+### AC-1 {name}  —（machine，由测试层覆盖，不重跑）
 - 判定方式: machine
-- 命令: node --test .rd/features/{slug}/tests/*.test.ts --test-name-pattern={slug}\sAC-1
-- 输出: {真实输出摘要}
+- 说明: 见测试层 l1-round{N}.json —— 验收层不重跑 machine AC
 
-### AC-4 {name}  ❌ fail
+### AC-4 {name}  ✅ pass
 - 判定方式: agent
 - 我做了什么: {实际操作步骤}
 - 我看到了什么: {实际观察}
 - 期望: {then 原文}
-- 差异: {具体差在哪个可观察点}
+- 证据: reports/evidence/ac-4-*.png
 - 证据: reports/evidence/ac-4-*.png
 - 失败后定位分析: {读代码得出的推测，明确标为推测}
 

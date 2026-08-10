@@ -980,6 +980,9 @@ stages.push({ name: 'review', label: '审查层', missing: l2Missing });
 const l3Missing = [];
 if (l3.length === 0) l3Missing.push('l3-round{N}.md  ← 一轮场景验收都没跑过');
 for (const n of listDirFiles(reports, (x) => /^l3-round.*\.md$/i.test(x))) {
+  // 多 evaluator 并行验收：`l3-round{N}.md` + `l3-round{N}-eval2.md` … 都算同一轮验收产物
+  // （正则 `l3-round.*` 天然覆盖，roundNums 提取同一 round 号去重）。每份都要完整
+  // （验收结论/逐条/收尾附录），收尾附录各自写隔离审计。
   l3Missing.push(...missLine('reports/' + n, checkMarkdown(path.join(reports, n), REQUIRED_SECTIONS.l3)));
 }
 /* 跑过验收层就必须留下运行手册。

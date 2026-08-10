@@ -142,6 +142,9 @@ try {
   write(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'l2-round1.diff'), 'x\n');
   write(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'l3-round1.md'),
     '# 验收\n\n## 验收结论\n通过\n\n## 逐条\nAC 全过\n\n## 收尾附录\n已清理\n\n' + RD_DONE + '\n');
+  // 多 evaluator 并行验收：第二份报告（l3-round1-eval2.md）不该被当成孤儿
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'l3-round1-eval2.md'),
+    '# 验收\n\n## 验收结论\n通过\n\n## 逐条\nAC-2 子集全过\n\n## 收尾附录\n隔离审计：读了 acceptance.json\n\n' + RD_DONE + '\n');
   // 跑过验收层就必须留运行手册（check-artifacts 的 eval 阶段检查）
   write(path.join(tmp, '.rd', 'features', 'feat1', 'acceptance-runbook.md'), '# 运行手册\n\n怎么观察：浏览器打开页面。\n');
   write(path.join(tmp, '.rd', 'lessons', 'l1.md'), 'x\n');
