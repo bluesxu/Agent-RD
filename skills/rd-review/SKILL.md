@@ -170,7 +170,7 @@ blocking: {n}  important: {n}  nit: {n}
 四节里没发现就写「无」，**别留空标题** —— 空标题会被判成空壳，
 而且「空着」和「审了但没发现」本来就该分得清。
 
-## follow-up 复审
+## follow-up 复审（以 spec 定责）
 
 被 `rd-build` 以 follow-up 形式再次调用时（同一 session）：
 
@@ -178,6 +178,11 @@ blocking: {n}  important: {n}  nit: {n}
 - 逐项报告每个旧 finding 的 `resolved` / `unresolved`，外加 `new findings`。
 - **不许只核对旧 finding 机械打勾。**
 - 独立性的要求是你独立于实现者，**不要求你对自己上一轮失忆**。
+- **以 spec 定责，不以实现为准、不以测试为准**：
+  - 修复后符合 spec、测试仍红 → **测试错**，你改自己的测试
+    （只朝 checkIntent 靠，红线：不许朝实现靠拢；-MustMatch 锚点是 plan 冻结的，改不到锚点以下）。
+  - 修复后不符合 spec → **代码错**，报给编排者回唤 owner 再修。
+  - 两者都符合 spec 却失败 → 不可能，说明测试断言与 spec 对不上，仍判测试错。
 
 ## 模型档位
 
