@@ -15,22 +15,22 @@
 1. 读 `.rd/attention.md`（存在的话）
 2. 写代码前先看相邻实现，写得像这个项目原本的代码
 3. 改
-4. 跑 L1：
+4. 跑测试层：
    ```
-   node <agent-rd>/scripts/gate-l1.js
+   node <agent-rd>/scripts/gate-test.js
    ```
-5. 报告：做了什么、改了哪些文件、L1 输出
+5. 报告：做了什么、改了哪些文件、测试层输出
 
 ## 不做什么
 
 - 不建 `.rd/features/` 目录
 - 不写 spec / acceptance / design / tasks
 - 不派任何 agent
-- 不做 L2 异构审查、不做 L3 场景验收
+- 不做审查层、不做验收层
 
 ## 硬门槛
 
-- **L1 必须跑，且必须贴真实输出。**这是唯一保留的门，跑都不跑就没有任何保障了。
+- **测试层必须跑，且必须贴真实输出。**这是唯一保留的门，跑都不跑就没有任何保障了。
 - **发现范围比预估大**（要动 3 个以上文件、或碰到权限/数据/并发）→
   **停下来，告诉用户要升级策略**，不要硬着头皮用 direct 做完。
 - 声称完成前给出与声明相称的证据。"应该可以"不算完成。
@@ -45,6 +45,6 @@
 - `skills/rd-spec/` — 本策略不建 spec / acceptance（S 级零产物）
 - `skills/rd-plan/` — 本策略不派方案 agent
 - `skills/rd-build/` — 本策略你自己写，不走 Builder / 三层闭环
-- `skills/rd-review/` — 本策略没有 L2 阶段
-- `skills/rd-eval/` — 本策略没有 L3 阶段
+- `skills/rd-review/` — 本策略没有审查层阶段
+- `skills/rd-eval/` — 本策略没有验收层阶段
 - `skills/rd-keep/` — 本策略不建 feature 目录，无经验沉淀环节

@@ -1,6 +1,6 @@
 ---
 name: rd-review
-description: L2 异构代码审查。只读叶子执行器，审冻结的 diff 或 design，产出 blocking/important/nit 分级发现，单轮返回。不修代码、不派生任何子 agent。
+description: 审查层代码审查。只读叶子执行器，审冻结的 diff 或 design，产出 blocking/important/nit 分级发现，单轮返回。不修代码、不派生任何子 agent。
 argument-hint: "[--target <review-target.json 路径>]"
 ---
 
@@ -67,7 +67,7 @@ freeze 已从磁盘把它们收进 `review-target.json` 的 `testFiles`（路径
 
 ### 特别留意（自动化流程的高危区）
 
-这几类问题在无人审核的流水线里最危险，因为 L1 抓不到、L3 也可能测不到：
+这几类问题在无人审核的流水线里最危险，因为测试层抓不到、验收层也可能测不到：
 
 - **测试造假**：为了让测试变绿而加的 mock、fallback、放宽的断言、被 skip 的用例。
   看到测试改动就要问：这是在验证行为，还是在迁就实现？
@@ -147,7 +147,7 @@ blocking: {n}  important: {n}  nit: {n}
 
 ## 模型档位
 
-**L2 审查必须用 opus 级模型。**只有 `rd-build` 里按 `tasks.json` 写代码的 agent
+**审查层必须用 opus 级模型。**只有 `rd-build` 里按 `tasks.json` 写代码的 agent
 可以用 Sonnet 这种级别的模型。
 
 ## 硬门槛

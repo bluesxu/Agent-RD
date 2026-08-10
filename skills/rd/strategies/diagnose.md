@@ -54,12 +54,12 @@
 
 **只修根因，不顺手改别的。**范围外的问题记下来，不在这次改。
 
-### 4. L1 → L2 [required]
+### 4. 审查层 → 测试层 [required]
 
-- **L1**：新测试绿，且**既有测试一条都不许红**
-- **L2**：派 fresh reviewer 异构审查。重点看：这个修复是不是只治了标，有没有别的路径也能触发同样的问题
+- **审查层**：派 fresh reviewer 审查。重点看：这个修复是不是只治了标，有没有别的路径也能触发同样的问题
+- **测试层**：全部测试绿，且**既有测试一条都不许红**
 
-blocking > 0 → 修 → 回 L1 → 再审。**最多 2 轮。**
+blocking > 0 → 修 → 回测试层 → 再审。**最多 2 轮。**
 
 ### 5. 收尾
 
@@ -73,7 +73,7 @@ blocking > 0 → 修 → 回 L1 → 再审。**最多 2 轮。**
 
 ## 不做什么
 
-- 不做 L3 场景验收 —— bug 修复的验收标准就是那个失败测试本身
+- 不做验收层 —— bug 修复的验收标准就是那个失败测试本身
 - 不做多方案并行论证 —— 除非根因不明，那属于"定位"阶段的并行探索
 
 ## 硬门槛
@@ -87,11 +87,11 @@ blocking > 0 → 修 → 回 L1 → 再审。**最多 2 轮。**
 **会用到**
 - `skills/rd-build/references/degrade-and-breaker.md` — 载体降级 / 熔断 / 外部中断时
 - `skills/rd-build/references/orch-selfcheck.md` — 编排者宣布核对结论前
-- `skills/rd-review/references/severity-rubric.md` — L2 定级时
+- `skills/rd-review/references/severity-rubric.md` — 审查层定级时
 - `skills/rd-keep/references/lesson-lifecycle.md` — 收尾写/复用 lesson 时
 - `skills/rd/references/out-of-flow.md` — 流程外动作时
 
 **永不加载**
 - `skills/rd-spec/` — 本策略只问复现条件，不建 spec / acceptance
 - `skills/rd-plan/` — 本策略不做多方案论证（根因不明的并行探索属于定位阶段，不经 rd-plan）
-- `skills/rd-eval/` — 本策略没有 L3 场景验收（bug 修复的验收标准就是那个失败测试本身）
+- `skills/rd-eval/` — 本策略没有验收层（bug 修复的验收标准就是那个失败测试本身）

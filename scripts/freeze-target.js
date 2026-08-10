@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
-  freeze-target —— 冻结 L2 审查目标，并在 reviewer 返回后校验目标没被动过。
+  freeze-target —— 冻结审查层审查目标，并在 reviewer 返回后校验目标没被动过。
 
   审查最常见的失效方式不是审得不好，而是"审的东西已经不是最终的东西"——
   reviewer 还在看的时候主流程又改了几个文件，findings 全部对不上号。
@@ -95,7 +95,7 @@ function getDeclaredFiles(featureDir) {
 // ---- .rd 下的测试文件：git diff 看不见它们，只能走磁盘 ----
 // AC 测试由 Builder 写在 .rd/features/{Feature}/tests/（git 策略由开发者自定）。
 // 无论 .rd/ 是否被跟踪/忽略，本框架都要把测试从磁盘收集进审查目标 ——
-// L2 判断「这份绿是不是真的」必须读它们。相对路径与 tasks.json 的 files 同基准（项目根）。
+// 审查层判断「这份绿是不是真的」必须读它们。相对路径与 tasks.json 的 files 同基准（项目根）。
 function readTestFiles(featureDir) {
   const tdir = path.join(featureDir, 'tests');
   const out = [];
@@ -147,7 +147,7 @@ function snapOf(testFiles) {
 // ---- 未跟踪文件：git diff 天然看不见它们 ----
 // 实跑教训：某轮 src/web/、public/ 和全部新测试都是未跟踪文件，两轮 freeze 生成的 diff
 // 因此**逐字节相同**、且都不含本次改动的主体 —— 「审冻结 diff」实际什么都没审到，
-// 而 L1/L2 双绿。修法：冻结前对**范围内**的未跟踪文件做 intent-to-add
+// 而测试层/审查层双绿。修法：冻结前对**范围内**的未跟踪文件做 intent-to-add
 // （`git add -N`，只登记路径不暂存内容），让它们以「新文件」形态进入 diff。
 /* ⚠ 路径基准：`ls-files` 的输出相对 **cwd**，而 `diff --name-only` 的输出相对 **仓库根**。
    项目根就是仓库根时两者恰好相同，一旦项目嵌在更大的仓库里（monorepo，或 .git 在上层）

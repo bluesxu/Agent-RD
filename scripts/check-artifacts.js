@@ -16,7 +16,7 @@
     node check-artifacts.js -SelfTest        # 证伪自检：喂已知应失败的输入，确认检查报得出失败
     node check-artifacts.js -Sections        # 打印各产物的必填小节表（写报告的 agent 照它写）
 
-  退出码（validate-plan 与 gate-l1 依赖这个划分，不要改动语义）：
+  退出码（validate-plan 与 gate-test 依赖这个划分，不要改动语义）：
     0  干净
     1  有产物缺失
     2  **上一次运行被中断在半路**（run.json 的 inflight 非空）—— 唯一无歧义的硬阻塞信号
@@ -190,7 +190,7 @@ function printSections() {
   out('');
   out(C.cyan('=== 契约（权威来源：docs/authoring.md §6 冻结表，-SkillLint 会对账）==='));
   out('');
-  out(C.dark('  L2 报告每条 finding 必填「- 判定条件: <名字>」。合法名字（冻结）：'));
+  out(C.dark('  审查层报告每条 finding 必填「- 判定条件: <名字>」。合法名字（冻结）：'));
   for (const c of RUBRIC_CONDITIONS) {
     const [name, tier] = c.split(':');
     out(`    ${name.padEnd(24)} ${tier}`);
@@ -319,7 +319,7 @@ function missLine(label, res, hint) {
 
   这些检查是对「框架自身」的结构校验（-SkillLint），与对「某次 feature 产物」
   的校验（-Feature）是两个生命周期，所以独立成早退模式，不混进 stages 计数器。
-  唯一例外是 L2 报告条件名与回执字段 —— 它们是 feature 产物，
+  唯一例外是审查层报告条件名与回执字段 —— 它们是 feature 产物，
   挂在 -Feature 主流程里。
 */
 
@@ -453,7 +453,7 @@ function checkHooks(skillDir) {
 }
 
 /*
-  L2 报告每条 finding 必须标注行为判定条件名。
+  审查层报告每条 finding 必须标注行为判定条件名。
   finding 小节 = `### B\d+` / `### I\d+` / `### N\d+` 标题。
   · 缺「- 判定条件: <名字>」→ 点名发现
   · 名字不在 CONDITION_NAMES → 点名「不在合法集合」
@@ -512,7 +512,7 @@ function parseFenceBlock(txt, marker) {
 
 /*
   冻结表对账（A18 双路复算）：脚本常量 vs docs/authoring.md 围栏块。
-  抄错一个字，L2 报告会被判失败而原因看起来像脚本坏了 —— 把这条跨文件契约变成机械可证伪的。
+  抄错一个字，审查层报告会被判失败而原因看起来像脚本坏了 —— 把这条跨文件契约变成机械可证伪的。
 */
 function checkContractAlignment(authoringPath) {
   const drift = [];
@@ -536,7 +536,7 @@ function checkContractAlignment(authoringPath) {
   references」这个全集里必须仍能被逐字（归一化空白后）grep 到。找不到 = 规则搬丢。
   有意的删除必须写进 `.rd/features/ * /design.md` 的「有意改写/删除的约束」表（约束原文列
   与被删文本逐字一致），否则同样判丢 —— 这就是 AC-7「有意删除要留档」的机械形态。
-  ⛔ 挡不住「条目还在、语气被稀释」（⛔ 不许 → 建议不要 计数不变）—— 那是 L2 逐条比对的活。
+  ⛔ 挡不住「条目还在、语气被稀释」（⛔ 不许 → 建议不要 计数不变）—— 那是审查层逐条比对的活。
 */
 function documentedExemptions(rdRoot) {
   const ex = new Set();
@@ -947,17 +947,17 @@ for (const n of listDirFiles(receiptsDir, (x) => /\.json$/i.test(x)).sort()) {
 }
 
 stages.push({
-  name: 'build', label: '开发与 L1 机械门',
+  name: 'build', label: '开发与测试层',
   missing: [
-    ...(l1.length === 0 ? ['l1-round{N}.json  ← 一轮机械门都没跑过'] : []),
+    ...(l1.length === 0 ? ['l1-round{N}.json  ← 一轮测试层都没跑过'] : []),
     ...receiptsMissing,
   ],
 });
 
-// L2：每个存在的 .diff 都必须有对应的 .md
+// 审查层：每个存在的 .diff 都必须有对应的 .md
 const l2Missing = [];
 if (l2.length === 0 && l2d.length === 0) {
-  l2Missing.push('l2-round{N}.md + .diff  ← 一轮异构审查都没跑过');
+  l2Missing.push('l2-round{N}.md + .diff  ← 一轮审查层都没跑过');
 }
 for (const n of l2d) {
   if (!l2.includes(n)) {
@@ -975,14 +975,14 @@ for (const n of listDirFiles(reports, (x) => /^l2-round.*\.md$/i.test(x))) {
   }
   l2Missing.push(...miss);
 }
-stages.push({ name: 'review', label: 'L2 异构审查', missing: l2Missing });
+stages.push({ name: 'review', label: '审查层', missing: l2Missing });
 
 const l3Missing = [];
 if (l3.length === 0) l3Missing.push('l3-round{N}.md  ← 一轮场景验收都没跑过');
 for (const n of listDirFiles(reports, (x) => /^l3-round.*\.md$/i.test(x))) {
   l3Missing.push(...missLine('reports/' + n, checkMarkdown(path.join(reports, n), REQUIRED_SECTIONS.l3)));
 }
-/* 跑过 L3 就必须留下运行手册。
+/* 跑过验收层就必须留下运行手册。
 
    它是与 acceptance.json 并列的一等产物，只写「怎么观察」不写「怎么实现」。
    没有它，下一轮验收者会把时间花在重走上一轮已经走通的路上 ——
@@ -990,9 +990,9 @@ for (const n of listDirFiles(reports, (x) => /^l3-round.*\.md$/i.test(x))) {
    （浏览器怎么驱动、页面什么结构、哪个标的数据不足、哪个控件点不动）。
    同时环境事实会随验收者退出而丢失，每轮判定口径也可能各自漂移。 */
 if (l3.length > 0 && !exists(path.join(fdir, 'acceptance-runbook.md'))) {
-  l3Missing.push('acceptance-runbook.md  ← 跑过 L3 却没留下运行手册，下一轮验收者要从零重新摸索一遍');
+  l3Missing.push('acceptance-runbook.md  ← 跑过验收层却没留下运行手册，下一轮验收者要从零重新摸索一遍');
 }
-stages.push({ name: 'eval', label: 'L3 场景验收', missing: l3Missing });
+stages.push({ name: 'eval', label: '验收层', missing: l3Missing });
 
 // keep：允许「本次无采纳」，但必须有痕迹
 const keepMissing = [];
@@ -1231,9 +1231,9 @@ out('');
 out(C.cyan(`=== 产物清单校验 [${Feature}] ===`));
 out('');
 out(C.gray('  轮次：'));
-out('    L1 机械门   ' + (l1.length ? 'round ' + l1.join(', ') : '（无）'));
-out('    L2 审查     ' + (l2.length ? 'round ' + l2.join(', ') : '（无）') + (l2d.length ? '   diff: round ' + l2d.join(', ') : ''));
-out('    L3 验收     ' + (l3.length ? 'round ' + l3.join(', ') : '（无）'));
+out('    测试层     ' + (l1.length ? 'round ' + l1.join(', ') : '（无）'));
+out('    审查层     ' + (l2.length ? 'round ' + l2.join(', ') : '（无）') + (l2d.length ? '   diff: round ' + l2d.join(', ') : ''));
+out('    验收层     ' + (l3.length ? 'round ' + l3.join(', ') : '（无）'));
 if (proposals.length > 0 || proposalsLost.length > 0) {
   const tail = proposalsPartial.length > 0 ? `，${proposalsPartial.length} 份只写了一半` : '';
   const line = `    方案扇出    ${proposalsOk.length} 份完整 / 共 ${proposals.length} 份${tail}`;

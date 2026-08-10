@@ -55,13 +55,13 @@
 
 按上一步的结论执行。串行核心完成时，**既有测试必须重新全绿**才能往下走。
 
-### 4. L1 → L2 → L3 [required]
+### 4. 审查层 → 测试层 → 验收层 [required]
 
 三道门全开，但**方向是回归导向**：
 
-- **L1**：既有测试必须仍然全绿，一条都不许少
-- **L2**：reviewer 的首要任务是**找行为漂移**，不是找代码风格
-- **L3**：拿**改前的基线**去比对，而不是只看新写的断言
+- **审查层**：reviewer 的首要任务是**找行为漂移**，不是找代码风格
+- **测试层**：既有测试必须仍然全绿，一条都不许少
+- **验收层**：拿**改前的基线**去比对，而不是只看新写的断言
 
 ### 5. 沉淀
 
@@ -86,13 +86,13 @@
 - `skills/rd-build/references/receipt-audit.md` — 收到 Builder 回执时
 - `skills/rd-build/references/degrade-and-breaker.md` — 载体降级 / 熔断 / 外部中断时
 - `skills/rd-build/references/orch-selfcheck.md` — 编排者宣布核对结论前（基线快照核对尤其要读）
-- `skills/rd-review/references/severity-rubric.md` — L2 定级时
+- `skills/rd-review/references/severity-rubric.md` — 审查层定级时
 - `skills/rd-review/references/mutation-followup.md` — mutationTargets 非空时
 - `skills/rd-eval/references/edge-outcomes.md` — 出现 skipped / blocked 判定时
 - `skills/rd-keep/references/lesson-lifecycle.md` — 收尾写/复用 lesson 时
 - `skills/rd/references/out-of-flow.md` — 流程外动作时
 
 **永不加载**
-- 无整 skill 永不加载 —— 本策略走精简拷问→切分→实现→L1+L2+L3（回归导向），
+- 无整 skill 永不加载 —— 本策略走精简拷问→切分→实现→审查层+测试层+验收层（回归导向），
   大部分 skill 的 references 都可能用到。`blindspot-map.md` 是**条件加载**（命中「用户评估不了」
   才读），不是永不加载，所以不列入本栏。

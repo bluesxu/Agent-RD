@@ -1,14 +1,17 @@
 #!/usr/bin/env node
 /*
-  gate-l1 —— L1 机械门，零 LLM 成本的第一道闸。
+  gate-test —— 测试层，零 LLM 成本。
+
+  （1a 阶段：文件从 gate-l1.js 改名而来，职责仍是跑 .rd/gates.json 机械门；
+   1d 阶段改为「跑审查层写的全部测试（-MustMatch 锚点）+ 文档校验」。）
 
   按 .rd/gates.json 里的顺序逐条执行命令，任一 required 项失败即整体失败。
   命令越便宜的放越前面，早失败早退出，省下后面所有审查 token。
 
   用法：
-    node gate-l1.js
-    node gate-l1.js -Feature user-login -Round 2
-    node gate-l1.js -Feature user-login -Round 2 -ContinueOnFailure
+    node gate-test.js
+    node gate-test.js -Feature user-login -Round 2
+    node gate-test.js -Feature user-login -Round 2 -ContinueOnFailure
 
   退出码：0 = PASS；1 = FAIL；2 = 配置缺失 / 上次被中断在半路。
 */
@@ -118,7 +121,7 @@ function collectFiles(root, dirs, exts, excludes) {
 function runSyntaxGate(g, cwd) {
   const dirs = Array.isArray(g.dirs) ? g.dirs : [];
   if (dirs.length === 0) {
-    return { code: 1, text: `[gate-l1] kind:"syntax" 的门 "${g.name}" 没有声明 dirs，无从检查。` };
+    return { code: 1, text: `[gate-test] kind:"syntax" 的门 "${g.name}" 没有声明 dirs，无从检查。` };
   }
   const exts = (Array.isArray(g.ext) && g.ext.length > 0 ? g.ext : DEFAULT_SYNTAX_EXT)
     .map((x) => String(x).toLowerCase());
@@ -127,7 +130,7 @@ function runSyntaxGate(g, cwd) {
   const { files, symlinks } = collectFiles(cwd, dirs, exts, excludes);
   if (files.length === 0) {
     // 空过防护：声明了要查却一个文件都没查到，多半是目录名写错了。
-    return { code: -101, text: `[gate-l1] 语法门 "${g.name}" 在 ${dirs.join(', ')} 下没找到任何 ${exts.join('/')} 文件 —— 判定为空过。目录名是不是写错了？` };
+    return { code: -101, text: `[gate-test] 语法门 "${g.name}" 在 ${dirs.join(', ')} 下没找到任何 ${exts.join('/')} 文件 —— 判定为空过。目录名是不是写错了？` };
   }
 
   const bad = [];
@@ -141,9 +144,9 @@ function runSyntaxGate(g, cwd) {
   }
   const note = symlinks > 0 ? `（另有 ${symlinks} 个符号链接未跟随）` : '';
   if (bad.length === 0) {
-    return { code: 0, text: `[gate-l1] 语法门 "${g.name}": ${files.length} 个文件全部通过 node --check${note}` };
+    return { code: 0, text: `[gate-test] 语法门 "${g.name}": ${files.length} 个文件全部通过 node --check${note}` };
   }
-  return { code: 1, text: `[gate-l1] 语法门 "${g.name}": ${bad.length}/${files.length} 个文件语法错误${note}\n\n` + bad.join('\n\n') };
+  return { code: 1, text: `[gate-test] 语法门 "${g.name}": ${bad.length}/${files.length} 个文件语法错误${note}\n\n` + bad.join('\n\n') };
 }
 
 // 跑一条命令：shell=true 让 Node 选 cmd / sh。合并 stdout+stderr，返回 {code, text}。
@@ -161,7 +164,7 @@ function runShell(cmd, cwd) {
 
 const configPath = path.join(Root, '.rd', 'gates.json');
 if (!fs.existsSync(configPath)) {
-  out(C.red(`[L1] 找不到 ${configPath}`));
+  out(C.red(`[Test] 找不到 ${configPath}`));
   out(C.yellow('     先跑 init-rd.js，或从 templates/gates.json 复制一份。'));
   process.exit(2);
 }
@@ -170,7 +173,7 @@ let config;
 try {
   config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 } catch (e) {
-  out(C.red(`[L1] gates.json 不是合法 JSON: ${e.message}`));
+  out(C.red(`[Test] gates.json 不是合法 JSON: ${e.message}`));
   process.exit(2);
 }
 function asArr(v) { return Array.isArray(v) ? v : (v === null || v === undefined ? [] : [v]); }
@@ -179,12 +182,12 @@ const gates = Array.isArray(config.l1) ? config.l1 : [];
 // 每条门要么有 cmd，要么是 kind:"syntax"。两者都没有的话它什么也不做却照常报 PASS。
 for (const g of gates) {
   if (g.kind !== 'syntax' && (g.cmd === null || g.cmd === undefined || String(g.cmd).trim() === '')) {
-    out(C.red(`[L1] gates.json 里的门 "${g.name || '(无名)'}" 既没有 cmd 也不是 kind:"syntax"`));
+    out(C.red(`[Test] gates.json 里的门 "${g.name || '(无名)'}" 既没有 cmd 也不是 kind:"syntax"`));
     process.exit(2);
   }
 }
 if (gates.length === 0) {
-  out(C.red('[L1] gates.json 的 l1 为空，没有可执行的机械门。'));
+  out(C.red('[Test] gates.json 的 l1 为空，没有可执行的测试门。'));
   process.exit(2);
 }
 
@@ -205,19 +208,19 @@ if (fs.existsSync(checkArt)) {
   }
   if (caCode === 2) {
     out(caOut);
-    out(C.red('[L1] 中止：上次运行被中断在半路。'));
-    out(C.red('     先按上面的 inflight 收尾，把 run.json 的 inflight 清成 null，再跑 L1。'));
+    out(C.red(`[Test] 中止：上次运行被中断在半路。`));
+    out(C.red('     先按上面的 inflight 收尾，把 run.json 的 inflight 清成 null，再跑测试层。'));
     out(C.dark('     在没收尾的状态下跑门，绿了也不知道绿的是哪一版。'));
     process.exit(2);
   }
   if (caCode === 3) {
-    out(C.yellow('[L1] ⚠ 存在孤儿证据（evidence/ 下有文件没被任何报告引用）。'));
+    out(C.yellow('[Test] ⚠ 存在孤儿证据（evidence/ 下有文件没被任何报告引用）。'));
     out(C.dark('     跑 check-artifacts.js 看清单 —— 要么在报告里认领，要么删掉。'));
   }
 }
 
 out('');
-out(C.cyan(`=== L1 机械门 (${gates.length} 项) ===`));
+out(C.cyan(`=== 测试层 (${gates.length} 项) ===`));
 
 const results = [];
 let failed = false;
@@ -246,7 +249,7 @@ for (const g of gates) {
     if (text.indexOf(String(g.mustMatch)) < 0) {
       ok = false;
       code = -100;
-      tail = `[gate-l1] 命令退出码为 0，但输出里找不到 "${g.mustMatch}" —— 判定为空过。\n` +
+      tail = `[gate-test] 命令退出码为 0，但输出里找不到 "${g.mustMatch}" —— 判定为空过。\n` +
              '          很可能是没有文件可检查、或没有测试被收集到。\n\n' + tail;
     }
   }
@@ -302,9 +305,9 @@ if (Feature) {
 
 out('');
 if (verdict === 'pass') {
-  out(C.green('=== L1 PASS —— 可以进入 L2 异构审查 ==='));
+  out(C.green('=== 测试层 PASS ==='));
 } else {
-  out(C.red('=== L1 FAIL —— 不要派 reviewer，先把机械问题修掉 ==='));
+  out(C.red('=== 测试层 FAIL —— 不要派 reviewer，先把机械问题修掉 ==='));
   out('');
   for (const r of results.filter((x) => !x.ok && x.required)) {
     out(C.red(`--- ${r.name} (exit ${r.exitCode}) ---`));

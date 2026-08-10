@@ -15,7 +15,7 @@
 你只能创建或修改以下文件：
 {task.files 逐行列出}
 严禁触碰其他任何文件。违反 = 任务失败。
-**测试文件在 `.rd/features/{slug}/tests/` 下**（L1 的 test 门和 acceptance 的 check 命令都显式指过去，
+**测试文件在 `.rd/features/{slug}/tests/` 下**（测试层的 test 门和 acceptance 的 check 命令都显式指过去，
 不依赖项目 git 状态）。它同样受上面白名单约束 —— 白名单里没列的测试路径不许写。
 
 ## 上下文

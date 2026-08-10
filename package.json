@@ -11,6 +11,6 @@
     "sections": "node scripts/check-artifacts.js -Sections",
     "selftest": "node scripts/check-artifacts.js -SelfTest"
   },
-  "_note": "这个仓库没有运行时依赖，也没有构建步骤。测试用 node 内置 test runner，语法门由 gate-l1 的 kind:\"syntax\" 内建执行 —— 都不需要装东西。",
-  "_whyNode22": "下限不是随便写的：`node --test` 接受 glob 模式是 Node 21+ 才有的能力（18/20 会把 \"tests/*.test.js\" 当成一个不存在的字面路径）；`node --check` 对 .js 文件里的 ESM 语法要靠模块语法自动探测，Node 22.7+ 才默认开启，更早的版本会把 public/ 下每个 <script type=module> 的 .js 判成语法错误，让 L1 永久 FAIL。"
+  "_note": "这个仓库没有运行时依赖，也没有构建步骤。测试用 node 内置 test runner，语法门由 gate-test 的 kind:\"syntax\" 内建执行 —— 都不需要装东西。",
+  "_whyNode22": "下限不是随便写的：`node --test` 接受 glob 模式是 Node 21+ 才有的能力（18/20 会把 \"tests/*.test.js\" 当成一个不存在的字面路径）；`node --check` 对 .js 文件里的 ESM 语法要靠模块语法自动探测，Node 22.7+ 才默认开启，更早的版本会把 public/ 下每个 <script type=module> 的 .js 判成语法错误，让测试层永久 FAIL。"
 }

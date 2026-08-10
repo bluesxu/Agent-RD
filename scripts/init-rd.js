@@ -97,7 +97,7 @@ if (fs.existsSync(gatesDst)) {
   };
   if (!hasMarker) {
     outCfg._provisional = true;
-    outCfg._provisionalNote = '⚠️ 目录里没有任何语言标记文件（Cargo.toml / go.mod / pyproject.toml / requirements.txt / package.json），上面这套门是**猜的**（默认按 node）。技术选型是阶段 1 的事 —— rd-plan 仲裁完之后必须回来改掉这份配置并删除本标记。在此之前，L1 机械门验的是一个还没被决定的技术栈。';
+    outCfg._provisionalNote = '⚠️ 目录里没有任何语言标记文件（Cargo.toml / go.mod / pyproject.toml / requirements.txt / package.json），上面这套门是**猜的**（默认按 node）。技术选型是阶段 1 的事 —— rd-plan 仲裁完之后必须回来改掉这份配置并删除本标记。在此之前，测试层验的是一个还没被决定的技术栈。';
   }
   fs.writeFileSync(gatesDst, JSON.stringify(outCfg, null, 2), 'utf8');
   out(C.green(`  created  .rd/gates.json  [预设: ${kind}]`));
@@ -166,7 +166,7 @@ for (const g of (Array.isArray(gatesCfg.l1) ? gatesCfg.l1 : [])) {
     out(C.dark(`    ✓ ${g.name}: 可执行且当前通过`));
   } else if (cannotRun) {
     out(C.yellow(`    ⚠ ${g.name}: 命令跑不起来 (exit ${code}${norm !== code ? ` → 归一 ${norm}` : ''}) — ${g.cmd}`));
-    out(C.yellow('      L1 会一直挂在这里。装好依赖或改掉这条命令。'));
+    out(C.yellow('      测试层会一直挂在这里。装好依赖或改掉这条命令。'));
   } else {
     /* 退出码非 0 但不在上面那几个已知形态里。**这里不许猜**：
        Windows 的 cmd.exe 对「命令根本不存在」返回的也是 1，
@@ -175,7 +175,7 @@ for (const g of (Array.isArray(gatesCfg.l1) ? gatesCfg.l1 : [])) {
        原先这里写「确认这是预期的（比如测试还没写）」—— 对一个拼错的命令说这句话，
        等于把人往错误方向推。分不清就说分不清，两条排查路径都给出来。 */
     out(C.yellow(`    ⚠ ${g.name}: 当前不通过 (exit ${code}) — ${g.cmd}`));
-    out(C.dark('      L1 会在这条门 FAIL。两种可能，都要排查：'));
+    out(C.dark('      测试层会在这条门 FAIL。两种可能，都要排查：'));
     out(C.dark('        ① 命令不存在或依赖没装（Windows 下这种情况也返回 exit 1，看不出来）'));
     out(C.dark('        ② 命令跑通了但检查没过（测试还没写、lint 真有问题）'));
     out(C.dark('      手动跑一遍这条命令，看输出属于哪种。'));

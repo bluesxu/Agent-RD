@@ -12,10 +12,10 @@
 
 ## 和 full 的区别
 
-省掉两件事：**多方案并行论证**、**L3 场景验收**。
-保留：精简拷问、L1 机械门、L2 异构审查。
+省掉两件事：**多方案并行论证**、**验收层**。
+保留：精简拷问、审查层、测试层。
 
-**省 L3 意味着**：如果实现 agent 写出"测试全绿但功能是假的"，这条策略抓不到。
+**省验收层意味着**：如果实现 agent 写出"测试全绿但功能是假的"，这条策略抓不到。
 所以 **M 级以上、涉及用户可见行为的功能，宁可升到 full**。
 
 ## 阶段
@@ -37,14 +37,7 @@
 
 写代码前先看相邻实现。项目有测试设施时优先测试先行。
 
-### 3. L1 机械门 [required]
-
-```
-node <agent-rd>/scripts/gate-l1.js
-```
-不过 → 修 → 重跑。**最多 3 次**，仍失败则停下来报告。
-
-### 4. L2 异构审查 [required]
+### 3. 审查层 [required]
 
 1. `git add -A`，冻结目标：
    ```
@@ -54,19 +47,26 @@ node <agent-rd>/scripts/gate-l1.js
 2. 派**一个 fresh reviewer**，异构模型优先（与实现者不同厂商 > 不同模型 > 同构）
 3. 它单轮执行 `rd-review`，只读，返回分级 findings
 4. **reviewer 返回前你不得改动工作树**
-5. blocking > 0 → 修 → **回到 L1 重跑** → 再审（沿用同一 reviewer 的同一 session 做 follow-up）
+5. blocking > 0 → 修 → 再审（沿用同一 reviewer 的同一 session 做 follow-up）
 
 **最多 2 轮**。超限仍有 blocking → 停下来报告，建议升级到 full 重新设计。
 
+### 4. 测试层 [required]
+
+```
+node <agent-rd>/scripts/gate-test.js
+```
+不过 → 修 → 重跑。**最多 3 次**，仍失败则停下来报告。
+
 ### 5. 收尾
 
-报告：做了什么、改了哪些文件、L1 输出、L2 结论与 findings 处理情况。
+报告：做了什么、改了哪些文件、测试层输出、审查层结论与 findings 处理情况。
 
 有值得长期复用的经验 → 调 `rd-keep`，没有就明说"本次无采纳"。
 
 ## 硬门槛
 
-- **不许跳过 L2。**这是 guarded 与 direct 的唯一实质区别。
+- **不许跳过审查层。**这是 guarded 与 direct 的唯一实质区别。
 - **不许在 blocking 未清零时宣称完成。**
 - **判定方式写不出来就不许开工。**
 - 中途发现涉及权限/安全/持久化数据/并发语义 → **升级到 full**，不要在 guarded 里做完。
@@ -77,13 +77,13 @@ node <agent-rd>/scripts/gate-l1.js
 - `skills/rd-spec/references/interview-probes.md` — 精简拷问也要先诊断开场白缺什么
 - `skills/rd-build/references/degrade-and-breaker.md` — 载体降级 / 熔断 / 外部中断时
 - `skills/rd-build/references/orch-selfcheck.md` — 编排者宣布核对结论前
-- `skills/rd-review/references/severity-rubric.md` — L2 定级时
+- `skills/rd-review/references/severity-rubric.md` — 审查层定级时
 - `skills/rd-review/references/mutation-followup.md` — mutationTargets 非空时
 - `skills/rd-keep/references/lesson-lifecycle.md` — 收尾写/复用 lesson 时
 - `skills/rd/references/out-of-flow.md` — 流程外动作时
 
 **永不加载**
 - `skills/rd-plan/` — 本策略不做多方案并行论证（和 full 的省点之一）
-- `skills/rd-eval/` — 本策略没有 L3 场景验收（和 full 的省点之二）
+- `skills/rd-eval/` — 本策略没有验收层（和 full 的省点之二）
 - `skills/rd-spec/references/confirmation-gate.md` — 精简拷问不建 spec.md，没有确认门环节
 - `skills/rd-spec/references/blindspot-map.md` — 精简三问不涉及「评估不了」的用户决策地图

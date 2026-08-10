@@ -1,6 +1,6 @@
 ---
 name: rd-eval
-description: L3 场景验收。像终端用户一样逐条跑 acceptance.json 的场景，附证据判定通过与否。只拿场景和跑起来的系统，拿不到实现和测试代码——这是识破"假绿"的唯一一层。
+description: 验收层场景验收。像终端用户一样逐条跑 acceptance.json 的场景，附证据判定通过与否。只拿场景和跑起来的系统，拿不到实现和测试代码——这是识破"假绿"的唯一一层。
 argument-hint: "[feature slug]"
 ---
 
@@ -44,7 +44,7 @@ argument-hint: "[feature slug]"
 
 ⛔ **写 runbook 时的红线**：只写怎么观察，**不写系统怎么实现**。
 写完自查一句 —— **这句话会让下一个验收者猜到实现吗？**会，就删掉。
-越过这条线，runbook 就变成了实现泄漏通道，把 L3 的全部价值一次性抵消掉。
+越过这条线，runbook 就变成了实现泄漏通道，把验收层的全部价值一次性抵消掉。
 
 ## 执行
 
@@ -159,7 +159,7 @@ feature: {slug}
 
 ## 模型档位
 
-**L3 验收必须用 opus 级模型。**只有 `rd-build` 里按 `tasks.json` 写代码的 agent
+**验收层必须用 opus 级模型。**只有 `rd-build` 里按 `tasks.json` 写代码的 agent
 可以用 Sonnet 这种级别的模型。
 
 ## 硬门槛

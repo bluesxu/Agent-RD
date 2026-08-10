@@ -43,9 +43,9 @@
 
 ### 2. 实现 + 三层门 [required]
 
-调 `rd-build`。完整的 L1 → L2 → L3 闭环，最多 3 轮，超限熔断。
+调 `rd-build`。完整的审查层 → 测试层 → 验收层闭环，最多 3 轮，超限熔断。
 
-**L3 是这条策略相对 guarded 的唯一增量，也是它贵的原因。**
+**验收层是这条策略相对 guarded 的唯一增量，也是它贵的原因。**
 它是唯一能识破「测试全绿但功能是假的」的一层 —— 省掉它就等于把 full 降级成了 guarded。
 
 ### 3. 沉淀
@@ -55,9 +55,9 @@
 ## 硬门槛
 
 - **两道 validate-plan 都不许手动跳过**
-- **L3 的 evaluator 必须是 fresh agent，且拿不到实现、diff、测试代码**
+- **验收层的 evaluator 必须是 fresh agent，且拿不到实现、diff、测试代码**
 - **超出预算量级 2 倍时停下来告诉用户**，不要闷头烧完
-- 中途发现任务其实是 M 级 → **可以降级到 guarded**，但要说清放弃了 L3、以及那意味着什么
+- 中途发现任务其实是 M 级 → **可以降级到 guarded**，但要说清放弃了验收层、以及那意味着什么
 
 ## 本策略的加载清单
 
@@ -72,12 +72,12 @@
 - `skills/rd-build/references/receipt-audit.md` — 收到 Builder 回执时
 - `skills/rd-build/references/degrade-and-breaker.md` — 载体降级 / 熔断 / 外部中断时
 - `skills/rd-build/references/orch-selfcheck.md` — 编排者宣布核对结论前
-- `skills/rd-review/references/severity-rubric.md` — L2 定级时
+- `skills/rd-review/references/severity-rubric.md` — 审查层定级时
 - `skills/rd-review/references/mutation-followup.md` — mutationTargets 非空时
 - `skills/rd-eval/references/edge-outcomes.md` — 出现 skipped / blocked 判定时
 - `skills/rd-keep/references/lesson-lifecycle.md` — 收尾写/复用 lesson 时
 - `skills/rd/references/out-of-flow.md` — 流程外动作时
 
 **永不加载**
-- 无整 skill 永不加载 —— 本策略走全流程（拷问→方案→实现→L1+L2+L3），
+- 无整 skill 永不加载 —— 本策略走全流程（拷问→方案→实现→审查层+测试层+验收层），
   所有 skill 的 references 都可能用到。剩下的「条件触发」是条件加载，不是永不加载。

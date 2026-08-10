@@ -3,7 +3,7 @@
   validate-plan —— 校验 acceptance.json / tasks.json 的机械规则。
 
   这道门是无人化的前提。它拦下的是后面自动流程无论如何都发现不了的那类错误：
-    - 验收标准判定不了  -> L3 永远无法判断"做完了没有"
+    - 验收标准判定不了  -> 验收层永远无法判断"做完了没有"
     - 同层文件重叠      -> 并行 Builder 互相覆盖，diff 里看不出来
     - AC 没被任何 task 覆盖 -> 悄悄漏掉一整块需求
 
@@ -173,13 +173,13 @@ if (!fs.existsSync(specPath)) {
     addErr('spec.md 的「范围」里「不做」为空。没有边界的需求，agent 一定会越界。');
   }
 
-  // spec.md 里不该留「未决风险」「怎么确认算对了」这类给方案者看的提示清单（L3 验收者会读全文）。
+  // spec.md 里不该留「未决风险」「怎么确认算对了」这类给方案者看的提示清单（验收层验收者会读全文）。
   const internalPath = path.join(dir, 'spec-internal.md');
   const leaky = [];
   if (/^##\s*未决风险/m.test(spec)) leaky.push('未决风险');
   if (/^#{2,3}.*怎么确认算对/m.test(spec)) leaky.push('怎么确认算对了');
   if (leaky.length > 0 && !fs.existsSync(internalPath)) {
-    addWarn(`spec.md 里还留着「${leaky.join('」「')}」。这几节是给出方案的人看的，不是给验收者看的 —— L3 验收者会读 spec.md 全文，读到它们等于拿到一份提示清单，之后它的「场外观察」就不再是自己撞见的了。把它们移到同目录的 spec-internal.md（L3 禁读、方案 agent 必读）。`);
+    addWarn(`spec.md 里还留着「${leaky.join('」「')}」。这几节是给出方案的人看的，不是给验收者看的 —— 验收层验收者会读 spec.md 全文，读到它们等于拿到一份提示清单，之后它的「场外观察」就不再是自己撞见的了。把它们移到同目录的 spec-internal.md（验收层禁读、方案 agent 必读）。`);
   }
 }
 
@@ -254,7 +254,7 @@ if (ac !== null) {
       // 阶段 0 不要求 check —— 具体命令是阶段 1 技术选定之后的产物。
       if (isBlank(s.check)) {
         if (Stage !== 'spec') {
-          addErr(`${id} judge=machine 但没有 check 命令。阶段 1 必须把 checkIntent 具化成选定技术栈的可执行命令，否则 L1/L3 无从判定。`);
+          addErr(`${id} judge=machine 但没有 check 命令。阶段 1 必须把 checkIntent 具化成选定技术栈的可执行命令，否则 测试层/验收层无从判定。`);
         }
       } else {
         // 带过滤条件的 check 必须走 check-ac 守卫（过滤匹配不到用例时运行器也返回 0）。
@@ -429,7 +429,7 @@ if (Stage === 'plan') {
        用 -MustMatch 锚住。跨 task 聚合，不要求本 task 自锚 ——
        实现和测试完全可以分在两个 task 里。
 
-       agent 判定的 AC 不在此列：它们本来就没有机器检查，由 L3 验收者判。 */
+       agent 判定的 AC 不在此列：它们本来就没有机器检查，由 验收层验收者判。 */
     /* 提取命令里的 -MustMatch 值。三个坑都踩过：
        ① 必须锚在词首（`(?:^|\s)`）—— 否则 `--no-MustMatch AC-9` 这种**显式关掉**锚点的
           选项反而会被当成一个锚点，让 AC-9 白白通过校验。
@@ -464,22 +464,22 @@ if (Stage === 'plan') {
         .map((t) => t.id)
         .join(' / ');
       addErr(`${id} 是 machine 判定、被 ${owners} 的 covers 声明，但**没有任何 task 的 verify 用 -MustMatch 锚住它**。` +
-        `-MustMatch 只卡它列出的锚点，所以这条 AC 的测试就算根本没写、或以后被悄悄删掉，L1 和 verify 也全是绿的。` +
+        `-MustMatch 只卡它列出的锚点，所以这条 AC 的测试就算根本没写、或以后被悄悄删掉，测试层也全是绿的。` +
         `在负责它的 task 的 verify 里补上锚点（可以和别的 AC 合并在同一条命令里，用 ;; 分隔）。` +
-        `⚠ 注意：acceptance.json 里这条 AC 自带的 check -MustMatch **不算数** —— 那条命令是 L3 验收时才跑的，` +
+        `⚠ 注意：acceptance.json 里这条 AC 自带的 check -MustMatch **不算数** —— 那条命令是验收层时才跑的，` +
         `而这里要求的是**实现阶段**（task 完成时）就有机器守卫。两者都要有，不是重复。`);
     }
 
     // gates.json 的语法门是否覆盖了 tasks.json 声明的全部源文件。
     const gatesPath = path.join(Root, '.rd', 'gates.json');
     if (!fs.existsSync(gatesPath)) {
-      addErr('缺少 .rd/gates.json —— L1 机械门没有配置，无人化流程失去第一道闸');
+      addErr('缺少 .rd/gates.json —— 测试层没有配置，无人化流程失去第一道闸');
     } else {
       try {
         const gatesCfg = JSON.parse(fs.readFileSync(gatesPath, 'utf8'));
         const l1arr = asList(gatesCfg.l1);
 
-        /* kind:"syntax" 的门没有 cmd —— 它由 gate-l1 内建执行（逐文件 node --check）。
+        /* kind:"syntax" 的门没有 cmd —— 它由 gate-test 内建执行（逐文件 node --check）。
            不认识它的话：只配语法门时 cmds 为空串，会被误报「l1 为空」；
            混配时它覆盖的源文件也不算数，会被误报「只覆盖了 0/N 个源文件」。
            两种都是**让一份正确的配置过不了门**，比漏报更劝退。
@@ -514,7 +514,7 @@ if (Stage === 'plan') {
 
           if (!hasGlob && literal.length < srcUniq.length) {
             const missing = srcUniq.filter((sf) => literal.indexOf(sf) < 0);
-            addErr(`gates.json 的 L1 只逐字覆盖了 ${literal.length}/${srcUniq.length} 个源文件，且没有通配。未覆盖: ${missing.join(', ')} —— 这些文件的语法/类型错误 L1 抓不到，只能靠测试恰好 import 到它们时才炸出来`);
+            addErr(`gates.json 的 l1 只逐字覆盖了 ${literal.length}/${srcUniq.length} 个源文件，且没有通配。未覆盖: ${missing.join(', ')} —— 这些文件的语法/类型错误测试层抓不到，只能靠测试恰好 import 到它们时才炸出来`);
           } else if (!hasGlob && srcUniq.length > 1 && literal.length === srcUniq.length) {
             addWarn(`gates.json 逐字列出了全部 ${srcUniq.length} 个源文件。新增文件时容易漏，建议改成通配`);
           }

@@ -142,7 +142,7 @@ try {
   write(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'l2-round1.diff'), 'x\n');
   write(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'l3-round1.md'),
     '# 验收\n\n## 验收结论\n通过\n\n## 逐条\nAC 全过\n\n## 收尾附录\n已清理\n\n' + RD_DONE + '\n');
-  // 跑过 L3 就必须留运行手册（check-artifacts 的 eval 阶段检查）
+  // 跑过验收层就必须留运行手册（check-artifacts 的 eval 阶段检查）
   write(path.join(tmp, '.rd', 'features', 'feat1', 'acceptance-runbook.md'), '# 运行手册\n\n怎么观察：浏览器打开页面。\n');
   write(path.join(tmp, '.rd', 'lessons', 'l1.md'), 'x\n');
   // run.json rounds 里要记 round 1，否则对账会报警 → 补 round 记录
@@ -159,30 +159,30 @@ try {
   check('孤儿证据 → exit 3', ca3.code === 3, 'got ' + ca3.code);
   fs.unlinkSync(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'evidence', 'orphan.png'));
 
-  // ==== 4. gate-l1 ====
+  // ==== 4. gate-test ====
   console.log('');
-  console.log(C.cyan('【4】gate-l1'));
+  console.log(C.cyan('【4】gate-test'));
   // 配一个必过的 gate
   write(path.join(tmp, '.rd', 'gates.json'), JSON.stringify({
     l1: [{ name: 'noop', cmd: process.platform === 'win32' ? 'echo ok' : 'echo ok', required: true }],
   }));
-  const gpass = run('gate-l1.js', ['-Root', tmp], tmp);
+  const gpass = run('gate-test.js', ['-Root', tmp], tmp);
   check('必过 gate → exit 0', gpass.code === 0, 'got ' + gpass.code + '\n' + gpass.out);
   // 必挂的 required gate
   write(path.join(tmp, '.rd', 'gates.json'), JSON.stringify({
     l1: [{ name: 'boom', cmd: process.platform === 'win32' ? 'exit 1' : 'exit 1', required: true }],
   }));
-  const gfail = run('gate-l1.js', ['-Root', tmp], tmp);
+  const gfail = run('gate-test.js', ['-Root', tmp], tmp);
   check('required 失败 → exit 1', gfail.code === 1, 'got ' + gfail.code);
   // 空过：命令成功但输出没有 mustMatch
   write(path.join(tmp, '.rd', 'gates.json'), JSON.stringify({
     l1: [{ name: 'vac', cmd: 'echo hello', required: true, mustMatch: 'REQUIRED_MARKER' }],
   }));
-  const gvac = run('gate-l1.js', ['-Root', tmp], tmp);
+  const gvac = run('gate-test.js', ['-Root', tmp], tmp);
   check('空过（exit 0 但无 mustMatch）→ exit 1', gvac.code === 1, 'got ' + gvac.code);
   // 配置缺失 → exit 2
   fs.unlinkSync(path.join(tmp, '.rd', 'gates.json'));
-  const gno = run('gate-l1.js', ['-Root', tmp], tmp);
+  const gno = run('gate-test.js', ['-Root', tmp], tmp);
   check('gates.json 缺失 → exit 2', gno.code === 2, 'got ' + gno.code);
 
   // ==== 5. validate-plan ====
@@ -216,7 +216,7 @@ try {
   check('  …报错点到 check-ac', /check-ac\.js/.test(vpPlanGuard.out));
   // 改成走守卫 → PASS。plan 阶段还有 F3 跨 task 聚合检查：machine 判定 AC
   // 必须被**某个 task 的 verify** 用 -MustMatch 锚住 —— acceptance.json 里 AC
-  // 自带的 check -MustMatch 不算数（那是 L3 验收时才跑的，不是实现阶段守卫）。
+  // 自带的 check -MustMatch 不算数（那是验收层时才跑的，不是实现阶段守卫）。
   write(path.join(feat, 'acceptance.json'), JSON.stringify({
     scenarios: [{ id: 'AC-1', name: 'x', given: 'g', when: 'w', then: 't', judge: 'machine', checkIntent: 'I/O 判等', check: 'node .rd/bin/check-ac.js -Cmd "node --test --test-name-pattern=feat1\\sAC-1" -MustMatch "feat1 AC-1"' }],
   }));

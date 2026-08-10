@@ -234,13 +234,13 @@ flowchart TB
     PL --> BU["rd-build parallel implementation"]
 
     subgraph CL["Automated review loop"]
-        BU --> L1{"L1 Mechanical gate<br/>zero AI cost"}
-        L1 -->|pass| L2{"L2 Heterogeneous review"}
-        L2 -->|pass| L3{"L3 Scenario acceptance<br/>the only layer that catches fake-green"}
-        L3 -->|pass| OK["Delivered ✅"]
-        L1 -.fail.-> BU
-        L2 -.fail.-> BU
-        L3 -.fail.-> BU
+        BU --> REV{"Review layer<br/>review + define tests"}
+        REV -->|blocking cleared| TST{"Test layer<br/>zero AI cost"}
+        TST -->|pass| ACC{"Acceptance layer<br/>the only layer that catches fake-green"}
+        ACC -->|pass| OK["Delivered ✅"]
+        REV -.fail.-> BU
+        TST -.fail.-> BU
+        ACC -.fail.-> BU
     end
 
     BU --> K["rd-keep lessons"]
@@ -281,14 +281,14 @@ The three gates run inside `rd-build` as a loop; on failure a new AI is dispatch
 
 | Gate | Who reviews | Catches | Cost |
 |---|---|---|---|
-| **L1 Mechanical** | Scripts | Command errors, format errors, out-of-scope file edits | Zero AI cost — always runs first |
-| **L2 Heterogeneous review** | A different AI | Intent drift, cross-module interaction bugs | A weaker reviewer than the author is no review at all |
-| **L3 Scenario acceptance** | An AI that never saw the code | "Tests green but the feature is fake" | The only layer that catches fake-green |
+| **Review layer** | A different AI (reviews + writes tests) | Intent drift, cross-module interaction bugs, test-suite adequacy | A weaker reviewer than the author is no review at all |
+| **Test layer** | Scripts | Command errors, format errors, out-of-scope file edits | Zero AI cost |
+| **Acceptance layer** | An AI that never saw the code | "Tests green but the feature is fake" | The only layer that catches fake-green |
 
-**Why this design**: the three gates catch non-overlapping things — L1 is cheap so it always runs first, fail
-early and save money; L2 looks at diffs and can't catch "the feature is fake"; L3 doesn't look at diffs, so it
-specializes in exactly that. **The lightweight routes drop the latter gates. Whether that's a safe bet is exactly
-what triage decides.**
+**Why this design**: the three layers catch non-overlapping things — the review layer looks at diffs and can't
+catch "the feature is fake"; the test layer is cheap so it mechanically catches command/config errors; the
+acceptance layer doesn't look at diffs, so it specializes in exactly the fake-green case. **The lightweight
+routes drop some of the gates. Whether that's a safe bet is exactly what triage decides.**
 
 ### ④ Foundation layer — the system is written as scripts, not self-discipline
 
@@ -494,7 +494,7 @@ Agent-RD/
 └── scripts/                   Guard scripts (zero npm dependencies)
     ├── init-rd.js             Initialize inside a project
     ├── enable-agent-teams.js  Flips the parallel-orchestration switch (only script that writes settings.json)
-    ├── gate-l1.js             Gate 1 checks
+    ├── gate-test.js            Test layer
     ├── check-ac.js            Prevents "command succeeded but tested nothing"
     ├── check-artifacts.js     Checks progress, interruptions, and rule tampering
     ├── freeze-target.js       Snapshot + tamper comparison

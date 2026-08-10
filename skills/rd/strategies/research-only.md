@@ -83,7 +83,7 @@
 
 **永不加载**
 - `skills/rd-spec/` — 本策略不建 spec / acceptance
-- `skills/rd-build/` — 本策略不写代码，无 L1/L2/L3 闭环
+- `skills/rd-build/` — 本策略不写代码，无审查层/测试层/验收层闭环
 - `skills/rd-review/` — 本策略无代码可审查
 - `skills/rd-eval/` — 本策略无场景可验收
 - `skills/rd-keep/` — 本策略不沉淀实现经验（调研结论是交付物，不是 lessons）
