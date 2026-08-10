@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
-  verify —— Agent-RD 脚本的最小行为验证（自带、零依赖、Node 18+）。
+  verify —— Agent-RD 脚本的最小行为验证（自带、零依赖、Node 22+）。
 
   在临时目录里造一个 fixture 项目，逐个脚本跑真实命令，断言退出码和关键行为。
   不动仓库本身，只碰 os.tmpdir() 下的一次性目录。

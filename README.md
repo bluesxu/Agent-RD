@@ -6,12 +6,12 @@
 
 <p align="center">
   给一人公司（One-Person Company）的全自动交付流水线<br>
-  你负责说要什么，AI 负责写、审、验、交 · 三道自动审核关卡 · 十三道机械拦截
+  你负责说要什么，AI 负责想、写、审、验、交 · 三道自动审核关卡 · 制度写成脚本
 </p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue.svg?style=for-the-badge" alt="License"></a>
-  <img src="https://img.shields.io/badge/Node.js-18%2B-339933.svg?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js 18+">
+  <img src="https://img.shields.io/badge/Node.js-22%2B-339933.svg?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js 22+">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D6.svg?style=for-the-badge" alt="Windows | macOS | Linux">
   <a href="https://github.com/bluesxu/agent-rd/stargazers"><img src="https://img.shields.io/github/stars/bluesxu/agent-rd?style=for-the-badge" alt="GitHub Stars"></a>
 </p>
@@ -23,9 +23,10 @@
 
 <p align="center">
   <a href="#quickstart">🚀 快速开始</a> ·
+  <a href="#ideate">🧭 方向未定</a> ·
   <a href="#gates">🚧 三道关卡</a> ·
-  <a href="#guards">🛡️ 机械拦截</a> ·
-  <a href="#routes">🧭 七条路线</a> ·
+  <a href="#architecture">🏗️ 架构设计</a> ·
+  <a href="#routes">🛣️ 八条路线</a> ·
   <a href="#design">🧠 核心设计</a> ·
   <a href="#boundary">⚠️ 适用边界</a>
 </p>
@@ -62,6 +63,31 @@ AI 为了让测试通过，会加假数据、加兜底分支、把断言改松�
 
 不是再给你一个写代码的 AI。是给你一套**制度**：
 让 AI 写的代码，必须先过另一批 AI 的审查和验收，才能到你手上。
+
+---
+
+<a id="ideate"></a>
+## 🧭 方向没想好？先让 AI 把方向想清楚
+
+一人公司最贵的事故不是写错代码，是**做错方向**——辛辛苦苦三个月，做出来没人要的东西。
+
+大公司有产品评审会替你泼冷水。你一个人，没人泼。
+
+所以 Agent-RD 在你只有个模糊念头的时候，也能接：
+
+```
+/rd 我想给独立开发者做个工具，但还没想好做什么
+```
+
+它会先帮你把方向想清楚：
+
+1. **扫现状**——你卡在哪、已经做过什么、仓库里哪块最痛
+2. **派 2~3 个 AI 各想一遍**，合并成 3~5 个排过序的候选方向
+   （每个都带：是什么 / 为什么值得做 / 大概多大成本 / 有什么风险）
+3. **你挑一个**，再进入正式的开发流水线
+
+从「不知道做什么」到「有一个明确的方向」，也是 AI 的活。
+方向选定了，后面才轮到你熟悉的「写代码」那套。
 
 ---
 
@@ -116,10 +142,11 @@ Agent-RD 帮你把研发部的编制填满：
 | ⚙️ CI / 构建 | 脚本跑类型检查和测试，不花 AI 额度 | — |
 | 🔍 Code Reviewer | 换一个 AI 来审，只能看不能改 | — |
 | 🧑‍💼 QA / 验收 | 一个没看过代码的 AI，当真实用户用一遍 | — |
+| 💡 产品顾问 | 方向没定的时候，AI 出候选让你挑 | 挑一个 |
 | 📚 知识管理 | AI 把这轮踩的坑记成经验，下轮自动带上 | 确认要记哪些 |
 | 👑 **CEO** | **你** | **说要什么、拍板、担责** |
 
-**九个岗，八个 AI 在干。**
+**十个岗，九个 AI 在干。**
 
 ---
 
@@ -152,7 +179,6 @@ Agent-RD 帮你把研发部的编制填满：
 
 ---
 
-<a id="guards"></a>
 ## 🛡️ 它到底硬拦住了什么
 
 一人公司最贵的成本是**返工**——没人替你复查，错误会一直往下游滚。
@@ -174,57 +200,106 @@ Agent-RD 帮你把研发部的编制填满：
 | 检查过程中偷偷改规则 | 开工时存规则指纹，之后每次比对 |
 | 「只有我一个人说没问题」被忽略 | 每次都打印结论是谁下的 |
 | 主控 AI 跳出流程自作主张 | 七类动作必须先问你，没记录就算违规 |
+| 审查的结论靠自由心证 | 每条发现必须挂一条「行为判定条件」，脚本校验 |
 
-**十三道机械拦截，一条都不靠自觉。**
+**一条都不靠自觉。**
 
 一个人的公司，**制度必须写成脚本**——写成规矩，忙起来就没人守了。
 
 ---
 
-<a id="install"></a>
-## 🚀 三分钟装好
+<a id="architecture"></a>
+## 🏗️ 架构设计
 
-```bash
-# 克隆到固定位置（以后升级也回这里 git pull）
-git clone https://github.com/bluesxu/agent-rd.git ~/.agent-rd/repo
-cd ~/.agent-rd/repo
+Agent-RD 不是「一个 skill」，是**四个独立层**。每一层解决一类问题，层与层之间只交接文件。
 
-# 装 skill 到 ~/.claude/skills/（旧版自动备份）
-node install.js -Apply
+```mermaid
+flowchart TB
+    U["你的一句话：/rd 我要做……"] --> R{"rd · 分诊<br/>类型 · 复杂度 · 风险 · 绿地/存量"}
+    R --> D["direct 小改动"]
+    R --> G["guarded 中等改动"]
+    R --> F["full 完整功能"]
+    R --> RS["refactor-safe 存量重构"]
+    R --> DG["diagnose 排查问题"]
+    R --> ID["ideate 方向未定"]
+    R --> RO["research-only 调研"]
+    R --> RV["review-only 审查"]
 
-# 可选：开启 Agent Teams（往 settings.json 加一个环境变量，写前自动备份）
-# 只影响 rd-build 的并行档位，不开会自动降级到并行子 agent，一样能跑
-node scripts/enable-agent-teams.js
+    F --> SP["rd-spec 业务梳理<br/>spec.md + acceptance.json"]
+    SP --> PL["rd-plan 方案与切任务<br/>design.md + tasks.json"]
+    PL --> BU["rd-build 并行实现"]
+
+    subgraph CL["自动审核闭环"]
+        BU --> L1{"L1 机械门<br/>零 AI 成本"}
+        L1 -->|通过| L2{"L2 异构审查"}
+        L2 -->|通过| L3{"L3 场景验收<br/>唯一识破假绿"}
+        L3 -->|通过| OK["交付 ✅"]
+        L1 -.未过.-> BU
+        L2 -.未过.-> BU
+        L3 -.未过.-> BU
+    end
+
+    BU --> K["rd-keep 沉淀经验"]
+    ID -.选定后回分诊.-> R
 ```
 
-**装完重启 Claude Code，输入 `/rd` 加上你的诉求就能用了。** 到这一步你的项目还没被碰过一个字节 ——
-安装只往 `~/.claude/` 里放东西。
+### ① 分诊层 —— 先看任务多大，再决定怎么干
 
-> 仓库放哪都行，但**要放在一个固定位置**：升级要回到这里 `git pull`，初始化脚本也要用它的绝对路径。
-> 没主意就用上面的 `~/.agent-rd/repo`（Windows 即 `%USERPROFILE%\.agent-rd\repo`）。
+`rd` 拿到诉求后先判断四件事：**类型**（feature / bugfix / refactor / chore / research / review）、
+**复杂度**（S / M / L / XL）、**风险**（low / high）、**在改存量还是绿地**。
 
-**跑在 Windows / macOS / Linux 上，不需要 tmux、不需要 WSL、不需要装别的命令行工具。** 💻
-唯一的运行时是 Node.js —— 而你跑 Claude Code 本来就已经装了它，所以等于一个都不用多装。
+然后选一条相称的路线——**共八条**。决策落盘成 `dispatch.md`，还逼你写一行
+「为什么不是次优的那条」：写不出来，说明你没在选，只是挑了个看起来最稳的。
 
-### 想在某个项目里走完整流程，再多跑一条
+**为什么这样设计**：最重的路线**每条验收标准约 14 万 token**。一人公司的额度是自己掏的，
+一个改三行的 bug 走全套，成本是收益的几十倍。**策略必须与任务相称。**
 
-机械门要读项目里的 `.rd/gates.json`，完整流程还要往 `.rd/` 里落产物。
-所以**每个项目第一次用之前**，在那个项目根目录跑一次（一次就够）：
+### ② 流水线层 —— 四段，人只在第一段出现
 
-```bash
-cd /your/project
-node ~/.agent-rd/repo/scripts/init-rd.js
+```
+rd-spec  业务梳理   ── 产出 spec.md + acceptance.json
+rd-plan  方案选型   ── 产出 design.md + 文件级任务 DAG
+rd-build 并行实现   ── 里面装着三道门的自动闭环
+rd-keep  经验沉淀   ── 只留能长期复用的教训
 ```
 
-初始化脚本是增量的，已有文件不会被覆盖。它会自动识别你的项目是什么语言、
-配上对应的检查命令、建好 `.gitignore`，然后把配好的命令实际跑一遍确认能用。
+层与层之间**只交接文件，不交接记忆**——每一段都是独立派发的 agent，读上一段的产物干活。
+这样做是故意的：状态进文件，谁中断了都能从磁盘续上，没有「我上次记到哪了」这种记忆债。
 
-**没有服务器要租，没有账号要注册，没有月费。装完就是你自己的东西。** 🆓
+**为什么这样设计**：整条流水线只有 `rd-spec` 一个环节需要你出现。你负责把你脑子里的东西
+讲清楚，剩下的是 AI 的事。
+
+### ③ 校验层 —— 三道门，互相补位
+
+三道门装在 `rd-build` 里，跑成一个闭环，没过就自动派新 AI 修，修完重新走：
+
+| 门 | 谁在审 | 抓什么 | 代价 |
+|---|---|---|---|
+| **L1 机械门** | 脚本 | 命令错误、格式错误、越界改文件 | 零 LLM 成本，永远先跑 |
+| **L2 异构审查** | 换一个 AI | 意图偏离、跨模块交互 bug | 审查者比被审者强，否则等于没审 |
+| **L3 场景验收** | 没看过代码的 AI | 「测试全绿但功能是假的」 | 唯一能识破假绿的一层 |
+
+**为什么这样设计**：三道门抓的东西各不重叠——L1 便宜所以永远先跑，早失败早省钱；
+L2 看 diff 抓不了「功能是假的」，L3 不看 diff 所以专治它。**轻量路线省掉的就是后面两道门，
+省得对不对，取决于这次改动值不值得。**
+
+### ④ 基建层 —— 制度写成脚本，不靠任何人的自觉
+
+这是最不显眼、也是最值钱的一层。所有「该做而没人做」的琐事，都变成了脚本会查的东西：
+
+- **收尾标记**：完成的文件必须盖 `RD-DONE` 章，没盖一律视为没写完——「文件在」≠「文件写完了」
+- **结构化回执**：每个干活的 AI 交一份固定字段的收据（改了哪些文件 / 验证输出 / 有没有偏离任务书），
+  缺字段或含糊就打回补证据，不许重做
+- **冻结表**：审查的三档判定条件、回执字段，跟脚本常量逐字对账——检查规则本身不许悄悄改
+- **进度对账**：记录和硬盘文件双向核对，中断了告诉你缺什么、上次断在哪
+
+**为什么这样设计**：一人公司没有同事能提醒你「这个忘了」。规矩写成人话，忙起来就没人守；
+**写成脚本，不想守也得守。**
 
 ---
 
 <a id="routes"></a>
-## 🧭 七条路线，小任务不走全套
+## 🛣️ 八条路线，小任务不走全套
 
 一人公司的额度是自己掏的。所以它会先看任务多大，再决定走哪条路：
 
@@ -235,6 +310,7 @@ node ~/.agent-rd/repo/scripts/init-rd.js
 | `full` | 完整功能，三道关卡全走 |
 | `refactor-safe` | 存量代码重构，默认串行 |
 | `diagnose` | 排查问题，先复现再修 |
+| `ideate` | **方向没定，先出候选让你挑** |
 | `research-only` | 只调研，不写代码 |
 | `review-only` | 只审代码 |
 
@@ -281,6 +357,17 @@ node ~/.agent-rd/repo/scripts/init-rd.js
 
 所以任务是按**文件**切的，不是按功能切的。有脚本检查同一批任务的文件清单有没有重叠。
 
+### 📎 结论必须能自证
+
+每个环节的产物都要过得了「这到底是谁干的、验了什么、怎么验的」这套拷问：
+
+- 审查发现的每条问题，必须挂一条**行为判定条件**（比如「正常路径产出错误结果而不报错」），
+  不许用「感觉不够好」这种形容词
+- 干活的 AI 交**结构化回执**，字段不全就回去补证据
+- 文件盖 `RD-DONE` 章，没盖就是没写完
+
+这套东西把你一个人最稀缺的注意力，从「盯着 AI 干活」里解放出来。
+
 ---
 
 ## 🙋 什么时候需要你出面
@@ -294,7 +381,64 @@ node ~/.agent-rd/repo/scripts/init-rd.js
 | 3️⃣ 收尾时确认要记哪些经验 | 低成本确认，你不回应它就按自己的判断记 |
 | 4️⃣ 三轮还没过 | 不正常的情况，正常跑不会触发 |
 
-**其余时间，你可以去做只有你能做的事——想产品、见客户、收钱。** 💰
+外加一个可选的：**方向没定的时候挑一个候选方向**。除此之外，
+你可以去做只有你能做的事——想产品、见客户、收钱。 💰
+
+---
+
+## 🚀 三分钟装好
+
+```bash
+# 克隆到固定位置（以后升级也回这里 git pull）
+git clone https://github.com/bluesxu/agent-rd.git ~/.agent-rd/repo
+cd ~/.agent-rd/repo
+
+# 装 skill 到 ~/.claude/skills/（旧版自动备份）
+node install.js -Apply
+
+# 可选：开启 Agent Teams（往 settings.json 加一个环境变量，写前自动备份）
+# 只影响 rd-build 的并行档位，不开会自动降级到并行子 agent，一样能跑
+node scripts/enable-agent-teams.js
+```
+
+**装完重启 Claude Code，输入 `/rd` 加上你的诉求就能用了。** 到这一步你的项目还没被碰过一个字节 ——
+安装只往 `~/.claude/` 里放东西。
+
+> 仓库放哪都行，但**要放在一个固定位置**：升级要回到这里 `git pull`，初始化脚本也要用它的绝对路径。
+> 没主意就用上面的 `~/.agent-rd/repo`（Windows 即 `%USERPROFILE%\.agent-rd\repo`）。
+
+**跑在 Windows / macOS / Linux 上，不需要 tmux、不需要 WSL、不需要装别的命令行工具。** 💻
+唯一的运行时是 Node.js 22+ —— 而你跑 Claude Code 本来就已经装了它，所以等于一个都不用多装。
+
+### 想在某个项目里走完整流程，再多跑一条
+
+机械门要读项目里的 `.rd/gates.json`，完整流程还要往 `.rd/` 里落产物。
+所以**每个项目第一次用之前**，在那个项目根目录跑一次（一次就够）：
+
+```bash
+cd /your/project
+node ~/.agent-rd/repo/scripts/init-rd.js
+```
+
+初始化脚本是增量的，已有文件不会被覆盖。它会自动识别你的项目是什么语言、
+配上对应的检查命令、把守卫脚本下发到 `.rd/bin/`，然后把配好的命令实际跑一遍确认能用。
+**它不碰你的 git** —— `.rd/` 和依赖目录的 git 策略由你自己定。
+
+**没有服务器要租，没有账号要注册，没有月费。装完就是你自己的东西。** 🆓
+
+---
+
+## 🧹 卸载也一句话
+
+不想用了？同样把这一整行丢给任意一个 AI 编程 Agent，它会只撤掉 Agent-RD 自己装的东西：
+
+```text
+帮我卸载 Agent-RD：https://raw.githubusercontent.com/bluesxu/agent-rd/main/docs/uninstall.md
+```
+
+**只动三处**：`~/.claude/skills/` 里的 7 个 skill、`settings.json` 里的一个环境变量、
+仓库目录 `~/.agent-rd/`。**你的项目代码和项目里的 `.rd/`（验收标准、设计、报告、经验……）一概不碰。**
+想重装随时重跑安装，全程幂等。
 
 ---
 
@@ -303,10 +447,10 @@ node ~/.agent-rd/repo/scripts/init-rd.js
 
 丑话说前面，省得你浪费时间：
 
-- 💻 **跨平台。** 检查脚本是 Node.js,Windows / macOS / Linux 都能跑。
+- 💻 **跨平台。** 检查脚本是 Node.js，Windows / macOS / Linux 都能跑。
   但你项目自己的检查命令（`npm test`、`cargo test` 之类）得在你的平台上能跑，这取决于你的工具链。
 - 🖥️ **纯代码库效果打折。** 没有能跑起来的界面或命令，第三道检查会退化成普通集成测试。
-- 💸 **多个 AI 并行大约费 5 倍额度。** 简单的增删改查用一个 AI 更划算——所以有那七条路线。
+- 💸 **多个 AI 并行大约费 5 倍额度。** 简单的增删改查用一个 AI 更划算——所以有那八条路线。
 - 🧪 **Agent Teams 是 Claude Code 的实验功能**，Windows 上只能用单窗口模式。
   用不了会先降级成并行子 agent（照样并行，只是队友之间不能互相通信），
   再不行才一个个来，流程不会中断。
@@ -320,10 +464,14 @@ Agent-RD/
 ├── README.md                  本文件（简体中文）
 ├── docs/
 │   ├── README_en.md           English README
-│   └── install.md             给 Agent 的一行式安装说明（README 里那行命令指向它）
+│   ├── install.md             给 Agent 的一行式安装说明
+│   ├── uninstall.md           卸载说明
+│   └── authoring.md           给「改这个框架的人」的写作准入规则
 ├── install.js                 把流程装到 Claude Code 里（Node，跨平台）
-├── skills/                    七个流程文件
+├── skills/                    七个 skill
 │   ├── rd/                    入口，判断任务大小选路线
+│   │   ├── strategies/        八条路线，每条一个文件
+│   │   └── references/        条件加载的细则
 │   ├── rd-spec/               第一步 问需求
 │   ├── rd-plan/               第二步 定方案、切任务
 │   ├── rd-build/              第三步 写代码 + 三道检查
@@ -331,15 +479,15 @@ Agent-RD/
 │   ├── rd-eval/               第三道检查 AI 当用户验收
 │   └── rd-keep/               第四步 记经验
 ├── templates/                 各种文件的模板
-├── examples/lessons/          经验条目怎么写才算合格
-└── scripts/
+└── scripts/                   守卫脚本（零 npm 依赖）
     ├── init-rd.js             在项目里初始化
     ├── enable-agent-teams.js  开并行编排的开关（唯一会写 settings.json 的脚本）
     ├── gate-l1.js             第一道检查
     ├── check-ac.js            防止「命令成功但什么都没测」
     ├── check-artifacts.js     查进度、查中断、查规则有没有被改
     ├── freeze-target.js       存快照 + 对比有没有被改
-    └── validate-plan.js       检查验收清单和任务清单写得对不对
+    ├── validate-plan.js       检查验收清单和任务清单写得对不对
+    └── verify.js              产物校验
 ```
 
 在你项目里生成的东西：
@@ -350,6 +498,7 @@ Agent-RD/
 ├── gates.json                第一道检查要跑哪些命令
 ├── bin/check-ac.js           守卫脚本，跟着项目走
 ├── lessons/                  攒下来的经验
+├── ideation/                 方向未定的候选探索（走 ideate 路线时）
 └── features/{功能名}/
     ├── dispatch.md           为什么选这条路线
     ├── spec.md               需求说明
@@ -372,22 +521,21 @@ Agent-RD/
 
 ## ⚙️ 改代码要注意
 
-脚本是 **Node.js**(`scripts/*.js`、根目录的 `install.js`),只用内置模块、零 npm 依赖，
-目标版本 Node 18+——和 Claude Code 同一要求，所以装了 Claude Code 就够。
+脚本是 **Node.js**（`scripts/*.js`、根目录的 `install.js`），只用内置模块、零 npm 依赖，
+目标版本 **Node 22+**——和 Claude Code 同一要求，所以装了 Claude Code 就够。
 
 只有两处跟平台有关，改动时留心：
 
-- **跑命令统一用 `spawnSync(cmd, { shell: true })`**,Node 会自动选 Windows 的 `cmd`
+- **跑命令统一用 `spawnSync(cmd, { shell: true })`**，Node 会自动选 Windows 的 `cmd`
   或 Unix 的 `sh`。不要写死 `cmd /c` 或 `sh -c`，也不要用 `2>NUL` 这种 cmd 专属的重定向。
 - **路径用 `path.join` 拼，比对时统一转成 `/` 分隔**（`freeze-target` 里越界检测就这么干的）。
   别在字符串里手写 `\`。
 
-**为什么配置用 JSON 不用 YAML**：为了让检查脚本零依赖就能跑——JSON 是 Node 内置的,
+**为什么配置用 JSON 不用 YAML**：为了让检查脚本零依赖就能跑——JSON 是 Node 内置的，
 YAML 得额外装库。检查脚本能不能跑，直接决定这套流程能不能自动化。
 
-早期版本是 PowerShell，后来迁到 Node：你跑 Claude Code 本来就装了 Node,
-于是「不额外装任何运行时」这条红线从「只在 Windows 成立」变成全平台成立。
-macOS / Linux 用户此前得装 PowerShell 7，现在不用了。
+**为什么底线是 Node 22 而不是 18**：`node --test` 接受 glob 模式、ESM 语法自动探测
+都是 21/22 才有的能力。测试和语法门是这套流程的地基，不能赌低版本。
 
 ---
 
@@ -404,7 +552,8 @@ macOS / Linux 用户此前得装 PowerShell 7，现在不用了。
 <sub>搜索关键词：Agent-RD、AI 研发部、一人公司、One Person Company、OPC、独立开发者、超级个体、solopreneur、
 indie hacker、Claude Code、全自动化编程、AI 自动审代码、一句话开发、AI 开发流程、
 多 agent 协作、自动验收、代码审查自动化、AI code review、multi-agent workflow、
-autonomous coding、acceptance criteria、mutation testing、Claude Code skills、Node.js、cross-platform。</sub>
+autonomous coding、acceptance criteria、mutation testing、Claude Code skills、Node.js、cross-platform、
+AI 方向探索、ideation。</sub>
 
 ---
 

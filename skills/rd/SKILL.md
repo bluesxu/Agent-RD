@@ -277,5 +277,5 @@ rd-keep    只沉淀能长期复用的经验
 
 | Reference | 加载条件 | 用途 |
 |---|---|---|
-| `references/strategy-rationale.md` | 用户质疑选型 / 要降级 / 要评估预算时 | 七条策略的选择理由 + 模型档位判断依据 |
+| `references/strategy-rationale.md` | 用户质疑选型 / 要降级 / 要评估预算时 | 策略的选择理由 + 模型档位判断依据 |
 | `references/out-of-flow.md` | 真正要发起一次流程外动作时 | 怎么问三件套 + `outOfFlowActions` 字段表 + 为什么列死 |

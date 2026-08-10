@@ -64,7 +64,7 @@ Agent-RD 是一套给 Claude Code 用的「多 AI 审核交付流程」：把写
 ### 前置条件（先检查）
 
 ```bash
-node --version    # 需要 18+，能跑 Claude Code 的机器上一定有
+node --version    # 需要 22+，能跑 Claude Code 的机器上一定有
 git --version
 ```
 
@@ -131,9 +131,10 @@ node ~/.agent-rd/repo/scripts/enable-agent-teams.js
 **它会先分诊，不是所有任务都走全套**
 
 `/rd` 拿到诉求后先判断任务类型（feature / bugfix / refactor / chore / research / review）、
-复杂度（S/M/L/XL）和风险，再选一条相称的路线，共七条。
+复杂度（S/M/L/XL）和风险，再选一条相称的路线，共八条。
 改三行的 bug 走轻量路径，跨模块的新功能才上全套三层门。
-它会把这次的分诊结论打印给你，你不认同可以当场要求换路线。
+方向没想好（「想做点什么 / 哪里还能改进」）也会被认出来——走 `ideate` 先出排过序的候选方向，
+你挑一个再进流水线。它会把这次的分诊结论打印给你，你不认同可以当场要求换路线。
 
 **成本要有个数**：最重的 `full` 路线**每条验收标准约 14 万 token**。
 所以分诊是有意义的，不要嫌它啰嗦。
@@ -153,7 +154,7 @@ node ~/.agent-rd/repo/scripts/enable-agent-teams.js
 
 | skill | 干什么 |
 |---|---|
-| `rd` | 入口与分诊，选路线。**平时只用这一个** |
+| `rd` | 入口与分诊，选路线。方向未定时走 `ideate` 先出候选。**平时只用这一个** |
 | `rd-spec` | 业务梳理，产出验收标准。**整条流水线唯一需要你参与的环节** |
 | `rd-plan` | 多个 AI 并行出方案，仲裁后产出设计与任务 DAG |
 | `rd-build` | 并行实现 + L1 机械门 / L2 异构审查 / L3 场景验收，全自动闭环 |
