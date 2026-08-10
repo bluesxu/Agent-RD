@@ -406,16 +406,19 @@ if (Stage === 'plan') {
       }
     }
 
-    // gates.json 的语法门是否覆盖了 tasks.json 声明的全部源文件。
+    // gates.json 的门是否覆盖了 tasks.json 声明的全部源文件。
+    // ⚠ 测试层（gate-test）已不再自动执行 gates.json —— 语法/类型自检下沉 Builder 完成门，
+    //   machine AC 测试由测试层直接跑 acceptance.json 的 check。此处只保留「覆盖记录」的核对，
+    //   防止切 DAG 时声明了根本没被任何门/测试碰到的源文件。
     const gatesPath = path.join(Root, '.rd', 'gates.json');
     if (!fs.existsSync(gatesPath)) {
-      addErr('缺少 .rd/gates.json —— 测试层没有配置，无人化流程失去第一道闸');
+      addErr('缺少 .rd/gates.json —— 项目级门面覆盖无从核对（语法/类型自检已下沉 Builder，此文件仅作覆盖记录）');
     } else {
       try {
         const gatesCfg = JSON.parse(fs.readFileSync(gatesPath, 'utf8'));
         const l1arr = asList(gatesCfg.l1);
 
-        /* kind:"syntax" 的门没有 cmd —— 它由 gate-test 内建执行（逐文件 node --check）。
+        /* 历史遗留：kind:"syntax" 的门已随语法门下沉 Builder 而退役，但存量配置里可能还在 ——
            不认识它的话：只配语法门时 cmds 为空串，会被误报「l1 为空」；
            混配时它覆盖的源文件也不算数，会被误报「只覆盖了 0/N 个源文件」。
            两种都是**让一份正确的配置过不了门**，比漏报更劝退。

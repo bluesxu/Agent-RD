@@ -6,14 +6,7 @@
     { "name": "build",     "cmd": "npm run build",    "required": false }
   ],
 
-  "_note": "按你的项目改。required=false 的项失败只警告不阻塞。顺序即执行顺序，越便宜的放越前面，早失败早退出。test 门用不带引号的 glob 指向 .rd/features/*/tests/：AC 测试由 skill 写在 .rd/features/{slug}/tests/，不在项目树里；glob 不引号，bash 自行展开、cmd 不展开所以 node 收到字面 glob 自己展开——两种 shell 都成立，还避开嵌套引号。",
-
-  "_syntaxGate": {
-    "_why": "给不在编译器覆盖范围里的目录（public/、静态前端、脚本目录）加一条零成本的语法下限。实跑教训：public/ 完全在机器门之外，一个渲染缺陷靠验收层真实浏览器才暴露，白跑一整轮 —— 而在那之前连语法层都没有门。tsc 不覆盖 public/ 是设计，但逐文件 node --check 不要钱。",
-    "_howToUse": "把下面这条复制进上面的 l1 数组，改掉 dirs。gate-test 内建执行，不走 shell —— 因为 `node --check` 一次只吃一个文件，写成 `node --check public/*.js` 在任何 shell 下都是错的。",
-    "_example": { "name": "frontend-syntax", "kind": "syntax", "dirs": ["public", "src/web"], "ext": [".js", ".mjs"], "required": true },
-    "_defaults": "ext 默认 .js/.mjs/.cjs；exclude 默认只有 node_modules/.git（dist/build/coverage **会被检查** —— 按目录名排除会把叫 build/ 的真源码目录一起跳过，少查一半文件还照样报 PASS，所以默认宁可多查）。声明的目录下一个文件都没找到时判**空过**（FAIL），不会静悄悄报绿。"
-  },
+  "_note": "按你的项目改。required=false 的项失败只警告不阻塞。顺序即执行顺序，越便宜的放越前面，早失败早退出。test 门用不带引号的 glob 指向 .rd/features/*/tests/：AC 测试由审查层写在 .rd/features/{slug}/tests/，不在项目树里；glob 不引号，bash 自行展开、cmd 不展开所以 node 收到字面 glob 自己展开——两种 shell 都成立，还避开嵌套引号。⚠ 语法检查不再由本文件管（kind:\"syntax\" 已移除）—— 语法门下沉到 Builder 完成门（node --check / tsc --noEmit，每 task 自检）。",
 
   "_presets": {
     "python": [

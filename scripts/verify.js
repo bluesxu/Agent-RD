@@ -159,31 +159,41 @@ try {
   check('孤儿证据 → exit 3', ca3.code === 3, 'got ' + ca3.code);
   fs.unlinkSync(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'evidence', 'orphan.png'));
 
-  // ==== 4. gate-test ====
+  // ==== 4. gate-test（测试层：跑 machine AC 检查 + 文档校验）====
   console.log('');
   console.log(C.cyan('【4】gate-test'));
-  // 配一个必过的 gate
-  write(path.join(tmp, '.rd', 'gates.json'), JSON.stringify({
-    l1: [{ name: 'noop', cmd: process.platform === 'win32' ? 'echo ok' : 'echo ok', required: true }],
-  }));
-  const gpass = run('gate-test.js', ['-Root', tmp], tmp);
-  check('必过 gate → exit 0', gpass.code === 0, 'got ' + gpass.code + '\n' + gpass.out);
-  // 必挂的 required gate
-  write(path.join(tmp, '.rd', 'gates.json'), JSON.stringify({
-    l1: [{ name: 'boom', cmd: process.platform === 'win32' ? 'exit 1' : 'exit 1', required: true }],
-  }));
-  const gfail = run('gate-test.js', ['-Root', tmp], tmp);
-  check('required 失败 → exit 1', gfail.code === 1, 'got ' + gfail.code);
-  // 空过：命令成功但输出没有 mustMatch
-  write(path.join(tmp, '.rd', 'gates.json'), JSON.stringify({
-    l1: [{ name: 'vac', cmd: 'echo hello', required: true, mustMatch: 'REQUIRED_MARKER' }],
-  }));
-  const gvac = run('gate-test.js', ['-Root', tmp], tmp);
-  check('空过（exit 0 但无 mustMatch）→ exit 1', gvac.code === 1, 'got ' + gvac.code);
-  // 配置缺失 → exit 2
-  fs.unlinkSync(path.join(tmp, '.rd', 'gates.json'));
-  const gno = run('gate-test.js', ['-Root', tmp], tmp);
-  check('gates.json 缺失 → exit 2', gno.code === 2, 'got ' + gno.code);
+  // 造 feat2：run.json（无 inflight + 轮次对账）+ 审查层已写好的完整报告 + acceptance.json
+  const feat2 = path.join(tmp, '.rd', 'features', 'feat2');
+  write(path.join(feat2, 'run.json'), JSON.stringify({
+    stage: 'review', status: 'running', inflight: null,
+    rounds: [{ round: 1, l1: 'pass', l2: 'pass' }],
+  }, null, 2));
+  write(path.join(feat2, 'reports', 'l2-round1.md'),
+    '# 审查\n\n## 审查结论\n通过\n\n## blocking\n无\n\n## important\n无\n\n## nit\n无\n\n' + RD_DONE + '\n');
+  const gtAc = (check) => JSON.stringify({
+    scenarios: [{ id: 'AC-1', name: 'x', given: 'g', when: 'w', then: 't', judge: 'machine', checkIntent: 'I/O 判等', check }],
+  });
+  // 机器 AC 检查通过 → exit 0
+  write(path.join(feat2, 'acceptance.json'), gtAc('node .rd/bin/check-ac.js -Cmd "echo feat2 AC-1 hit" -MustMatch "feat2 AC-1"'));
+  const gtPass = run('gate-test.js', ['-Root', tmp, '-Feature', 'feat2'], tmp);
+  check('测试层通过 → exit 0', gtPass.code === 0, 'got ' + gtPass.code + '\n' + gtPass.out);
+  // 命令本身失败 → exit 1
+  write(path.join(feat2, 'acceptance.json'), gtAc('node .rd/bin/check-ac.js -Cmd "exit 5" -MustMatch "feat2 AC-1"'));
+  const gtFail = run('gate-test.js', ['-Root', tmp, '-Feature', 'feat2'], tmp);
+  check('测试失败 → exit 1', gtFail.code === 1, 'got ' + gtFail.code);
+  // 空过：命令成功但锚点 0 中 → exit 1
+  write(path.join(feat2, 'acceptance.json'), gtAc('node .rd/bin/check-ac.js -Cmd "echo nothing" -MustMatch "feat2 AC-1"'));
+  const gtVac = run('gate-test.js', ['-Root', tmp, '-Feature', 'feat2'], tmp);
+  check('空过（锚点 0 中）→ exit 1', gtVac.code === 1, 'got ' + gtVac.code);
+  // 审查层报告缺失 → exit 1（文档校验：review stage 不完整；先恢复通过态 check）
+  write(path.join(feat2, 'acceptance.json'), gtAc('node .rd/bin/check-ac.js -Cmd "echo feat2 AC-1 hit" -MustMatch "feat2 AC-1"'));
+  write(path.join(feat2, 'reports', 'l2-round1.md'), '审到一半……\n');
+  const gtDoc = run('gate-test.js', ['-Root', tmp, '-Feature', 'feat2'], tmp);
+  check('审查层报告未写完 → exit 1', gtDoc.code === 1, 'got ' + gtDoc.code);
+  fs.unlinkSync(path.join(feat2, 'reports', 'l2-round1.md'));
+  // 配置缺失（feature 无 acceptance.json）→ exit 2
+  const gtNo = run('gate-test.js', ['-Root', tmp, '-Feature', 'nonexistent'], tmp);
+  check('feature 无 acceptance.json → exit 2', gtNo.code === 2, 'got ' + gtNo.code);
 
   // ==== 5. validate-plan ====
   console.log('');
