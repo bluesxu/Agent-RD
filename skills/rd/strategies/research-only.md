@@ -75,3 +75,18 @@
 - **论证 agent 深度锁 1 层**，不得再派生子 agent。
 - **不许派了不等。**
 - **「被排除的方案」不许为空。**只出一个方案说明没有真的并行论证。
+
+## 本策略的加载清单
+
+**会用到**
+- `skills/rd-plan/references/fanout-angles.md` — 多方案并行调研的角度差异化
+- `skills/rd-plan/references/prompts/planner.md` — 派调研 agent（role=forward）
+- `skills/rd-plan/references/arbitration.md` — 调研收齐后的仲裁
+- `skills/rd/references/out-of-flow.md` — 流程外动作时
+
+**永不加载**
+- `skills/rd-spec/` — 本策略不建 spec / acceptance
+- `skills/rd-build/` — 本策略不写代码，无 L1/L2/L3 闭环
+- `skills/rd-review/` — 本策略无代码可审查
+- `skills/rd-eval/` — 本策略无场景可验收
+- `skills/rd-keep/` — 本策略不沉淀实现经验（调研结论是交付物，不是 lessons）

@@ -92,3 +92,26 @@
 - **不许假设可以并行。**必须有一份方案明确论证过。
 - **不许修改既有断言来迁就新结构。**测试红了就是改坏了，不是测试过时了。
 - **不许顺手做范围外的清理。**混进来的无关改动会让复审分不清哪些是结构性改动。
+
+## 本策略的加载清单
+
+**会用到**
+- `skills/rd-spec/references/interview-probes.md` — 精简拷问（边界三问）也要先诊断开场白
+- `skills/rd-spec/references/confirmation-gate.md` — 写 spec.md 前确认门（边界三问产出 spec）
+- `skills/rd-plan/references/fanout-angles.md` — 切分判断的方案 agent 角度差异化
+- `skills/rd-plan/references/arbitration.md` — 切分判断收齐后点数与仲裁
+- `skills/rd-plan/references/prompts/planner.md` — 派切分判断 agent（role=forward）
+- `skills/rd-build/references/prompts/builder.md` — 派发 Builder（role=forward）
+- `skills/rd-build/references/receipt-audit.md` — 收到 Builder 回执时
+- `skills/rd-build/references/degrade-and-breaker.md` — 载体降级 / 熔断 / 外部中断时
+- `skills/rd-build/references/orch-selfcheck.md` — 编排者宣布核对结论前（基线快照核对尤其要读）
+- `skills/rd-review/references/severity-rubric.md` — L2 定级时
+- `skills/rd-review/references/mutation-followup.md` — mutationTargets 非空时
+- `skills/rd-eval/references/edge-outcomes.md` — 出现 skipped / blocked 判定时
+- `skills/rd-keep/references/lesson-lifecycle.md` — 收尾写/复用 lesson 时
+- `skills/rd/references/out-of-flow.md` — 流程外动作时
+
+**永不加载**
+- 无整 skill 永不加载 —— 本策略走精简拷问→切分→实现→L1+L2+L3（回归导向），
+  大部分 skill 的 references 都可能用到。`blindspot-map.md` 是**条件加载**（命中「用户评估不了」
+  才读），不是永不加载，所以不列入本栏。

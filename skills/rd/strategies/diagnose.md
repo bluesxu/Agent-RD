@@ -81,3 +81,17 @@ blocking > 0 → 修 → 回 L1 → 再审。**最多 2 轮。**
 - **没有失败测试不许开修。**这是本策略唯一的硬门槛，也是它存在的理由。
 - **不许为了让测试变绿而放宽断言。**
 - **不许顺手修范围外的问题。**
+
+## 本策略的加载清单
+
+**会用到**
+- `skills/rd-build/references/degrade-and-breaker.md` — 载体降级 / 熔断 / 外部中断时
+- `skills/rd-build/references/orch-selfcheck.md` — 编排者宣布核对结论前
+- `skills/rd-review/references/severity-rubric.md` — L2 定级时
+- `skills/rd-keep/references/lesson-lifecycle.md` — 收尾写/复用 lesson 时
+- `skills/rd/references/out-of-flow.md` — 流程外动作时
+
+**永不加载**
+- `skills/rd-spec/` — 本策略只问复现条件，不建 spec / acceptance
+- `skills/rd-plan/` — 本策略不做多方案论证（根因不明的并行探索属于定位阶段，不经 rd-plan）
+- `skills/rd-eval/` — 本策略没有 L3 场景验收（bug 修复的验收标准就是那个失败测试本身）

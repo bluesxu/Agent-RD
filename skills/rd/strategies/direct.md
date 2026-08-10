@@ -39,3 +39,17 @@
 - **发现范围比预估大**（要动 3 个以上文件、或碰到权限/数据/并发）→
   **停下来，告诉用户要升级策略**，不要硬着头皮用 direct 做完。
 - 声称完成前给出与声明相称的证据。"应该可以"不算完成。
+
+## 本策略的加载清单
+
+**会用到**
+- `skills/rd/references/out-of-flow.md` — 发生流程外动作时（先问用户三件套）
+- `skills/rd/references/strategy-rationale.md` — 用户质疑选型 / 要求降级时
+
+**永不加载**
+- `skills/rd-spec/` — 本策略不建 spec / acceptance（S 级零产物）
+- `skills/rd-plan/` — 本策略不派方案 agent
+- `skills/rd-build/` — 本策略你自己写，不走 Builder / 三层闭环
+- `skills/rd-review/` — 本策略没有 L2 阶段
+- `skills/rd-eval/` — 本策略没有 L3 阶段
+- `skills/rd-keep/` — 本策略不建 feature 目录，无经验沉淀环节

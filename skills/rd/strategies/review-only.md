@@ -70,3 +70,17 @@ node <agent-rd>/scripts/freeze-target.js -Feature {slug} -Verify
 - **审查期间不得改动工作树。**
 - **必须返回终态。**上下文不足时返回 `NeedsContext` + 缺什么 + 已检查范围，不许以空结果结束。
 - 审计发现的问题只**建议**后续用 `rd-feat` / `diagnose` 处理，不当场转入。
+
+## 本策略的加载清单
+
+**会用到**
+- `skills/rd-review/references/severity-rubric.md` — 定级时
+- `skills/rd-review/references/mutation-followup.md` — audit 模式遇到变异目标时
+- `skills/rd/references/out-of-flow.md` — 流程外动作时
+
+**永不加载**
+- `skills/rd-spec/` — 本策略不建 spec / acceptance
+- `skills/rd-plan/` — 本策略不论证方案
+- `skills/rd-build/` — 本策略不实现
+- `skills/rd-eval/` — 本策略不验收
+- `skills/rd-keep/` — 本策略不沉淀实现经验

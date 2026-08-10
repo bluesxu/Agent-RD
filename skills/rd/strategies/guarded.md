@@ -73,3 +73,20 @@ node <agent-rd>/scripts/gate-l1.js
 - **不许在 blocking 未清零时宣称完成。**
 - **判定方式写不出来就不许开工。**
 - 中途发现涉及权限/安全/持久化数据/并发语义 → **升级到 full**，不要在 guarded 里做完。
+
+## 本策略的加载清单
+
+**会用到**
+- `skills/rd-spec/references/interview-probes.md` — 精简拷问也要先诊断开场白缺什么
+- `skills/rd-build/references/degrade-and-breaker.md` — 载体降级 / 熔断 / 外部中断时
+- `skills/rd-build/references/orch-selfcheck.md` — 编排者宣布核对结论前
+- `skills/rd-review/references/severity-rubric.md` — L2 定级时
+- `skills/rd-review/references/mutation-followup.md` — mutationTargets 非空时
+- `skills/rd-keep/references/lesson-lifecycle.md` — 收尾写/复用 lesson 时
+- `skills/rd/references/out-of-flow.md` — 流程外动作时
+
+**永不加载**
+- `skills/rd-plan/` — 本策略不做多方案并行论证（和 full 的省点之一）
+- `skills/rd-eval/` — 本策略没有 L3 场景验收（和 full 的省点之二）
+- `skills/rd-spec/references/confirmation-gate.md` — 精简拷问不建 spec.md，没有确认门环节
+- `skills/rd-spec/references/blindspot-map.md` — 精简三问不涉及「评估不了」的用户决策地图

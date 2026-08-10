@@ -12,6 +12,9 @@ argument-hint: "[feature slug | 要记住的事]"
 lessons 如果什么都收，最后就是垃圾桶：越写越长、越写越乱，
 检索时命中一堆无关条目，agent 反而更难抓住重点。
 
+> 📎 **为什么筛选不是记录 / 为什么本阶段必须 opus** → 读 `references/rationale.md`（role=human）
+> 不读会：无运行期后果
+
 ## 什么值得进 lessons/
 
 必须**同时**满足四条：
@@ -38,54 +41,34 @@ lessons 如果什么都收，最后就是垃圾桶：越写越长、越写越乱
 > 能落成 red→green 测试或 checker 的约束，一律优先机械化。
 > 机器能拦的东西不要交给 agent 的注意力去拦。
 
-## 条目格式
+## 条目格式（照 `templates/lesson.md` 写）
 
-写到 `.rd/lessons/{YYYY-MM-DD}-{slug}.md`：
+写到 `.rd/lessons/{YYYY-MM-DD}-{slug}.md`，**必须用 `templates/lesson.md` 的模板**：
+frontmatter 带 `title` / `date` / `category` / `module` / `problem_type` / `severity` / `tags` /
+`status` / `source`，正文固定结构 **Problem → 参考做法 → 结论**。
 
-```markdown
----
-status: observed
-keywords: [auth, error-format, api]
-source: features/user-login
----
+`category` 从四类里选（skill-design / workflow / integrations / conventions）——
+分类信息进 frontmatter，文件仍平铺在 `.rd/lessons/`。
 
-# {一句话规则}
+> 📎 **写或复用 lesson 时** → 读 `references/lesson-lifecycle.md`
+> 不读会：写出的 lesson 缺元数据、或把 `validated` 直接写上去 ——
+> 知识库烂掉的过程是无声的，没有任何机制会告诉你它已经烂了
+> （status 生命周期 / read-repair / 分类目录全表都在那里）
 
-**动作**：以后 {什么情况} 就 {做什么}。
+### status 生命周期（摘要）
 
-**为什么**：{真实的失败或取舍，带 file:line 或现象}
+| status | 含义 |
+|---|---|
+| `observed` | **初始值。新写的 lesson 一律是这个，没有例外。** |
+| `validated` | 独立后续任务确实采用并验证成功时升级，补一次代表性证据 |
+| `retired` | 仓库事实反证或找到 canonical owner，只写原因不删文件 |
 
-**排除了什么错误路径**：{这条规则帮你避开的具体错误做法}
-```
-
-> **写法参照**：`<agent-rd>/examples/lessons/` 有两条真实产出的合格 lesson
-> 和一份 `README.md` 说明它们好在哪。**尤其看它们怎么标注证据边界** ——
-> 一条写得含糊的 lesson 比没有更糟，它会让下一个人以为这件事已经搞清楚了。
-
-### status 生命周期
-
-| status | 含义 | 怎么变 |
-|---|---|---|
-| `observed` | 观察到一次，还没被复用验证 | **初始值。新写的 lesson 一律是这个，没有例外。** |
-| `validated` | 后续任务真的用上了并且验证成功 | 只在独立的后续任务中确实采用并验证成功时升级，补一次代表性证据 |
-| `retired` | 当前仓库事实直接反证，或发现了 canonical owner | 只写原因和替代/反证指针，不删文件 |
-
-> ⛔ **不许出生即 `validated`。**实跑教训：项目一的两条 lesson 的 frontmatter
-> 写的都是 `status: validated`，而该项目唯一的后续 feature 从来没被建过 ——
-> 不存在任何独立后续任务，`validated` 是被直接写上去的。
->
-> 这导致一个更糟的后果：清单里「生命周期从未走过」这个判断，
-> 实际情况不是「没人走」，是**有人直接写了终点**，而没有任何东西检查它。
->
-> 想写 `validated`，先回答：**是哪个独立的后续任务用上了它？验证证据在哪？**
-> 答不出来就是 `observed`。
+⛔ **不许出生即 `validated`。**想写 `validated`，先回答：**是哪个独立的后续任务用上了它？验证证据在哪？** 答不出来就是 `observed`。
 
 **检索到 lesson 时先做一次 read-repair**：做一次有界的、最低成本的定向核实
 （读现有代码/测试/文档）。核实不了就跳过这条，**不要为了核实 lesson 去跑大范围测试**。
-
 只有 scope 符合、未退役、当前事实成立、并且**真实改变了计划或验证**的条目才算有效命中。
 命中时报告：`经验命中：{path}（{status}）；核验：{fact}；影响：{改变了什么}`。
-
 只是相关但没改变行为的，不要制造复用证据。
 
 ## ⛔ lessons 只存本地
@@ -126,9 +109,8 @@ attention.md：新增 {a} 行，清理过期 {b} 行
 **本阶段必须 opus 级。**只有 `rd-build` 里按 `tasks.json` 写代码的 agent
 可以用 Sonnet 这种级别的模型。
 
-> 理由：这个 skill 的核心是**筛选**，不是记录。
-> 「什么值得长期复用、什么只是这一次的偶然」是一个判断题，而且判错了没人会发现 ——
-> 收什么都进的知识库等于没有知识库，而它烂掉的过程是无声的。
+> 📎 **为什么筛选是判断不是记录** → 读 `references/rationale.md`（role=human）
+> 不读会：无运行期后果
 
 ## 硬门槛
 
@@ -137,3 +119,10 @@ attention.md：新增 {a} 行，清理过期 {b} 行
 - **不许静默改写或删除已有 lesson**。`retired` 是标记，不是删除。
 - **不许把一次性事实写进 lessons**。
 - **不许因为"这次没什么好记的"而不调用本 skill** —— 显式报告"无采纳"也是结论。
+
+## References
+
+| Reference | 加载条件 | 用途 |
+|---|---|---|
+| `references/lesson-lifecycle.md` | 写或复用 lesson 时 | status 生命周期 / read-repair / 分类目录 |
+| `references/rationale.md` | role=human，运行期永不加载 | 为什么筛选不是记录 / 为何必须 opus |

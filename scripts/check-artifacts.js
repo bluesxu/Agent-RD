@@ -44,12 +44,13 @@ function out(s) { process.stdout.write(s + '\n'); }
 
 // ---- 参数解析：兼容 -Key value 与 --Key=value；-Json 是开关 ----
 function parseArgs(argv) {
-  const args = { Json: false, SelfTest: false, Sections: false };
+  const args = { Json: false, SelfTest: false, Sections: false, SkillLint: false, Skill: '', Baseline: '' };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '-Json' || a === '--Json') { args.Json = true; continue; }
     if (a === '-SelfTest' || a === '--SelfTest') { args.SelfTest = true; continue; }
     if (a === '-Sections' || a === '--Sections') { args.Sections = true; continue; }
+    if (a === '-SkillLint' || a === '--SkillLint') { args.SkillLint = true; continue; }
     const m = a.match(/^--?([A-Za-z]+)(?:=(.*))?$/);
     if (!m) continue;
     const key = m[1].toLowerCase();
@@ -57,6 +58,8 @@ function parseArgs(argv) {
     if (val === undefined && i + 1 < argv.length && !/^--?/.test(argv[i + 1])) val = argv[++i];
     if (key === 'root') args.Root = val;
     else if (key === 'feature') args.Feature = val;
+    else if (key === 'skill') args.Skill = val;
+    else if (key === 'baseline') args.Baseline = val;
   }
   return args;
 }
@@ -137,6 +140,29 @@ const REQUIRED_SECTIONS = {
   'dispatch.md': [],
 };
 
+/* ---- O-2 / O-5 契约常量（唯一真值在 docs/authoring.md §6 的围栏块，-SkillLint 会对账） ---- */
+
+// O-2 三档行为判定条件名。必须是「模型能诚实自查」的行为条件，不是形容词。
+const RUBRIC_CONDITIONS = [
+  'contract-break:blocking',
+  'wrong-result-silent:blocking',
+  'fabricated-verification:blocking',
+  'guard-evasion:blocking',
+  'unhandled-failure-path:important',
+  'coverage-gap:important',
+  'contract-drift:important',
+  'performance-risk:important',
+  'maintainability-trap:important',
+  'testability-gap:important',
+  'redundant-logic:nit',
+  'misleading-name:nit',
+  'stale-doc:nit',
+];
+const CONDITION_NAMES = new Set(RUBRIC_CONDITIONS.map((c) => c.split(':')[0]));
+
+// O-5 Builder 结构化回执（reports/receipts/{taskId}.json）必填字段。
+const RECEIPT_FIELDS = ['taskId', 'filesChanged', 'verifyCommand', 'verifyOutput', 'mutationsSurvived', 'deviations'];
+
 /*
   -Sections：把上面这张表打印出来。
 
@@ -161,6 +187,17 @@ function printSections() {
   out(C.dark('  判据是两条同时成立：① 尾部有 <!-- RD-DONE ... --> 标记；'));
   out(C.dark('  ② 每个必填小节都有实际内容（只有标题或只剩模板占位符 = 空壳，不算）。'));
   out(C.dark('  JSON 产物（tasks.json / acceptance.json）用 "_complete": true 代替尾标记。'));
+  out('');
+  out(C.cyan('=== 契约（权威来源：docs/authoring.md §6 冻结表，-SkillLint 会对账）==='));
+  out('');
+  out(C.dark('  O-2 L2 报告每条 finding 必填「- 判定条件: <名字>」。合法名字（冻结）：'));
+  for (const c of RUBRIC_CONDITIONS) {
+    const [name, tier] = c.split(':');
+    out(`    ${name.padEnd(24)} ${tier}`);
+  }
+  out('');
+  out(C.dark('  O-5 Builder 回执 reports/receipts/{taskId}.json 必填字段（冻结）：'));
+  out(`    ${RECEIPT_FIELDS.join(' / ')}`);
   out('');
 }
 
@@ -278,6 +315,319 @@ function missLine(label, res, hint) {
   return [`${label}  ⚠ 只写了一半：${res.why.join('；')}`];
 }
 
+/* ================== O-1 / O-2 / O-5 / AC-7 的检查族 ==================
+
+  这些检查是对「框架自身」的结构校验（-SkillLint），与对「某次 feature 产物」
+  的校验（-Feature）是两个生命周期，所以独立成早退模式，不混进 stages 计数器。
+  唯一例外是 O-2（L2 报告条件名）与 O-5（回执字段）—— 它们是 feature 产物，
+  挂在 -Feature 主流程里。
+*/
+
+function normalizeWs(s) { return String(s).replace(/\s+/g, ' ').trim(); }
+// 去掉全部空白：守恒比对用这个（容忍 markdown 折行 —— 长句搬进 reference 折行后
+// 换行变成空格，逐字比对会误报；内容守恒关心的是「句子还在」，不是「换行位置没变」）
+function stripWs(s) { return String(s).replace(/\s+/g, ''); }
+
+// 一段值里有没有「真内容」：去掉占位符/纯符号后仍非空
+function hasMeaning(v) {
+  if (v === undefined || v === null) return false;
+  if (Array.isArray(v)) return v.length > 0 && v.some((x) => hasMeaning(x));
+  if (typeof v === 'object') return Object.keys(v).length > 0;
+  const s = String(v).replace(/\{[^{}]*\}/g, '').replace(/[\s|`>*_#-]/g, '');
+  return s.length > 0;
+}
+
+// 硬约束提取（AC-7 守恒）：⛔ 开头 / 含必须·不许·不得·禁止·一律·硬门槛 / 硬门槛·铁律小节内每条
+function extractHardConstraints(txt) {
+  const lines = String(txt).split(/\r?\n/);
+  const out = [];
+  let inHardSection = false;
+  for (const raw of lines) {
+    const ln = raw.trim().replace(/^>+\s*/, ''); // 剥掉引用块装饰，`>` 不是内容
+    if (/^##\s+(硬门槛|铁律)\s*$/.test(ln)) { inHardSection = true; continue; }
+    if (/^##/.test(ln)) { inHardSection = false; }
+    if (ln === '' || /^#/.test(ln) || ln.startsWith('<!--')) continue;
+    if (inHardSection) { out.push(normalizeWs(ln.replace(/^[-*]\s+/, ''))); continue; }
+    if (/^⛔/.test(ln) || /(必须|不许|不得|禁止|一律|硬门槛)/.test(ln)) { out.push(normalizeWs(ln)); }
+  }
+  return out;
+}
+
+/*
+  references/ 的孤儿与断链（AC-2）。
+  A = 本 skill references/** 实际文件集；B = 本 skill 被引用的引用路径。
+  两种引用形态：
+    · 未限定 `references/x.md`（本 skill 的 SKILL.md 钩子里）→ 计入本 skill 的 B，
+      并检查本 skill references/x.md 存在。
+    · 限定 `skills/<name>/references/x.md`（策略加载清单里）→ 走全局存在性检查
+      （限定到本 skill 的也计入本 skill 的 B）。
+  orphans = A − B；dangling = 所有提到但没有对应真实文件的路径。
+*/
+function checkRefs(skillDir, strategiesFiles, skillsRoot) {
+  const refsDir = path.join(skillDir, 'references');
+  const a = walkFiles(refsDir).map((f) => path.relative(skillDir, f).split(path.sep).join('/'));
+  const skillName = path.basename(skillDir);
+  const rootDir = path.resolve(skillsRoot, '..'); // 限定路径 skills/<name>/... 相对 ROOT，不是相对 skills/
+  const b = new Set();
+  const dangling = [];
+  const seen = new Set();
+  const re = /(?:skills\/[A-Za-z0-9_.-]+\/)?references\/[A-Za-z0-9_./-]+\.md/g;
+  const scanFiles = [path.join(skillDir, 'SKILL.md')].concat(strategiesFiles);
+  for (const f of scanFiles) {
+    if (!exists(f)) continue;
+    const srcLabel = path.relative(skillsRoot, f).split(path.sep).join('/');
+    const txt = readText(f);
+    let m;
+    while ((m = re.exec(txt)) !== null) {
+      const raw = m[0];
+      if (raw.startsWith('references/')) {
+        // 未限定：本 skill 局部
+        b.add(raw);
+        if (!exists(path.join(skillDir, raw)) && !seen.has(srcLabel + ' → ' + raw)) {
+          seen.add(srcLabel + ' → ' + raw);
+          dangling.push(`${srcLabel} → ${raw}（引用了不存在的文件）`);
+        }
+      } else {
+        // 限定：skills/<name>/references/x.md，相对 rootDir 解析
+        const full = path.join(rootDir, raw);
+        if (!exists(full) && !seen.has(srcLabel + ' → ' + raw)) {
+          seen.add(srcLabel + ' → ' + raw);
+          dangling.push(`${srcLabel} → ${raw}（引用了不存在的文件）`);
+        }
+        if (raw.startsWith('skills/' + skillName + '/references/')) {
+          b.add(raw.slice(('skills/' + skillName + '/').length));
+        }
+      }
+    }
+  }
+  const orphans = a.filter((p) => !b.has(p));
+  return { orphans, dangling };
+}
+
+/*
+  钩子检查（AC-3）。对 SKILL.md 逐行：
+    · 含 📎 的行：必须有反引号包住的 references/...md 路径、文件必须存在、
+      紧邻非空行必须以「不读会/不转发会」开头（闭集）、role= 取值合法。
+    · 反向 warn：含 references/ 路径但没有 📎 的行（防锚点被编辑器改写成变体后漏检），
+      跳过 markdown 表格行（References 索引表合法存在）。
+*/
+function checkHooks(skillDir) {
+  const issues = [];
+  const warns = [];
+  const skillMd = path.join(skillDir, 'SKILL.md');
+  if (!exists(skillMd)) return { issues: [`缺 ${path.basename(skillDir)}/SKILL.md`], warns: [] };
+  const lines = readText(skillMd).split(/\r?\n/);
+  let inRefsSection = false;
+  for (let i = 0; i < lines.length; i++) {
+    const ln = lines[i];
+    if (/^##\s*References/i.test(ln)) { inRefsSection = true; continue; }
+    if (/^#/.test(ln)) inRefsSection = false;
+    if (!ln.includes('📎')) {
+      if (!inRefsSection && !/^\s*\|.*\|\s*$/.test(ln) && /references\/[A-Za-z0-9_./-]+\.md/.test(ln)) {
+        warns.push(`${path.basename(skillDir)}:${i + 1} 含 references/ 路径但无 📎 钩子标记（锚点可能被改写，lint 会漏检）`);
+      }
+      continue;
+    }
+    const m = ln.match(/`references\/[A-Za-z0-9_./-]+\.md`/);
+    if (!m) { issues.push(`${path.basename(skillDir)}:${i + 1} 📎 行缺反引号包住的 references/...md 路径`); continue; }
+    const refPath = m[0].replace(/`/g, '');
+    if (!exists(path.join(skillDir, refPath))) {
+      issues.push(`${path.basename(skillDir)}:${i + 1} 📎 指向 ${refPath}，但文件不存在`);
+    }
+    let j = i + 1;
+    while (j < lines.length && lines[j].trim() === '') j++;
+    if (j >= lines.length) {
+      issues.push(`${path.basename(skillDir)}:${i + 1} 📎 后缺后果子句（须以「不读会」或「不转发会」开头）`);
+    } else {
+      const next = lines[j].trim().replace(/^>\s*/, ''); // 剥掉引用块前缀
+      if (!/^(不读会|不转发会)/.test(next)) {
+        issues.push(`${path.basename(skillDir)}:${i + 1} 后果子句须以「不读会」或「不转发会」开头（闭集），实得: ${next.slice(0, 40)}`);
+      }
+    }
+    const roleM = ln.match(/role=(\w+)/);
+    if (roleM && ['self', 'forward', 'human'].indexOf(roleM[1]) < 0) {
+      issues.push(`${path.basename(skillDir)}:${i + 1} role=${roleM[1]} 不在合法集合 {self, forward, human}`);
+    }
+  }
+  return { issues, warns };
+}
+
+/*
+  O-2：L2 报告每条 finding 必须标注行为判定条件名。
+  finding 小节 = `### B\d+` / `### I\d+` / `### N\d+` 标题。
+  · 缺「- 判定条件: <名字>」→ 点名发现
+  · 名字不在 CONDITION_NAMES → 点名「不在合法集合」
+  · 三节都写「无」的报告没有 finding 小节 → 零 finding，照常通过
+*/
+function checkL2Findings(txt) {
+  const issues = [];
+  const lines = String(txt).split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^###\s+([BIN])(\d+)\b/);
+    if (!m) continue;
+    const body = [];
+    let j = i + 1;
+    while (j < lines.length && !/^###/.test(lines[j])) { body.push(lines[j]); j++; }
+    const condLine = body.find((ln) => /^\s*-?\s*判定条件\s*[:：]\s*\S/.test(ln));
+    if (!condLine) {
+      issues.push(`发现 ${m[1]}${m[2]} 缺「- 判定条件: <名字>」（O-2，行为条件名见 -Sections）`);
+      continue;
+    }
+    const name = condLine.match(/^\s*-?\s*判定条件\s*[:：]\s*(\S+)/)[1];
+    if (!CONDITION_NAMES.has(name)) {
+      issues.push(`发现 ${m[1]}${m[2]} 的判定条件「${name}」不在合法集合`);
+    }
+  }
+  return issues;
+}
+
+/*
+  O-5：Builder 结构化回执 reports/receipts/{taskId}.json。
+  必填字段见 RECEIPT_FIELDS；字段缺失 → 点名字段名；字段在但空白/占位符 → 点名「是空壳」。
+  ⛔ 回执缺席本身不进 missing（存量 feature 没有回执很正常）—— 缺席对账走
+  inflight.agents[].receiptPath（登记过、文件不存在 = 这一份丢了）。
+*/
+function checkReceipt(fullPath) {
+  if (!exists(fullPath)) return ['文件不存在'];
+  let obj;
+  try { obj = readJsonFile(fullPath); }
+  catch (e) { return ['JSON 解析失败（多半是被中断截断）：' + e.message]; }
+  if (obj._complete !== true) return ['缺 "_complete": true'];
+  const issues = [];
+  for (const f of RECEIPT_FIELDS) {
+    const v = obj[f];
+    if (v === undefined || v === null) { issues.push(`缺必填字段 ${f}`); continue; }
+    if (!hasMeaning(v)) { issues.push(`字段 ${f} 是空壳（空白或占位符，AC-5 ③）`); }
+  }
+  return issues;
+}
+
+// 解析 authoring.md 里的 `<!-- name:start -->` ... `<!-- name:end -->` 围栏块
+function parseFenceBlock(txt, marker) {
+  const re = new RegExp('<!--\\s*' + marker + ':start\\s*-->([\\s\\S]*?)<!--\\s*' + marker + ':end\\s*-->');
+  const m = String(txt).match(re);
+  if (!m) return null;
+  return m[1].split(/\r?\n/).map((s) => s.trim()).filter((s) => s !== '' && !s.startsWith('<!--'));
+}
+
+/*
+  O-2/O-5 冻结表对账（A18 双路复算）：脚本常量 vs docs/authoring.md 围栏块。
+  抄错一个字，L2 报告会被判失败而原因看起来像脚本坏了 —— 把这条跨文件契约变成机械可证伪的。
+*/
+function checkContractAlignment(authoringPath) {
+  const drift = [];
+  if (!exists(authoringPath)) return ['缺 docs/authoring.md，无法对账冻结表'];
+  const txt = readText(authoringPath);
+  const cond = parseFenceBlock(txt, 'conditions');
+  if (cond === null) drift.push('authoring.md 缺 <!-- conditions:start/end --> 围栏块');
+  else if (cond.join('\n') !== RUBRIC_CONDITIONS.join('\n')) {
+    drift.push('RUBRIC_CONDITIONS 与 authoring.md 冻结表不一致（两者必须逐字一致）');
+  }
+  const rc = parseFenceBlock(txt, 'receipt-fields');
+  if (rc === null) drift.push('authoring.md 缺 <!-- receipt-fields:start/end --> 围栏块');
+  else if (rc.join('\n') !== RECEIPT_FIELDS.join('\n')) {
+    drift.push('RECEIPT_FIELDS 与 authoring.md 冻结表不一致（两者必须逐字一致）');
+  }
+  return drift;
+}
+
+/*
+  AC-7 硬约束守恒：baselineDir/skills/** 里的每条硬约束，在「当前主文件 ∪ 该 skill 全部
+  references」这个全集里必须仍能被逐字（归一化空白后）grep 到。找不到 = 规则搬丢。
+  有意的删除必须写进 `.rd/features/ * /design.md` 的「有意改写/删除的约束」表（约束原文列
+  与被删文本逐字一致），否则同样判丢 —— 这就是 AC-7「有意删除要留档」的机械形态。
+  ⛔ 挡不住「条目还在、语气被稀释」（⛔ 不许 → 建议不要 计数不变）—— 那是 L2 逐条比对的活。
+*/
+function documentedExemptions(rdRoot) {
+  const ex = new Set();
+  const featRoot = path.join(rdRoot, '.rd', 'features');
+  if (!isDir(featRoot)) return ex;
+  for (const f of walkFiles(featRoot)) {
+    if (!f.endsWith('design.md')) continue;
+    const lines = String(readText(f)).split(/\r?\n/);
+    let inTable = false;
+    for (const raw of lines) {
+      const ln = raw.trim();
+      if (/^##\s*有意改写\/删除的约束/.test(ln)) { inTable = true; continue; }
+      if (/^##/.test(ln)) inTable = false;
+      if (!inTable || !/^\|/.test(ln)) continue;
+      const cells = ln.split('|').map((c) => c.trim());
+      const first = cells[1] || '';
+      if (first === '' || first === '约束原文' || /^[-:]+$/.test(first)) continue;
+      // 剥掉 markdown 代码包裹反引号，再存 stripWs 形态
+      ex.add(stripWs(first.replace(/^`+|`+$/g, '')));
+    }
+  }
+  return ex;
+}
+function checkConserve(baselineDir, skillsRoot, rdRoot) {
+  const issues = [];
+  const baseSkills = path.join(baselineDir, 'skills');
+  if (!isDir(baseSkills)) return ['守恒检查：基线目录下没有 skills/'];
+  const exempt = documentedExemptions(rdRoot);
+  for (const baseFile of walkFiles(baseSkills)) {
+    if (!baseFile.endsWith('.md')) continue;
+    const rel = path.relative(baseSkills, baseFile).split(path.sep).join('/');
+    const constraints = extractHardConstraints(readText(baseFile));
+    if (constraints.length === 0) continue;
+    let curText = '';
+    const curRel = path.join(skillsRoot, rel);
+    if (exists(curRel)) curText += readText(curRel);
+    const skillTop = rel.split('/')[0];
+    const refsDir = path.join(skillsRoot, skillTop, 'references');
+    for (const rf of walkFiles(refsDir)) curText += '\n' + readText(rf);
+    const normCur = stripWs(curText);
+    for (const c of constraints) {
+      const cStripped = stripWs(c);
+      if (exempt.has(cStripped)) continue; // 有意删除，design.md 已留档
+      if (!normCur.includes(cStripped)) {
+        issues.push('AC-7 守恒：基线 ' + rel + ' 的硬约束「' + c.slice(0, 50) + '」在改后全集里找不到（若是有意删除，把它写进 design.md 的「有意改写/删除的约束」表）');
+      }
+    }
+  }
+  return issues;
+}
+
+// -SkillLint 主入口：返回 { issues, warns, orphans, dangles }
+function runSkillLint(root, skillName, baselineDir) {
+  const skillsRoot = path.join(root, 'skills');
+  const issues = [];
+  const warns = [];
+  const orphans = [];
+  const dangles = [];
+  if (!isDir(skillsRoot)) return { issues: ['skills/ 不存在'], warns, orphans, dangles };
+  const strategiesDir = path.join(skillsRoot, 'rd', 'strategies');
+  const strategiesFiles = listDirFiles(strategiesDir, (n) => n.endsWith('.md'))
+    .map((n) => path.join(strategiesDir, n)).sort();
+  const targets = skillName
+    ? [path.join(skillsRoot, skillName)]
+    : listDirDirs(skillsRoot).filter((d) => exists(path.join(skillsRoot, d, 'SKILL.md')))
+        .map((d) => path.join(skillsRoot, d)).sort();
+  for (const sd of targets) {
+    const name = path.basename(sd);
+    const refs = checkRefs(sd, strategiesFiles, skillsRoot);
+    for (const o of refs.orphans) orphans.push(`${name}: ${o}`);
+    for (const d of refs.dangling) dangles.push(`${name}: ${d}`);
+    const hk = checkHooks(sd);
+    issues.push(...hk.issues);
+    warns.push(...hk.warns);
+  }
+  // 加载清单 + 冻结表对账只在全量模式跑（-Skill 单 skill 时跳过 —— T9 才生效）
+  if (!skillName) {
+    for (const sf of strategiesFiles) {
+      const secs = parseSections(readText(sf));
+      const load = secs.find((s) => s.title.includes('本策略的加载清单'));
+      if (!load) { issues.push(`${path.basename(sf)} 缺「本策略的加载清单」小节（AC-6）`); continue; }
+      const body = load.body.join('\n');
+      if (!/会用到/.test(body)) issues.push(`${path.basename(sf)} 加载清单缺「会用到」子清单`);
+      if (!/永不加载/.test(body)) issues.push(`${path.basename(sf)} 加载清单缺「永不加载」子清单`);
+    }
+    issues.push(...checkContractAlignment(path.join(root, 'docs', 'authoring.md')));
+  }
+  if (baselineDir) issues.push(...checkConserve(baselineDir, skillsRoot, root));
+  return { issues, warns, orphans, dangles };
+}
+
 // ---- 只打印必填小节表就退出 ----
 if (args.Sections) {
   printSections();
@@ -318,6 +668,79 @@ if (args.SelfTest) {
   T('无 _complete 应判 partial', 'y.json', '{"a": 1}', null, 'partial');
   T('有 _complete 应判 ok', 'z.json', '{"a": 1, "_complete": true}', null, 'ok');
 
+  // ---- O-1/O-2/O-5/AC-7 新检查族的证伪用例（T1 契约，用例名是验收锚点） ----
+  const baseCaseNames = cases.map((c) => c.name).slice(); // 原始 15 条用例名
+  const lintTmp = path.join(tmp, 'lint');
+  const mk = (rel, content) => {
+    const p = path.join(lintTmp, rel);
+    fs.mkdirSync(path.dirname(p), { recursive: true });
+    fs.writeFileSync(p, content, 'utf8');
+  };
+  const L = (name, fn) => {
+    let ok = false;
+    try { ok = fn(); } catch (e) { ok = false; }
+    cases.push({ name, expect: 'ok', got: ok ? 'ok' : 'fail', pass: ok, why: [] });
+  };
+
+  // AC-1：原始 15 条自检用例名必须全部仍在注册表（一条没少）
+  L('AC-1 既有自检断言全绿应判 ok', () => baseCaseNames.every((n) => cases.some((c) => c.name === n)));
+
+  // AC-2 孤儿：references/ 有文件但主文件从没引用它
+  mk('skills/demo/SKILL.md', '# demo\n\n主文件，不引用任何 references。\n');
+  mk('skills/demo/references/orphan.md', '# orphan\n');
+  L('AC-2 孤儿文件应判 fail', () => runSkillLint(lintTmp, 'demo').orphans.some((o) => o.includes('orphan.md')));
+
+  // AC-2 断链：钩子指向不存在的文件（AC-2 不查、但恰恰是规则搬丢的形状）
+  fs.rmSync(path.join(lintTmp, 'skills', 'demo', 'references', 'orphan.md'));
+  mk('skills/demo/SKILL.md', '# demo\n\n> 📎 **需要时** → 读 `references/nope.md`\n> 不读会：漏掉规则\n');
+  L('AC-2 断链钩子应判 fail', () => runSkillLint(lintTmp, 'demo').dangles.some((d) => d.includes('nope.md')));
+
+  // AC-3 钩子完整：条件 + 路径 + 后果子句齐全 → 不报
+  mk('skills/demo/references/nope.md', '# nope\n规则内容。\n');
+  mk('skills/demo/SKILL.md', '# demo\n\n> 📎 **存量代码要并行** → 读 `references/nope.md`（role=self）\n> 不读会：默认假设可并行，留下「项目是坏的」中间态\n');
+  L('AC-3 钩子完整应判 ok', () => runSkillLint(lintTmp, 'demo').issues.length === 0);
+
+  // AC-3 钩子缺后果：📎 后没有以 不读会/不转发会 开头的行
+  mk('skills/demo/SKILL.md', '# demo\n\n> 📎 **存量代码要并行** → 读 `references/nope.md`\n');
+  L('AC-3 钩子缺后果子句应判 fail', () => runSkillLint(lintTmp, 'demo').issues.some((i) => i.includes('后果子句')));
+
+  // AC-6 加载清单：完整 vs 缺子清单（只在全量模式查）
+  mk('skills/rd/strategies/guarded.md', '# 策略：guarded\n\n## 本策略的加载清单\n\n**会用到**\n- skills/demo/references/nope.md\n\n**永不加载**\n- skills/rd-eval/\n');
+  L('AC-6 加载清单完整应判 ok', () => !runSkillLint(lintTmp).issues.some((i) => i.includes('guarded.md')));
+  mk('skills/rd/strategies/guarded.md', '# 策略：guarded\n\n## 本策略的加载清单\n\n**会用到**\n- skills/rd-build/\n');
+  L('AC-6 加载清单缺子清单应判 fail', () => runSkillLint(lintTmp).issues.some((i) => i.includes('guarded.md') && i.includes('永不加载')));
+
+  // AC-4 条件名三态
+  const okL2 = '## blocking\n\n### B1 问题\n\n- 判定条件: contract-break\n';
+  const badL2 = '## blocking\n\n### B1 问题\n\n- 判定条件: very-severe\n';
+  const noneL2 = '## blocking\n\n### B1 问题\n\n- 位置: x\n';
+  L('AC-4 合法条件名应判 ok', () => checkL2Findings(okL2).length === 0);
+  L('AC-4 拼错条件名应判 fail', () => checkL2Findings(badL2).some((i) => i.includes('不在合法集合')));
+  L('AC-4 缺失条件名应判 fail', () => checkL2Findings(noneL2).some((i) => i.includes('缺「- 判定条件')));
+
+  // AC-4 冻结表对账：authoring.md 围栏块与脚本常量不一致 → 报（A18 双路复算）
+  mk('docs/authoring.md', '<!-- conditions:start -->\nwrong-name:blocking\n<!-- conditions:end -->\n<!-- receipt-fields:start -->\ntaskId\n<!-- receipt-fields:end -->\n');
+  L('AC-4 冻结表漂移应判 fail', () => checkContractAlignment(path.join(lintTmp, 'docs', 'authoring.md')).length > 0);
+
+  // AC-5 回执三态
+  const okR = path.join(tmp, 'ok-receipt.json');
+  fs.writeFileSync(okR, JSON.stringify({ _complete: true, taskId: 'T1', filesChanged: ['a.js'], verifyCommand: 'npm test', verifyOutput: 'pass 43 fail 0', mutationsSurvived: 0, deviations: '无' }), 'utf8');
+  L('AC-5 合法回执应判 ok', () => checkReceipt(okR).length === 0);
+  const missR = path.join(tmp, 'miss-receipt.json');
+  fs.writeFileSync(missR, JSON.stringify({ _complete: true, taskId: 'T1' }), 'utf8');
+  L('AC-5 缺字段回执应判 fail', () => checkReceipt(missR).some((i) => i.includes('filesChanged')));
+  const phR = path.join(tmp, 'ph-receipt.json');
+  fs.writeFileSync(phR, JSON.stringify({ _complete: true, taskId: 'T1', filesChanged: ['a.js'], verifyCommand: 'npm test', verifyOutput: '{这里是输出}', mutationsSurvived: 0, deviations: '无' }), 'utf8');
+  L('AC-5 占位符回执应判 fail', () => checkReceipt(phR).some((i) => i.includes('verifyOutput') && i.includes('空壳')));
+
+  // AC-7 守恒：基线里有硬约束、改后全集里找不到 → 报
+  const consBase = path.join(tmp, 'consbase');
+  fs.mkdirSync(path.join(consBase, 'skills', 'demo'), { recursive: true });
+  fs.writeFileSync(path.join(consBase, 'skills', 'demo', 'SKILL.md'),
+    '# demo\n\n⛔ 不许在没采基线的情况下开工\n\n## 硬门槛\n\n- 不许假设可以并行\n', 'utf8');
+  mk('skills/demo/SKILL.md', '# demo\n\n主文件没有那条约束了。\n');
+  L('AC-7 硬约束守恒应判 fail', () => runSkillLint(lintTmp, 'demo', consBase).issues.some((i) => i.includes('AC-7 守恒')));
+
   let failed = 0;
   out('');
   out(C.cyan('=== 收尾检测点 · 证伪自检 ==='));
@@ -331,6 +754,42 @@ if (args.SelfTest) {
   out('');
   if (failed > 0) { out(C.red(`=== ${failed}/${cases.length} 条不通过 ===`)); out(''); process.exit(1); }
   out(C.green(`=== ${cases.length}/${cases.length} 条通过，检查具备判别力 ===`));
+  out('');
+  process.exit(0);
+}
+
+// ---- 框架自身结构检查（-SkillLint）：与 feature 产物生命周期分开，独立早退 ----
+if (args.SkillLint) {
+  const res = runSkillLint(Root, args.Skill, args.Baseline);
+  out('');
+  out(C.cyan('=== SkillLint' + (args.Skill ? ' [' + args.Skill + ']' : '') + ' ==='));
+  out('');
+  if (res.orphans.length) {
+    out(C.red(`  ⛔ 孤儿 references/ ${res.orphans.length} 个（存在但从未被引用，AC-2）：`));
+    for (const o of res.orphans) out(C.red('      · ' + o));
+  } else {
+    out(C.green('  ✓ 无孤儿 references/'));
+  }
+  if (res.dangles.length) {
+    out(C.red(`  ⛔ 断链 ${res.dangles.length} 处（引用了不存在的文件）：`));
+    for (const d of res.dangles) out(C.red('      · ' + d));
+  } else {
+    out(C.green('  ✓ 无断链'));
+  }
+  if (res.issues.length) {
+    out(C.red(`  ⛔ ${res.issues.length} 处结构问题：`));
+    for (const i of res.issues) out(C.red('      · ' + i));
+  } else {
+    out(C.green('  ✓ 无结构问题'));
+  }
+  for (const w of res.warns) out(C.yellow('  ⚠ ' + w));
+  out('');
+  if (res.orphans.length + res.dangles.length + res.issues.length > 0) {
+    out(C.red('=== SkillLint FAIL ==='));
+    out('');
+    process.exit(1);
+  }
+  out(C.green('=== SkillLint PASS ==='));
   out('');
   process.exit(0);
 }
@@ -435,6 +894,11 @@ function noteLost(who, rel) {
 if (run !== null && run.inflight && run.inflight.stage === 'plan') {
   for (const a of asList(run.inflight.agents)) noteLost(a.name || '?', a.reportPath);
 }
+if (run !== null && run.inflight) {
+  for (const a of asList(run.inflight.agents)) {
+    if (a.receiptPath) noteLost(a.name || '?', a.receiptPath);
+  }
+}
 if (run !== null && run.planFanout) {
   for (const d of asList(run.planFanout.dispatched)) {
     if (typeof d === 'string') noteLost('planFanout', d);
@@ -473,10 +937,20 @@ planMissing.push(...missLine('tasks.json', checkJson(P('tasks.json'))));
 if (!HasRoot('.rd/gates.json')) planMissing.push('.rd/gates.json');
 if (!exists(runPath)) planMissing.push('run.json  ← rd-plan 明文要求「通过后写 run.json」');
 stages.push({ name: 'plan', label: '方案与拆解', missing: planMissing });
+// ---- 回执（O-5）：已存在的逐份校验字段；缺席只报 advisory（对账走 receiptPath） ----
+const receiptsMissing = [];
+const receiptsDir = path.join(reports, 'receipts');
+for (const n of listDirFiles(receiptsDir, (x) => /\.json$/i.test(x)).sort()) {
+  for (const iss of checkReceipt(path.join(receiptsDir, n))) {
+    receiptsMissing.push(`reports/receipts/${n}  ${iss}`);
+  }
+}
+
 stages.push({
   name: 'build', label: '开发与 L1 机械门',
   missing: [
     ...(l1.length === 0 ? ['l1-round{N}.json  ← 一轮机械门都没跑过'] : []),
+    ...receiptsMissing,
   ],
 });
 
@@ -492,7 +966,14 @@ for (const n of l2d) {
 }
 // 已存在的审查报告，逐份查完成度 —— 被中断的报告和写完的报告，文件名长得一样
 for (const n of listDirFiles(reports, (x) => /^l2-round.*\.md$/i.test(x))) {
-  l2Missing.push(...missLine('reports/' + n, checkMarkdown(path.join(reports, n), REQUIRED_SECTIONS.l2)));
+  const full = path.join(reports, n);
+  const res = checkMarkdown(full, REQUIRED_SECTIONS.l2);
+  const miss = missLine('reports/' + n, res);
+  // O-2：每条 finding 必须标注命中的行为判定条件（缺/拼错都点名到具体发现）
+  for (const fi of checkL2Findings(readText(full))) {
+    miss.push('reports/' + n + '  ' + fi);
+  }
+  l2Missing.push(...miss);
 }
 stages.push({ name: 'review', label: 'L2 异构审查', missing: l2Missing });
 
