@@ -1,4 +1,4 @@
-# 回执审计（O-5）与证据补齐模式
+# 回执审计与证据补齐模式
 
 > 📎 从 `skills/rd-build/SKILL.md` 抽出。**加载条件**：收到 Builder 的回执时。
 > 不读会：Builder 说「跑过了 verify」就信了 ——

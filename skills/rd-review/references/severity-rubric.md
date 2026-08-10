@@ -1,4 +1,4 @@
-# 三档行为判定标准（O-2）
+# 三档行为判定标准
 
 > 📎 从 `skills/rd-review/SKILL.md` 抽出。**加载条件**：开始给发现定级时。
 > 不读会：分级靠自由心证 —— blocking/important/nit 三档没有写死的判定标准，

@@ -140,9 +140,9 @@ const REQUIRED_SECTIONS = {
   'dispatch.md': [],
 };
 
-/* ---- O-2 / O-5 契约常量（唯一真值在 docs/authoring.md §6 的围栏块，-SkillLint 会对账） ---- */
+/* ---- 契约常量（唯一真值在 docs/authoring.md §6 的围栏块，-SkillLint 会对账） ---- */
 
-// O-2 三档行为判定条件名。必须是「模型能诚实自查」的行为条件，不是形容词。
+// 三档行为判定条件名。必须是「模型能诚实自查」的行为条件，不是形容词。
 const RUBRIC_CONDITIONS = [
   'contract-break:blocking',
   'wrong-result-silent:blocking',
@@ -160,7 +160,7 @@ const RUBRIC_CONDITIONS = [
 ];
 const CONDITION_NAMES = new Set(RUBRIC_CONDITIONS.map((c) => c.split(':')[0]));
 
-// O-5 Builder 结构化回执（reports/receipts/{taskId}.json）必填字段。
+// Builder 结构化回执（reports/receipts/{taskId}.json）必填字段。
 const RECEIPT_FIELDS = ['taskId', 'filesChanged', 'verifyCommand', 'verifyOutput', 'mutationsSurvived', 'deviations'];
 
 /*
@@ -190,13 +190,13 @@ function printSections() {
   out('');
   out(C.cyan('=== 契约（权威来源：docs/authoring.md §6 冻结表，-SkillLint 会对账）==='));
   out('');
-  out(C.dark('  O-2 L2 报告每条 finding 必填「- 判定条件: <名字>」。合法名字（冻结）：'));
+  out(C.dark('  L2 报告每条 finding 必填「- 判定条件: <名字>」。合法名字（冻结）：'));
   for (const c of RUBRIC_CONDITIONS) {
     const [name, tier] = c.split(':');
     out(`    ${name.padEnd(24)} ${tier}`);
   }
   out('');
-  out(C.dark('  O-5 Builder 回执 reports/receipts/{taskId}.json 必填字段（冻结）：'));
+  out(C.dark('  Builder 回执 reports/receipts/{taskId}.json 必填字段（冻结）：'));
   out(`    ${RECEIPT_FIELDS.join(' / ')}`);
   out('');
 }
@@ -315,11 +315,11 @@ function missLine(label, res, hint) {
   return [`${label}  ⚠ 只写了一半：${res.why.join('；')}`];
 }
 
-/* ================== O-1 / O-2 / O-5 / AC-7 的检查族 ==================
+/* ================== 散文准入 / 契约 / AC-7 的检查族 ==================
 
   这些检查是对「框架自身」的结构校验（-SkillLint），与对「某次 feature 产物」
   的校验（-Feature）是两个生命周期，所以独立成早退模式，不混进 stages 计数器。
-  唯一例外是 O-2（L2 报告条件名）与 O-5（回执字段）—— 它们是 feature 产物，
+  唯一例外是 L2 报告条件名与回执字段 —— 它们是 feature 产物，
   挂在 -Feature 主流程里。
 */
 
@@ -453,7 +453,7 @@ function checkHooks(skillDir) {
 }
 
 /*
-  O-2：L2 报告每条 finding 必须标注行为判定条件名。
+  L2 报告每条 finding 必须标注行为判定条件名。
   finding 小节 = `### B\d+` / `### I\d+` / `### N\d+` 标题。
   · 缺「- 判定条件: <名字>」→ 点名发现
   · 名字不在 CONDITION_NAMES → 点名「不在合法集合」
@@ -470,7 +470,7 @@ function checkL2Findings(txt) {
     while (j < lines.length && !/^###/.test(lines[j])) { body.push(lines[j]); j++; }
     const condLine = body.find((ln) => /^\s*-?\s*判定条件\s*[:：]\s*\S/.test(ln));
     if (!condLine) {
-      issues.push(`发现 ${m[1]}${m[2]} 缺「- 判定条件: <名字>」（O-2，行为条件名见 -Sections）`);
+      issues.push(`发现 ${m[1]}${m[2]} 缺「- 判定条件: <名字>」（行为条件名见 -Sections）`);
       continue;
     }
     const name = condLine.match(/^\s*-?\s*判定条件\s*[:：]\s*(\S+)/)[1];
@@ -482,7 +482,7 @@ function checkL2Findings(txt) {
 }
 
 /*
-  O-5：Builder 结构化回执 reports/receipts/{taskId}.json。
+  Builder 结构化回执 reports/receipts/{taskId}.json。
   必填字段见 RECEIPT_FIELDS；字段缺失 → 点名字段名；字段在但空白/占位符 → 点名「是空壳」。
   ⛔ 回执缺席本身不进 missing（存量 feature 没有回执很正常）—— 缺席对账走
   inflight.agents[].receiptPath（登记过、文件不存在 = 这一份丢了）。
@@ -511,7 +511,7 @@ function parseFenceBlock(txt, marker) {
 }
 
 /*
-  O-2/O-5 冻结表对账（A18 双路复算）：脚本常量 vs docs/authoring.md 围栏块。
+  冻结表对账（A18 双路复算）：脚本常量 vs docs/authoring.md 围栏块。
   抄错一个字，L2 报告会被判失败而原因看起来像脚本坏了 —— 把这条跨文件契约变成机械可证伪的。
 */
 function checkContractAlignment(authoringPath) {
@@ -668,7 +668,7 @@ if (args.SelfTest) {
   T('无 _complete 应判 partial', 'y.json', '{"a": 1}', null, 'partial');
   T('有 _complete 应判 ok', 'z.json', '{"a": 1, "_complete": true}', null, 'ok');
 
-  // ---- O-1/O-2/O-5/AC-7 新检查族的证伪用例（T1 契约，用例名是验收锚点） ----
+  // ---- 散文准入 / 契约 / AC-7 新检查族的证伪用例（T1 契约，用例名是验收锚点） ----
   const baseCaseNames = cases.map((c) => c.name).slice(); // 原始 15 条用例名
   const lintTmp = path.join(tmp, 'lint');
   const mk = (rel, content) => {
@@ -937,7 +937,7 @@ planMissing.push(...missLine('tasks.json', checkJson(P('tasks.json'))));
 if (!HasRoot('.rd/gates.json')) planMissing.push('.rd/gates.json');
 if (!exists(runPath)) planMissing.push('run.json  ← rd-plan 明文要求「通过后写 run.json」');
 stages.push({ name: 'plan', label: '方案与拆解', missing: planMissing });
-// ---- 回执（O-5）：已存在的逐份校验字段；缺席只报 advisory（对账走 receiptPath） ----
+// ---- 回执：已存在的逐份校验字段；缺席只报 advisory（对账走 receiptPath） ----
 const receiptsMissing = [];
 const receiptsDir = path.join(reports, 'receipts');
 for (const n of listDirFiles(receiptsDir, (x) => /\.json$/i.test(x)).sort()) {
@@ -969,7 +969,7 @@ for (const n of listDirFiles(reports, (x) => /^l2-round.*\.md$/i.test(x))) {
   const full = path.join(reports, n);
   const res = checkMarkdown(full, REQUIRED_SECTIONS.l2);
   const miss = missLine('reports/' + n, res);
-  // O-2：每条 finding 必须标注命中的行为判定条件（缺/拼错都点名到具体发现）
+  // 每条 finding 必须标注命中的行为判定条件（缺/拼错都点名到具体发现）
   for (const fi of checkL2Findings(readText(full))) {
     miss.push('reports/' + n + '  ' + fi);
   }
