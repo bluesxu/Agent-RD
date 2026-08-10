@@ -93,9 +93,10 @@ function getDeclaredFiles(featureDir) {
 }
 
 // ---- .rd 下的测试文件：git diff 看不见它们，只能走磁盘 ----
-// AC 测试由 Builder 写在 .rd/features/{Feature}/tests/（git 策略由开发者自定）。
+// AC 测试由审查层（测试作者）写在 .rd/features/{Feature}/tests/（git 策略由开发者自定），
+// **不进 tasks.json 的 files 白名单** —— 那是 Builder 的产品代码清单，Builder 不写测试。
 // 无论 .rd/ 是否被跟踪/忽略，本框架都要把测试从磁盘收集进审查目标 ——
-// 审查层判断「这份绿是不是真的」必须读它们。相对路径与 tasks.json 的 files 同基准（项目根）。
+// 下一轮审查层交叉审测试必须读它们。相对路径与 tasks.json 的 files 同基准（项目根）。
 function readTestFiles(featureDir) {
   const tdir = path.join(featureDir, 'tests');
   const out = [];
@@ -421,8 +422,6 @@ fs.writeFileSync(diffPath, current.text + testSection, 'utf8');
 fs.writeFileSync(path.join(diffDir, `tests-round${Round}.snap.json`), JSON.stringify(snapOf(testFiles), null, 2), 'utf8');
 
 const outOfScope = current.outOfScope.filter((x) => x && x.trim());
-const declaredLower = new Set(declared.map((s) => s.toLowerCase()));
-const testsOutOfScope = testFiles.filter((t) => !declaredLower.has(t.rel.toLowerCase()));
 
 const target = {
   feature: Feature,
@@ -434,7 +433,6 @@ const target = {
   scopeFiles: declared,
   files: current.files.filter((x) => x && x.trim()),
   testFiles: testFiles.map((t) => ({ path: t.rel, sha256: t.sha256 })),
-  testsOutOfScope: testsOutOfScope.map((t) => t.rel),
   outOfScope,
   masked: current.masked,
   untrackedIncluded: current.untracked.included,
@@ -479,14 +477,6 @@ if (outOfScope.length > 0) {
   if (outOfScope.length > 12) out(C.yellow(`             …还有 ${outOfScope.length - 12} 个`));
   out(C.dark('         它们**不在本次审查目标里**。要么是越界改动（agent 改了白名单外的文件)，'));
   out(C.dark('         要么是 tasks.json 的 files 声明漏了。两种都该先弄清楚再派 reviewer。'));
-}
-
-if (testsOutOfScope.length > 0) {
-  out('');
-  out(C.yellow(`         ⚠ 有 ${testsOutOfScope.length} 个测试文件**不在任何 task 的 files 声明里**（越界）：`));
-  for (const f of testsOutOfScope.slice(0, 12)) out(C.yellow('             ' + f.rel));
-  if (testsOutOfScope.length > 12) out(C.yellow(`             …还有 ${testsOutOfScope.length - 12} 个`));
-  out(C.dark('         Builder 在白名单外写了测试文件。修掉，或把路径加进 tasks.json 的 files。'));
 }
 
 if (current.masked.length > 0) {
