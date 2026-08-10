@@ -318,6 +318,68 @@ try {
   check('settings.json 解析失败 → exit 1', eatBad.status === 1, 'got ' + eatBad.status);
   check('  …失败时不覆盖原文件', fs.readFileSync(settings, 'utf8') === junk);
   try { fs.rmSync(eatHome, { recursive: true, force: true }); } catch { /* ignore */ }
+
+  // ==== 9. 编排脚本（audit-receipts / boundary-check / assemble-prompt）====
+  console.log('');
+  console.log(C.cyan('【9】编排脚本'));
+  const feat3 = path.join(tmp, '.rd', 'features', 'feat3');
+  write(path.join(feat3, 'tasks.json'), JSON.stringify({
+    tasks: [{ id: 'T1', layer: 1, name: '加函数', files: ['index.js'], steps: ['实现 add'], selfCheck: 'node --check index.js', covers: ['AC-1'], mutationTargets: ['index.js'] }],
+  }));
+  // audit-receipts：合规回执 → exit 0
+  write(path.join(feat3, 'reports', 'receipts', 'T1.json'), JSON.stringify({
+    taskId: 'T1', filesChanged: ['index.js'],
+    selfCheckCommand: 'node --check index.js', selfCheckOutput: 'ok', deviations: '无',
+  }));
+  const arOk = run('audit-receipts.js', ['-Root', tmp, '-Feature', 'feat3'], tmp);
+  check('回执合规 → exit 0', arOk.code === 0, 'got ' + arOk.code + '\n' + arOk.out);
+  // 缺字段 + 白名单外 + 占位符 → exit 1
+  write(path.join(feat3, 'reports', 'receipts', 'T1.json'), JSON.stringify({
+    taskId: 'T1', filesChanged: ['outside.js'], selfCheckOutput: '{这里是输出}',
+  }));
+  const arFail = run('audit-receipts.js', ['-Root', tmp, '-Feature', 'feat3'], tmp);
+  check('回执缺字段/越界/占位符 → exit 1', arFail.code === 1, 'got ' + arFail.code);
+  // feature 缺失 → exit 2
+  const arNo = run('audit-receipts.js', ['-Root', tmp, '-Feature', 'nope'], tmp);
+  check('feature 缺失 → exit 2', arNo.code === 2, 'got ' + arNo.code);
+
+  // boundary-check：独立 git 仓库（避免主 fixture 混杂状态）
+  const bcTmp = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-rd-bc-'));
+  sh('git init -q', bcTmp);
+  sh('git config user.email t@t.t', bcTmp);
+  sh('git config user.name t', bcTmp);
+  write(path.join(bcTmp, 'package.json'), '{}');
+  write(path.join(bcTmp, '.rd', 'features', 'featX', 'tasks.json'), JSON.stringify({
+    tasks: [{ id: 'T1', layer: 1, files: ['index.js'], steps: ['do'], selfCheck: 'node --check index.js', covers: [], mutationTargets: [] }],
+  }));
+  write(path.join(bcTmp, 'index.js'), 'console.log("v1");\n');
+  sh('git add -A', bcTmp);
+  sh('git commit -qm init', bcTmp);
+  write(path.join(bcTmp, 'index.js'), 'console.log("v2");\n');
+  const bcOk = run('boundary-check.js', ['-Root', bcTmp, '-Feature', 'featX'], bcTmp);
+  check('改动在白名单内 → exit 0', bcOk.code === 0, 'got ' + bcOk.code + '\n' + bcOk.out);
+  write(path.join(bcTmp, 'stray.js'), 'x\n');
+  const bcFail = run('boundary-check.js', ['-Root', bcTmp, '-Feature', 'featX'], bcTmp);
+  check('越界文件 → exit 1', bcFail.code === 1, 'got ' + bcFail.code);
+  try { fs.rmSync(bcTmp, { recursive: true, force: true }); } catch { /* ignore */ }
+  // 不是 git 仓库 → exit 2
+  const noGit = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-rd-nogit-'));
+  write(path.join(noGit, '.rd', 'features', 'featX', 'tasks.json'), '{}');
+  const bcNoGit = run('boundary-check.js', ['-Root', noGit, '-Feature', 'featX'], noGit);
+  check('不是 git 仓库 → exit 2', bcNoGit.code === 2, 'got ' + bcNoGit.code);
+  try { fs.rmSync(noGit, { recursive: true, force: true }); } catch { /* ignore */ }
+
+  // assemble-prompt：填好 task 骨架、无可替换占位符残留 → exit 0
+  write(path.join(feat3, 'design.md'), '# 方案\n\n## 选定方案\n单文件\n\n## 契约变化\n新增 add 导出\n\n');
+  write(path.join(feat3, 'acceptance.json'), JSON.stringify({
+    scenarios: [{ id: 'AC-1', name: '加法', given: 'g', when: 'w', then: 't', judge: 'machine', checkIntent: 'I/O 判等' }],
+  }));
+  const ap = run('assemble-prompt.js', ['-Root', tmp, '-Feature', 'feat3', '-Task', 'T1'], tmp);
+  check('assemble-prompt → exit 0', ap.code === 0, 'got ' + ap.code);
+  check('  …填入 task/步骤/自检/AC', /加函数/.test(ap.out) && /实现 add/.test(ap.out) && /node --check index\.js/.test(ap.out) && /AC-1/.test(ap.out));
+  check('  …可替换占位符全部替换', !/\{task\.(id|name|files 逐行列出|steps|selfCheck)\}|\{绝对路径\}|\{slug\}|\{design\.md 的/.test(ap.out));
+  const apNo = run('assemble-prompt.js', ['-Root', tmp, '-Feature', 'feat3', '-Task', 'T9'], tmp);
+  check('task 不存在 → exit 2', apNo.code === 2, 'got ' + apNo.code);
 } finally {
   // 清理
   try { fs.rmSync(tmp, { recursive: true, force: true }); } catch { /* ignore */ }
