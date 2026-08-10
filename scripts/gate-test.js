@@ -143,6 +143,9 @@ catch (e) {
 }
 
 // ---- 跑审查层写的全部测试：每条 machine AC 的 check（带 -MustMatch 锚点）----
+// 改动十一（L1 失败批量修）已吸收：gate-test **无条件收集全部失败**，不 early-exit ——
+// 每条 AC 是独立测试，全量收集给 owner/审查层完整失败面，比逐个修逐个重跑省一轮。
+// -ContinueOnFailure 旗标保留仅作向后兼容，跑不跑都一样。
 const machineACs = asArr(ac.scenarios).filter((s) => s.judge === 'machine' && !isBlank(s.check));
 
 out('');
