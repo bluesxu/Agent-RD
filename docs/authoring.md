@@ -156,7 +156,7 @@ deviations
 2. 按第 1 节准入规则过一遍正文。
 3. 凡满足第 3 节阈值的内容 → 抽进 `references/`，原地留钩子。
 4. 每个 `references/` 文件在主文件里**有且只有一个**钩子（本 skill 自己）。
-5. 7 份 `strategies/*.md` 的「本策略的加载清单」各加一行——**会用到**或**永不加载**二选一，
+5. 每份 `strategies/*.md` 的「本策略的加载清单」各加一行——**会用到**或**永不加载**二选一，
    不许不写。这是新增 skill 最容易漏的一步，`-SkillLint` 会点名未登记的 skill。
 6. `install.js` **不用改**（`copyDir` 递归复制整个 skill 目录）。
 7. 跑 `node scripts/check-artifacts.js -SkillLint`，绿了才算加完。

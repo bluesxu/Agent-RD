@@ -2,3 +2,12 @@
 *.log
 .DS_Store
 Thumbs.db
+compound-engineering-plugin
+# --- Agent-RD init [node] ---
+node_modules/
+dist/
+build/
+coverage/
+.env
+.env.local
+.rd/

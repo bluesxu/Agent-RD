@@ -67,6 +67,10 @@ argument-hint: "[诉求]"
 
 动词决定类型。多个匹配时选最核心的那个。
 
+**方向未定 → 不走这张表。**信号：六个类型全不匹配，或开场是模糊念头
+（「想做点什么 / 哪里还能改进 / 给我点想法」）。走 `ideate` 策略：
+先出排过序的候选方向，用户选定后再回本 Phase 重新分诊。
+
 ### 1.3 复杂度
 
 | 级别 | 判定 |
@@ -116,6 +120,8 @@ argument-hint: "[诉求]"
 | **research** | `research-only` | `research-only` | `research-only` |
 | **review** | `review-only` | `review-only` | `review-only` |
 
+**方向未定的任务不进矩阵。**类型判不出来，没有可映射的策略，直接走 `ideate`。
+
 ### 风险修正（只升不降）
 
 - **risk = high** 且策略不含 L2 异构审查 → **升一档**（`direct` → `guarded`，`guarded` → `full`）
@@ -132,6 +138,7 @@ argument-hint: "[诉求]"
 | `full` | 完整 | 3 方案并行 | 并行多 agent | L1+L2+L3 | **~14 万 / 条 AC** |
 | `refactor-safe` | 精简（重点问边界） | 1~3 方案 | **串行核心 + 并行下游** | L1+L2+L3（回归导向） | ~10~20 万 |
 | `diagnose` | 只问复现条件 | 无 | 先复现再修 | L1 + L2 | ~5~15 万 |
+| `ideate` | 界定现状 | 多方向并行 | **不写代码，出候选方向** | 无 | ~5~10 万 |
 | `research-only` | 无 | 多方案并行 | **不写代码** | 无 | ~5~10 万 |
 | `review-only` | 无 | 无 | **不写代码** | L2 | ~5 万 |
 
@@ -139,11 +146,15 @@ argument-hint: "[诉求]"
 
 ### 创建 feature 目录
 
-复杂度 **≥ M** 且策略不是 `review-only` / `research-only` 时，先建 `.rd/features/{slug}/`。
+复杂度 **≥ M** 且策略不是 `review-only` / `research-only` / `ideate` 时，先建 `.rd/features/{slug}/`。
+
+**ideate 例外**：方向未定还没有 feature，产物放 `.rd/ideation/{slug}/candidates.md`，选定后再按正常规则建目录。
 
 **复杂度 S → 不建目录，保持轻量。**普通任务零产物，证据是 diff 和测试输出。
 
 ### 落一份派发决策记录（≥M 必做）
+
+**ideate 阶段不落 dispatch.md** —— 策略还没选。用户选定方向、回 Phase 1 重新分诊、策略定下来之后再落。
 
 建完目录后，写 `.rd/features/{slug}/dispatch.md`，**六行，不要展开**：
 
@@ -153,7 +164,7 @@ argument-hint: "[诉求]"
 - 复杂度：{S | M | L | XL}　依据：{一句话，为什么不是相邻那一档}
 - 风险：{low | high}　依据：{命中了哪条高危项，没命中就写「无」}
 - 绿地 / 存量：{greenfield | brownfield}
-- 策略：{direct | guarded | full | refactor-safe | diagnose | research-only | review-only}
+- 策略：{direct | guarded | full | refactor-safe | diagnose | ideate | research-only | review-only}
 - 为什么不是次优的那条：{一句话}
 
 <!-- RD-DONE stage=dispatch artifact=dispatch at={ISO8601} -->
