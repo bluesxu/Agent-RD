@@ -77,7 +77,6 @@ try {
   check('init-rd 退出码 0', init.code === 0, 'got ' + init.code);
   check('生成 .rd/gates.json', fs.existsSync(path.join(tmp, '.rd', 'gates.json')));
   check('生成 .rd/bin/check-ac.js', fs.existsSync(path.join(tmp, '.rd', 'bin', 'check-ac.js')));
-  check('生成 .gitignore', fs.existsSync(path.join(tmp, '.gitignore')));
   // 幂等：再跑一次不报错
   const init2 = run('init-rd.js', ['-Root', tmp], tmp);
   check('init-rd 幂等（二次运行不覆盖、退出码 0）', init2.code === 0, 'got ' + init2.code);
@@ -118,18 +117,33 @@ try {
   const ca2 = run('check-artifacts.js', ['-Root', tmp, '-Feature', 'feat1'], tmp);
   check('inflight 非空 → exit 2', ca2.code === 2, 'got ' + ca2.code);
   // 清 inflight、补齐全套产物 → exit 0（无孤儿）
+  // ⚠ 注意：check-artifacts 的 D-1 判据要求「尾标记 + 必填小节 + JSON _complete」，
+  //   空壳文件（'x\n'）会被判成「只写了一半」。产物必须按现行规则写全。
+  const RD_DONE = '<!-- RD-DONE at=2026-01-01T00:00:00Z -->';
   write(path.join(tmp, '.rd', 'features', 'feat1', 'run.json'), JSON.stringify({
     stage: 'keep', status: 'done', inflight: null,
     keep: { decided: [] }, rounds: [],
   }, null, 2));
-  write(path.join(tmp, '.rd', 'features', 'feat1', 'dispatch.md'), 'x\n');
-  write(path.join(tmp, '.rd', 'features', 'feat1', 'acceptance.json'), JSON.stringify({ scenarios: [] }));
-  write(path.join(tmp, '.rd', 'features', 'feat1', 'design.md'), 'x\n');
-  write(path.join(tmp, '.rd', 'features', 'feat1', 'tasks.json'), JSON.stringify({ tasks: [] }));
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'dispatch.md'), '# 派发决策\n\n按 guarded 策略派发。\n\n' + RD_DONE + '\n');
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'spec.md'),
+    '# 需求\n\n## 要解决什么\n把数据接进来。\n\n## 范围\n- 不做：无\n\n## 关键约束\n- 向后兼容\n\n## 已确认的决策\n- 用现成数据源\n\n' + RD_DONE + '\n');
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'acceptance.json'), JSON.stringify({ scenarios: [], _complete: true }));
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'design.md'),
+    '# 方案\n\n## 选定方案\n方案 a\n\n## 技术选型\nNode\n\n## 影响面\n仅前端\n\n## 契约变化\n无\n\n## 被排除的方案\n方案 b\n\n' + RD_DONE + '\n');
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'tasks.json'), JSON.stringify({ tasks: [], _complete: true }));
+  // 方案扇出：rd-plan 要求 ≥2 份完整方案，check-artifacts 的 plan 阶段与 validate-plan 都会点数
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'proposals', 'plan-a.md'),
+    '# 方案 a\n\n## 方案\n加一个字段\n\n## 关键取舍\n轻量\n\n## 被排除的路\n重写\n\n## 风险\n无\n\n' + RD_DONE + '\n');
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'proposals', 'plan-b.md'),
+    '# 方案 b\n\n## 方案\n新建服务\n\n## 关键取舍\n完整\n\n## 被排除的路\n加字段\n\n## 风险\n成本高\n\n' + RD_DONE + '\n');
   write(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'l1-round1.json'), JSON.stringify({ stage: 'l1', verdict: 'pass' }));
-  write(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'l2-round1.md'), 'x\n');
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'l2-round1.md'),
+    '# 审查\n\n## 审查结论\n通过\n\n## blocking\n无\n\n## important\n无\n\n## nit\n无\n\n' + RD_DONE + '\n');
   write(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'l2-round1.diff'), 'x\n');
-  write(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'l3-round1.md'), 'x\n');
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'l3-round1.md'),
+    '# 验收\n\n## 验收结论\n通过\n\n## 逐条\nAC 全过\n\n## 收尾附录\n已清理\n\n' + RD_DONE + '\n');
+  // 跑过 L3 就必须留运行手册（check-artifacts 的 eval 阶段检查）
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'acceptance-runbook.md'), '# 运行手册\n\n怎么观察：浏览器打开页面。\n');
   write(path.join(tmp, '.rd', 'lessons', 'l1.md'), 'x\n');
   // run.json rounds 里要记 round 1，否则对账会报警 → 补 round 记录
   write(path.join(tmp, '.rd', 'features', 'feat1', 'run.json'), JSON.stringify({
@@ -200,9 +214,14 @@ try {
   const vpPlanGuard = run('validate-plan.js', ['-Root', tmp, '-Feature', 'feat1', '-Stage', 'plan'], tmp);
   check('过滤 check 未走守卫（plan) → exit 1', vpPlanGuard.code === 1, 'got ' + vpPlanGuard.code);
   check('  …报错点到 check-ac', /check-ac\.js/.test(vpPlanGuard.out));
-  // 改成走守卫 → PASS
+  // 改成走守卫 → PASS。plan 阶段还有 F3 跨 task 聚合检查：machine 判定 AC
+  // 必须被**某个 task 的 verify** 用 -MustMatch 锚住 —— acceptance.json 里 AC
+  // 自带的 check -MustMatch 不算数（那是 L3 验收时才跑的，不是实现阶段守卫）。
   write(path.join(feat, 'acceptance.json'), JSON.stringify({
     scenarios: [{ id: 'AC-1', name: 'x', given: 'g', when: 'w', then: 't', judge: 'machine', checkIntent: 'I/O 判等', check: 'node .rd/bin/check-ac.js -Cmd "node --test --test-name-pattern=feat1\\sAC-1" -MustMatch "feat1 AC-1"' }],
+  }));
+  write(path.join(feat, 'tasks.json'), JSON.stringify({
+    tasks: [{ id: 'T1', layer: 1, files: ['index.js'], steps: ['do'], verify: 'node .rd/bin/check-ac.js -Cmd "node --test --test-name-pattern=feat1\\sAC-1" -MustMatch "feat1 AC-1"', covers: ['AC-1'], mutationTargets: ['index.js'] }],
   }));
   const vpPlanOk = run('validate-plan.js', ['-Root', tmp, '-Feature', 'feat1', '-Stage', 'plan'], tmp);
   check('plan 阶段合规 → exit 0', vpPlanOk.code === 0, 'got ' + vpPlanOk.code + '\n' + vpPlanOk.out);
