@@ -196,7 +196,6 @@ if (!fs.existsSync(acPath)) {
 }
 
 const acIds = [];
-const machineAcIds = [];
 const machineChecks = {};
 if (ac !== null) {
   const scenarios = asList(ac.scenarios);
@@ -222,7 +221,6 @@ if (ac !== null) {
     }
 
     if (judge === 'machine') {
-      machineAcIds.push(id);
 
       // 【A9】业务梳理只讨论业务 —— 阶段 0 要判据，阶段 1 才要命令。
       const techTokens = [
@@ -331,7 +329,6 @@ if (Stage === 'plan') {
 
     const byId = {};
     const covered = {};
-    const mutCovered = {};
 
     for (const t of tasks) {
       const id = t.id;
@@ -342,13 +339,11 @@ if (Stage === 'plan') {
       if (t.layer === null || t.layer === undefined || parseInt(t.layer, 10) < 1) addErr(`${id} 的 layer 必须是 >=1 的整数`);
       if (asList(t.files).length === 0) addErr(`${id} 的 files 为空`);
       if (asList(t.steps).length === 0) addErr(`${id} 的 steps 为空`);
-      if (isBlank(t.verify)) addErr(`${id} 缺少 verify 命令`);
+      if (isBlank(t.selfCheck)) addErr(`${id} 缺少 selfCheck 命令`);
       if (asList(t.covers).length === 0) addErr(`${id} 的 covers 为空，说明它不对任何验收标准负责`);
 
-      const hasMut = asList(t.mutationTargets).length > 0;
       for (const c of asList(t.covers)) {
         covered[c] = true;
-        if (hasMut) mutCovered[c] = id;
         if (acIds.indexOf(c) < 0) addErr(`${id} 的 covers 引用了不存在的 ${c}`);
       }
 
@@ -409,65 +404,6 @@ if (Stage === 'plan') {
       if (!covered[id]) {
         addErr(`${id} 没有被任何 task 覆盖`);
       }
-    }
-
-    // 【A11】machine 判定的 AC 必须有变异测试目标。
-    for (const id of machineAcIds) {
-      if (covered[id] && !mutCovered[id]) {
-        addErr(`${id} 是 machine 判定，但覆盖它的 task 没有一个声明了 mutationTargets。machine 判定的 AC 全部依赖「测试通过了」这一个信号 —— 测试集不够用时这条 AC 就是空的。在负责实现它的 task 上声明 mutationTargets（要做变异测试的源文件），Builder 必须报告变异体存活数，存活 > 0 不算完成。`);
-      }
-    }
-
-    /* 【F3】covers 与 verify 锚点的**跨 task 聚合**检查。
-
-       `check-ac -MustMatch` 只卡它自己列出的那几个锚点。所以一个 task
-       covers 了 AC-1 + AC-8、而 verify 只锚 AC-1 时，AC-8 的测试
-       **悄悄消失也不会有任何东西变红** —— 实跑里 T6（AC-1+AC-8）和
-       T10（AC-2/3/4）都是这个形状，validate-plan 当时照常放行。
-
-       规则：每条 **machine 判定**的 AC，必须被**某个** task 的 verify
-       用 -MustMatch 锚住。跨 task 聚合，不要求本 task 自锚 ——
-       实现和测试完全可以分在两个 task 里。
-
-       agent 判定的 AC 不在此列：它们本来就没有机器检查，由 验收层验收者判。 */
-    /* 提取命令里的 -MustMatch 值。三个坑都踩过：
-       ① 必须锚在词首（`(?:^|\s)`）—— 否则 `--no-MustMatch AC-9` 这种**显式关掉**锚点的
-          选项反而会被当成一个锚点，让 AC-9 白白通过校验。
-       ② 引号内要允许 `\"` 转义 —— `-MustMatch "say \"AC-8\" done"` 若在第一个 \" 处截断，
-          AC-8 会丢掉，然后报「没有任何 verify 锚住它」，作者去补一个已经存在的锚点。
-       ③ 一条命令里可能有多个 -MustMatch，要全取。 */
-    function extractMustMatch(cmd) {
-      const s = String(cmd === null || cmd === undefined ? '' : cmd);
-      const acc = [];
-      const re = /(?:^|\s)-{1,2}MustMatch(?:=|\s+)("((?:\\.|[^"\\])*)"|'((?:\\.|[^'\\])*)'|(\S+))/gi;
-      let m;
-      while ((m = re.exec(s)) !== null) {
-        const raw = m[2] !== undefined ? m[2] : (m[3] !== undefined ? m[3] : m[4]);
-        acc.push(String(raw).replace(/\\(["'])/g, '$1'));
-      }
-      return acc;
-    }
-
-    const anchorBlob = tasks
-      .map((t) => extractMustMatch(t.verify).join(' ;; '))
-      .filter((x) => x !== '')
-      .join(' ;; ');
-
-    for (const id of machineAcIds) {
-      if (!covered[id]) continue; // 「压根没被覆盖」上面已经报过，不重复报
-      const esc = String(id).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      // 整词匹配：两侧都不许接字母/数字/下划线 —— AC-1 既不能被 AC-10 冒充，也不能被 AC-1a 冒充
-      const re = new RegExp('(^|[^0-9A-Za-z_])' + esc + '([^0-9A-Za-z_]|$)');
-      if (re.test(anchorBlob)) continue;
-      const owners = tasks
-        .filter((t) => asList(t.covers).indexOf(id) >= 0)
-        .map((t) => t.id)
-        .join(' / ');
-      addErr(`${id} 是 machine 判定、被 ${owners} 的 covers 声明，但**没有任何 task 的 verify 用 -MustMatch 锚住它**。` +
-        `-MustMatch 只卡它列出的锚点，所以这条 AC 的测试就算根本没写、或以后被悄悄删掉，测试层也全是绿的。` +
-        `在负责它的 task 的 verify 里补上锚点（可以和别的 AC 合并在同一条命令里，用 ;; 分隔）。` +
-        `⚠ 注意：acceptance.json 里这条 AC 自带的 check -MustMatch **不算数** —— 那条命令是验收层时才跑的，` +
-        `而这里要求的是**实现阶段**（task 完成时）就有机器守卫。两者都要有，不是重复。`);
     }
 
     // gates.json 的语法门是否覆盖了 tasks.json 声明的全部源文件。

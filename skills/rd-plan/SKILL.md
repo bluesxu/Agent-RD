@@ -175,19 +175,22 @@ node <agent-rd>/scripts/check-artifacts.js -Feature {slug} -Json
 |---|---|
 | **同一 layer 内，任意两个 task 的 `files` 必须无交集** | 由 `validate-plan.js` 机械校验，不是靠自觉 |
 | **`layer` 表示依赖深度** | layer 1 无依赖，layer N 只能依赖 layer < N |
-| **每个 task 必须有 `verify`** | 一条它自己能跑的验证命令（窄，只覆盖它的文件）。测试类 verify 以项目根为 cwd，显式指向 `.rd/features/{slug}/tests/` 下对应文件 |
+| **每个 task 必须有 `selfCheck`** | 一条 Builder 完成前的自检命令（node --check / tsc --noEmit / go vet / cargo check）。只验语法与类型，不跑测试 —— 测试由审查层写、由测试层跑 |
 | **每个 task 必须有 `covers`** | 它负责满足哪几条 AC。所有 AC 必须被至少一个 task 覆盖 |
 | **task 粒度**：一个自包含的工作单元，有明确交付物 | 太小 → 协调开销大于收益；太大 → 没有检查点 |
 
 典型分层：layer 1 是底层（model / schema / util / store），layer 2 是上层
 （service / route / controller / component），layer 3 是集成与端到端测试。
 
-⛔ **测试文件一律进 `.rd/features/{slug}/tests/`，不许写进项目树。** 项目树里只放产品代码；
-   AC 测试（含 `files` 白名单里的测试路径）全部落在 `.rd/features/{slug}/tests/` 下。
-   所有 `check` / `verify` 命令以项目根为 cwd 执行，显式指向 `.rd/features/{slug}/tests/...`，
+⛔ **AC 测试一律进 `.rd/features/{slug}/tests/`，不许写进项目树。** 项目树里只放产品代码。
+   测试由审查层在审查通过后写，**不进 tasks.json 的 `files` 白名单** —— 白名单只列产品代码
+   （否则 Builder 会被要求写测试，而测试作者是审查层）。任务书里 `covers` 的 AC 会被审查层
+   写测试，你不需要为每个 task 预留测试路径。
+   所有 `check` / `selfCheck` 命令以项目根为 cwd 执行，显式指向 `.rd/features/{slug}/tests/...`，
    不许依赖语言默认发现（项目树里没有测试）。`.rd/` 的 git 策略由开发者自定，与本条无关。
    **例外（语言硬约束）**：Go / Rust 的测试只能留在包内（`go test ./...` / `cargo test`
-   只发现包内测试），这类语言的测试随产品代码走、留在项目树，视为产品代码的一部分。
+   只发现包内测试），这类语言的测试随产品代码走、留在项目树，视为产品代码的一部分，
+   由审查层补写。
 
 ## 第五步：把 checkIntent 具化成 check —— 技术定了才做得了这件事
 
@@ -226,7 +229,7 @@ check:       node .rd/bin/check-ac.js
 node <agent-rd>/scripts/validate-plan.js -Feature {slug} -Stage plan
 ```
 
-校验的是机械规则：文件不重叠、依赖不成环、AC 全覆盖、verify 非空。
+校验的是机械规则：文件不重叠、依赖不成环、AC 全覆盖、selfCheck 非空。
 **不过就改，不许手动跳过。**这道门是无人化的前提 —— 它拦下的是后面自动流程
 无论如何都发现不了的那类错误。
 

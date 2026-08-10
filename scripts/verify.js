@@ -204,7 +204,7 @@ try {
   check('spec 阶段判据齐 → exit 0', vpSpecOk.code === 0, 'got ' + vpSpecOk.code + '\n' + vpSpecOk.out);
   // plan 阶段：机器判定 + 带过滤的 check 不走守卫 → 应 FAIL（且命中规则）
   write(path.join(feat, 'tasks.json'), JSON.stringify({
-    tasks: [{ id: 'T1', layer: 1, files: ['index.js'], steps: ['do'], verify: 'echo ok', covers: ['AC-1'], mutationTargets: ['index.js'] }],
+    tasks: [{ id: 'T1', layer: 1, files: ['index.js'], steps: ['do'], selfCheck: 'node --check index.js', covers: ['AC-1'], mutationTargets: ['index.js'] }],
   }));
   write(path.join(feat, 'design.md'), 'x\n');
   write(path.join(tmp, '.rd', 'gates.json'), JSON.stringify({ l1: [{ name: 'noop', cmd: 'node --check index.js', required: true }] }));
@@ -214,14 +214,13 @@ try {
   const vpPlanGuard = run('validate-plan.js', ['-Root', tmp, '-Feature', 'feat1', '-Stage', 'plan'], tmp);
   check('过滤 check 未走守卫（plan) → exit 1', vpPlanGuard.code === 1, 'got ' + vpPlanGuard.code);
   check('  …报错点到 check-ac', /check-ac\.js/.test(vpPlanGuard.out));
-  // 改成走守卫 → PASS。plan 阶段还有 F3 跨 task 聚合检查：machine 判定 AC
-  // 必须被**某个 task 的 verify** 用 -MustMatch 锚住 —— acceptance.json 里 AC
-  // 自带的 check -MustMatch 不算数（那是验收层时才跑的，不是实现阶段守卫）。
+  // 改成走守卫 → PASS。task 的 selfCheck 是 Builder 自检（node --check / tsc），
+  // 不再要求锚 AC（F3 已随 Builder 不跑测试而移除，锚点由测试层 gate-test 把关）。
   write(path.join(feat, 'acceptance.json'), JSON.stringify({
     scenarios: [{ id: 'AC-1', name: 'x', given: 'g', when: 'w', then: 't', judge: 'machine', checkIntent: 'I/O 判等', check: 'node .rd/bin/check-ac.js -Cmd "node --test --test-name-pattern=feat1\\sAC-1" -MustMatch "feat1 AC-1"' }],
   }));
   write(path.join(feat, 'tasks.json'), JSON.stringify({
-    tasks: [{ id: 'T1', layer: 1, files: ['index.js'], steps: ['do'], verify: 'node .rd/bin/check-ac.js -Cmd "node --test --test-name-pattern=feat1\\sAC-1" -MustMatch "feat1 AC-1"', covers: ['AC-1'], mutationTargets: ['index.js'] }],
+    tasks: [{ id: 'T1', layer: 1, files: ['index.js'], steps: ['do'], selfCheck: 'node --check index.js', covers: ['AC-1'], mutationTargets: ['index.js'] }],
   }));
   const vpPlanOk = run('validate-plan.js', ['-Root', tmp, '-Feature', 'feat1', '-Stage', 'plan'], tmp);
   check('plan 阶段合规 → exit 0', vpPlanOk.code === 0, 'got ' + vpPlanOk.code + '\n' + vpPlanOk.out);
@@ -237,7 +236,7 @@ try {
     sh('git config user.email t@t.t', tmp);
     sh('git config user.name t', tmp);
     write(path.join(feat, 'tasks.json'), JSON.stringify({
-      tasks: [{ id: 'T1', layer: 1, files: ['index.js'], steps: ['do'], verify: 'echo ok', covers: ['AC-1'], mutationTargets: ['index.js'] }],
+      tasks: [{ id: 'T1', layer: 1, files: ['index.js'], steps: ['do'], selfCheck: 'node --check index.js', covers: ['AC-1'], mutationTargets: ['index.js'] }],
     }));
     write(path.join(tmp, 'index.js'), 'console.log("v1");\n');
     sh('git add -A', tmp);

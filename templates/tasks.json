@@ -17,7 +17,7 @@
         "定义 Session 实体，含 expires_at 与 revoked_at",
         "补 failed_attempts 与 locked_until 两个字段，供锁定逻辑使用"
       ],
-      "verify": "npx tsc --noEmit && node --test .rd/features/user-login/tests/models/*.test.ts",
+      "selfCheck": "npx tsc --noEmit",
       "covers": [
         "AC-1",
         "AC-2"
@@ -39,7 +39,7 @@
         "失败时在表单上方渲染错误横幅，清空密码框并保留用户名",
         "保存 returnTo 查询参数以便登录后跳回"
       ],
-      "verify": "npx tsc --noEmit && node --test .rd/features/user-login/tests/ui/*.test.ts",
+      "selfCheck": "npx tsc --noEmit",
       "covers": [
         "AC-3",
         "AC-4"
@@ -62,7 +62,7 @@
         "达到 5 次时写 locked_until = now + 15min",
         "锁定期内即使密码正确也返回 423 与剩余秒数"
       ],
-      "verify": "node --test .rd/features/user-login/tests/services/*.test.ts",
+      "selfCheck": "npx tsc --noEmit",
       "covers": [
         "AC-1",
         "AC-2"
@@ -81,15 +81,13 @@
       ],
       "name": "登录路由与端到端串联",
       "files": [
-        "src/routes/login.ts",
-        ".rd/features/user-login/tests/e2e/login.spec.ts"
+        "src/routes/login.ts"
       ],
       "steps": [
         "POST /api/login 接入 auth 服务，按 design.md 的契约返回",
-        "登录成功后按 returnTo 跳转，缺省回首页",
-        "补端到端测试覆盖 AC-1 到 AC-4"
+        "登录成功后按 returnTo 跳转，缺省回首页"
       ],
-      "verify": "node --test .rd/features/user-login/tests/e2e/login.spec.ts",
+      "selfCheck": "npx tsc --noEmit",
       "covers": [
         "AC-1",
         "AC-2",
@@ -103,12 +101,12 @@
     "id": "必填，T-N 形式，全文唯一",
     "layer": "必填，正整数。layer N 只能依赖 layer < N",
     "depends_on": "layer > 1 时必填，引用的 id 必须存在且 layer 更小",
-    "files": "必填非空。同一 layer 内任意两个 task 的 files 必须无交集",
+    "files": "必填非空。同一 layer 内任意两个 task 的 files 必须无交集。测试文件不列进来 —— 测试由审查层写在 .rd/features/{slug}/tests/，不归 Builder",
     "steps": "必填非空",
-    "verify": "必填。一条这个 task 自己能跑的窄验证命令",
+    "selfCheck": "必填。一条 Builder 完成前的自检命令（node --check / tsc --noEmit / go vet / cargo check）。只验语法与类型，不跑测试",
     "covers": "必填非空。所有 AC 必须被至少一个 task 覆盖",
-    "mutationTargets": "必填字段（可为空数组）。声明这个 task 里【哪些文件必须做变异测试】。规则：每个 judge=machine 的 AC，必须至少有一个覆盖它的 task 声明了非空 mutationTargets —— 因为机器判定的 AC，它的全部验证就是「测试通过了」，测试集不够用这条 AC 就是空的。judge=agent 的 AC 有人真的去观察，对测试充分性的依赖低得多，可以留空。"
+    "mutationTargets": "必填字段（可为空数组）。声明这个 task 里【哪些文件必须由审查层做对抗性变异】。规则：正确性只有测试能验的模块（纯计算/并发/状态机）写进去；薄改动（错误能被类型/语法兜住）留空。judge=agent 的 AC 有人真的去观察，对测试充分性的依赖低得多，可以留空。"
   },
   "_rule": "按文件边界切，不按功能切。功能是耦合的，文件不是。两个 agent 同时改一个文件产生的冲突，自动审查抓不出来。",
-  "_mutationRule": "为什么需要这个字段：实跑里出现过一次近乎受控的对比 —— 同一个仓库、同一轮审查，EMA 模块 6 个变异体全被杀，pipeline 模块 6 个全存活，唯一的差别是【EMA 那个 task 的任务书里写了变异测试要求，pipeline 那个没写】。测试通过只说明「实现和测试一致」，不说明「实现是对的」；变异测试是唯一直接检验「测试集够不够用」的手段。⚠️ 但这套要求目前只有一个数据点支撑，尚未在第二个独立项目上复现。"
+  "_mutationRule": "为什么变异交给审查层而不是 Builder：Builder 用想象力变异自己的代码，造出来的必然是他的测试已经能杀掉的那些；审查层在写完全部 AC 测试后自造对抗性变异，专挑测试想不到的地方，才是唯一直接检验「测试集够不够用」的手段。实跑教训：同一仓库、同一轮审查，EMA 模块 6 个变异体全被杀、pipeline 模块 6 个全存活，唯一的差别是【EMA 那个 task 的任务书里写了变异测试要求，pipeline 那个没写】—— 所以哪条 task 需要变异，在切 DAG 时就定死。"
 }

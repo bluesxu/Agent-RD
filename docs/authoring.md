@@ -138,15 +138,14 @@ stale-doc:nit
 <!-- receipt-fields:start -->
 taskId
 filesChanged
-verifyCommand
-verifyOutput
-mutationsSurvived
+selfCheckCommand
+selfCheckOutput
 deviations
 <!-- receipt-fields:end -->
 ```
 
 - 位置：`reports/receipts/{taskId}.json`，顶层 `_complete: true`。
-- `verifyOutput` 必须是真实文本——空白或纯占位符判不合格。
+- `selfCheckOutput` 必须是真实文本——空白或纯占位符判不合格。
 - `deviations` 写偏离任务书的地方及原因，没有写「无」。
 - 证据补齐模式：回执缺字段或含糊 → 打回补证据，**不许重新实现**；第二次仍不合格 → 判 blocked。
 

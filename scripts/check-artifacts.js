@@ -161,7 +161,7 @@ const RUBRIC_CONDITIONS = [
 const CONDITION_NAMES = new Set(RUBRIC_CONDITIONS.map((c) => c.split(':')[0]));
 
 // Builder 结构化回执（reports/receipts/{taskId}.json）必填字段。
-const RECEIPT_FIELDS = ['taskId', 'filesChanged', 'verifyCommand', 'verifyOutput', 'mutationsSurvived', 'deviations'];
+const RECEIPT_FIELDS = ['taskId', 'filesChanged', 'selfCheckCommand', 'selfCheckOutput', 'deviations'];
 
 /*
   -Sections：把上面这张表打印出来。
@@ -724,14 +724,14 @@ if (args.SelfTest) {
 
   // AC-5 回执三态
   const okR = path.join(tmp, 'ok-receipt.json');
-  fs.writeFileSync(okR, JSON.stringify({ _complete: true, taskId: 'T1', filesChanged: ['a.js'], verifyCommand: 'npm test', verifyOutput: 'pass 43 fail 0', mutationsSurvived: 0, deviations: '无' }), 'utf8');
+  fs.writeFileSync(okR, JSON.stringify({ _complete: true, taskId: 'T1', filesChanged: ['a.js'], selfCheckCommand: 'node --check a.js', selfCheckOutput: 'ok', deviations: '无' }), 'utf8');
   L('AC-5 合法回执应判 ok', () => checkReceipt(okR).length === 0);
   const missR = path.join(tmp, 'miss-receipt.json');
   fs.writeFileSync(missR, JSON.stringify({ _complete: true, taskId: 'T1' }), 'utf8');
   L('AC-5 缺字段回执应判 fail', () => checkReceipt(missR).some((i) => i.includes('filesChanged')));
   const phR = path.join(tmp, 'ph-receipt.json');
-  fs.writeFileSync(phR, JSON.stringify({ _complete: true, taskId: 'T1', filesChanged: ['a.js'], verifyCommand: 'npm test', verifyOutput: '{这里是输出}', mutationsSurvived: 0, deviations: '无' }), 'utf8');
-  L('AC-5 占位符回执应判 fail', () => checkReceipt(phR).some((i) => i.includes('verifyOutput') && i.includes('空壳')));
+  fs.writeFileSync(phR, JSON.stringify({ _complete: true, taskId: 'T1', filesChanged: ['a.js'], selfCheckCommand: 'node --check a.js', selfCheckOutput: '{这里是输出}', deviations: '无' }), 'utf8');
+  L('AC-5 占位符回执应判 fail', () => checkReceipt(phR).some((i) => i.includes('selfCheckOutput') && i.includes('空壳')));
 
   // AC-7 守恒：基线里有硬约束、改后全集里找不到 → 报
   const consBase = path.join(tmp, 'consbase');
