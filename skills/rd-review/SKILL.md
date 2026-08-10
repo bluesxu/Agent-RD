@@ -97,7 +97,8 @@ freeze 已从磁盘把它们收进 `review-target.json` 的 `testFiles`（路径
 
 ### 写什么
 
-- **全部 machine 判定 AC 的测试**，落盘到 `.rd/features/{slug}/tests/`。
+- **你负责的那片 machine 判定 AC 的测试**，落盘到 `.rd/features/{slug}/tests/`。
+  （切片并行时每个 reviewer 各写自己分到的 AC；单 reviewer 时写全部 machine AC。）
   对着 `acceptance.json` 的 `checkIntent`（输入 / 期望输出 / 判等方式）写，
   再补上你刚深读代码后发现的真实接口细节。
 - 测试表达的是 **checkIntent 的意图**，不是实现的形状 —— 断言行为，不断言内部函数。
@@ -105,6 +106,12 @@ freeze 已从磁盘把它们收进 `review-target.json` 的 `testFiles`（路径
   验证这套测试集够不够用 —— **存活 > 0 = 测试集有缺口**，按严重程度定级。
 - **Go / Rust 例外**：测试只能留在包内（`go test ./...` / `cargo test` 只发现包内测试），
   这类语言的包内测试文件同样由你补写，随产品代码走。
+
+### 切片并行的交叉复审
+
+切片并行时，你写完自己的 AC 测试后，**审相邻切片的测试**（反之亦然）：
+- 以 spec 定责 —— 相邻片测试若偏离 checkIntent、迁就实现，点名要求改回。
+- 这是对「谁写谁审」的唯一对冲：测试作者换了独立的眼睛，overfit 不再无人看见。
 
 ### 测试修改红线（你自己也要守）
 
