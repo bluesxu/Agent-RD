@@ -92,6 +92,58 @@ function getDeclaredFiles(featureDir) {
   return Array.from(new Set(outArr)).sort();
 }
 
+// ---- .rd 下的测试文件：被 gitignore 后 git diff 看不见，只能走磁盘 ----
+// AC 测试由 Builder 写在 .rd/features/{Feature}/tests/，整体不进 git。
+// git diff 对它们不可见（gitignored），但 L2 判断「这份绿是不是真的」必须读它们 ——
+// 所以这里从磁盘 walk，纳入冻结目标与 diff。相对路径与 tasks.json 的 files 同基准（项目根）。
+function readTestFiles(featureDir) {
+  const tdir = path.join(featureDir, 'tests');
+  const out = [];
+  if (!fs.existsSync(tdir)) return out;
+  const stack = [''];
+  while (stack.length) {
+    const relDir = stack.pop();
+    let entries;
+    try { entries = fs.readdirSync(path.join(tdir, relDir), { withFileTypes: true }); }
+    catch { continue; }
+    for (const e of entries) {
+      const rel = relDir ? relDir + '/' + e.name : e.name;
+      if (e.isDirectory()) { stack.push(rel); continue; }
+      if (!e.isFile()) continue;
+      let buf;
+      try { buf = fs.readFileSync(path.join(tdir, rel), 'utf8'); } catch { continue; }
+      out.push({ rel: ('.rd/features/' + Feature + '/tests/' + rel).replace(/\\/g, '/'), sha256: sha256Hex(buf), content: buf });
+    }
+  }
+  out.sort((a, b) => (a.rel < b.rel ? -1 : a.rel > b.rel ? 1 : 0));
+  return out;
+}
+
+// 测试段的确定性文本：相对上一轮快照只出有变化的文件（与 git diff 的增量语义一致）。
+// 返回空串 = 本轮测试没有变化或还没有测试。
+function buildTestSection(testFiles, prevSnap) {
+  const prev = prevSnap || {};
+  const changed = testFiles.filter((t) => prev[t.rel] !== t.sha256);
+  if (changed.length === 0) return '';
+  const lines = ['', '# --- tests/ under .rd/features/' + Feature + '/tests (gitignored, disk-walked) ---'];
+  for (const t of changed) {
+    lines.push('', '--- ' + t.rel + ' (sha256 ' + t.sha256.substring(0, 12) + ') ---', t.content.replace(/\n$/, ''));
+  }
+  return lines.join('\n') + '\n';
+}
+
+function loadSnap(diffDir, round) {
+  const p = path.join(diffDir, `tests-round${round}.snap.json`);
+  if (!fs.existsSync(p)) return null;
+  try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return null; }
+}
+
+function snapOf(testFiles) {
+  const snap = {};
+  for (const t of testFiles) snap[t.rel] = t.sha256;
+  return snap;
+}
+
 // ---- 未跟踪文件：git diff 天然看不见它们 ----
 // 实跑教训：某轮 src/web/、public/ 和全部新测试都是未跟踪文件，两轮 freeze 生成的 diff
 // 因此**逐字节相同**、且都不含本次改动的主体 —— 「审冻结 diff」实际什么都没审到，
@@ -257,6 +309,7 @@ function getCurrentDiff(repoRoot, scope, opts) {
 }
 
 const dir = path.join(Root, '.rd', 'features', Feature);
+const diffDir = path.join(dir, 'reports');
 const targetPath = path.join(dir, 'review-target.json');
 
 if (!fs.existsSync(dir)) {
@@ -278,7 +331,14 @@ try {
   out(C.red('[freeze] ' + (e && e.message ? e.message : String(e))));
   process.exit(2);
 }
-const hash = sha256Hex(current.text);
+
+// 测试文件在 .rd/features/{Feature}/tests/、被 gitignore，git diff 看不见 —— 从磁盘收集，
+// 与 git diff 拼成同一份可哈希的审查文本（freeze 与 -Verify 用同一条路径重算）。
+const testFiles = readTestFiles(dir);
+const prevSnap = loadSnap(diffDir, Round - 1);
+const testSection = buildTestSection(testFiles, prevSnap);
+const combined = current.text + testSection;
+const hash = sha256Hex(combined);
 
 if (args.Verify) {
   if (!fs.existsSync(targetPath)) {
@@ -286,6 +346,25 @@ if (args.Verify) {
     process.exit(2);
   }
   const frozen = JSON.parse(fs.readFileSync(targetPath, 'utf8'));
+
+  /* 测试文件漂移点名：git 看不见它们，sha256 比对会涵盖但报不出位置 —— 单独对账。
+     冻结时把 testFiles（路径+sha）写进了 review-target.json，校验时重算并与它差集比对。 */
+  const frozenTests = new Map((Array.isArray(frozen.testFiles) ? frozen.testFiles : []).map((t) => [t.path, t.sha256]));
+  const drift = [];
+  for (const t of testFiles) {
+    if (!frozenTests.has(t.rel)) drift.push(t.rel + '  ← 新增');
+    else if (frozenTests.get(t.rel) !== t.sha256) drift.push(t.rel + '  ← 内容变化');
+  }
+  for (const p of frozenTests.keys()) {
+    if (!testFiles.some((t) => t.rel === p)) drift.push(p + '  ← 被删除');
+  }
+  if (drift.length > 0) {
+    out(C.red('[freeze] TargetMoved —— 审查期间测试文件被改动'));
+    for (const f of drift.slice(0, 10)) out(C.yellow('         ' + f));
+    if (drift.length > 10) out(C.yellow(`         …还有 ${drift.length - 10} 个`));
+    out(C.yellow('         本轮审查作废。重新冻结完整目标后再派 reviewer。'));
+    process.exit(1);
+  }
 
   /* ⛔ 范围外漂移（NEW-2）：-Verify 只比范围内哈希，范围外文件的改动不进 hash。
      冻结时把 outOfScope 快照写进了 review-target.json，校验时必须重算并与它差集比对 ——
@@ -326,20 +405,23 @@ if (args.Verify) {
   process.exit(1);
 }
 
-if (!current.text.trim()) {
-  out(C.yellow('[freeze] 工作树没有任何改动，没什么可审的。'));
+if (!current.text.trim() && testSection.trim() === '') {
+  out(C.yellow('[freeze] 工作树没有任何改动，也没有测试变化，没什么可审的。'));
   out(C.dark('         （未跟踪文件已通过 git add -N 一并检查过，不是「新文件看不见」）'));
   process.exit(2);
 }
 
-const diffDir = path.join(dir, 'reports');
 fs.mkdirSync(diffDir, { recursive: true });
 const diffPath = path.join(diffDir, `l2-round${Round}.diff`);
 // 必须写成与 sha256Hex 完全相同的字节（UTF-8 无 BOM），否则第三方对这个文件
 // 重新 hash 会得到与 review-target.json 记录不同的值。
-fs.writeFileSync(diffPath, current.text, 'utf8');
+fs.writeFileSync(diffPath, current.text + testSection, 'utf8');
+// 测试快照：供下一轮增量只重审变化的测试，也供 -Verify 比对漂移。
+fs.writeFileSync(path.join(diffDir, `tests-round${Round}.snap.json`), JSON.stringify(snapOf(testFiles), null, 2), 'utf8');
 
 const outOfScope = current.outOfScope.filter((x) => x && x.trim());
+const declaredLower = new Set(declared.map((s) => s.toLowerCase()));
+const testsOutOfScope = testFiles.filter((t) => !declaredLower.has(t.rel.toLowerCase()));
 
 const target = {
   feature: Feature,
@@ -350,6 +432,8 @@ const target = {
   scope: declared.length > 0 ? 'tasks.json declared files' : 'whole-repo (fallback)',
   scopeFiles: declared,
   files: current.files.filter((x) => x && x.trim()),
+  testFiles: testFiles.map((t) => ({ path: t.rel, sha256: t.sha256 })),
+  testsOutOfScope: testsOutOfScope.map((t) => t.rel),
   outOfScope,
   masked: current.masked,
   untrackedIncluded: current.untracked.included,
@@ -365,6 +449,7 @@ out(C.gray(`         sha256 : ${hash.substring(0, 12)}`));
 out(C.gray(`         mode   : ${current.mode}`));
 out(C.gray(`         scope  : ${target.scope}  (${declared.length} 个声明文件)`));
 out(C.gray(`         files  : ${target.files.length}  ← 本轮实际改动且在范围内的`));
+out(C.gray(`         tests  : ${testFiles.length}  ← 磁盘 walk .rd/features/${Feature}/tests/`));
 out(C.gray(`         diff   : ${diffPath}`));
 
 // 未跟踪文件的纳入情况必须显式播报 —— 这一栏为 0 而工作树里明明有新文件时，
@@ -393,6 +478,14 @@ if (outOfScope.length > 0) {
   if (outOfScope.length > 12) out(C.yellow(`             …还有 ${outOfScope.length - 12} 个`));
   out(C.dark('         它们**不在本次审查目标里**。要么是越界改动（agent 改了白名单外的文件)，'));
   out(C.dark('         要么是 tasks.json 的 files 声明漏了。两种都该先弄清楚再派 reviewer。'));
+}
+
+if (testsOutOfScope.length > 0) {
+  out('');
+  out(C.yellow(`         ⚠ 有 ${testsOutOfScope.length} 个测试文件**不在任何 task 的 files 声明里**（越界）：`));
+  for (const f of testsOutOfScope.slice(0, 12)) out(C.yellow('             ' + f.rel));
+  if (testsOutOfScope.length > 12) out(C.yellow(`             …还有 ${testsOutOfScope.length - 12} 个`));
+  out(C.dark('         Builder 在白名单外写了测试文件。修掉，或把路径加进 tasks.json 的 files。'));
 }
 
 if (current.masked.length > 0) {

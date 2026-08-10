@@ -17,7 +17,7 @@
         "定义 Session 实体，含 expires_at 与 revoked_at",
         "补 failed_attempts 与 locked_until 两个字段，供锁定逻辑使用"
       ],
-      "verify": "npx tsc --noEmit && npm test -- src/models",
+      "verify": "npx tsc --noEmit && node --test .rd/features/user-login/tests/models/*.test.ts",
       "covers": [
         "AC-1",
         "AC-2"
@@ -39,7 +39,7 @@
         "失败时在表单上方渲染错误横幅，清空密码框并保留用户名",
         "保存 returnTo 查询参数以便登录后跳回"
       ],
-      "verify": "npx tsc --noEmit && npm test -- src/ui",
+      "verify": "npx tsc --noEmit && node --test .rd/features/user-login/tests/ui/*.test.ts",
       "covers": [
         "AC-3",
         "AC-4"
@@ -62,7 +62,7 @@
         "达到 5 次时写 locked_until = now + 15min",
         "锁定期内即使密码正确也返回 423 与剩余秒数"
       ],
-      "verify": "npm test -- src/services",
+      "verify": "node --test .rd/features/user-login/tests/services/*.test.ts",
       "covers": [
         "AC-1",
         "AC-2"
@@ -82,14 +82,14 @@
       "name": "登录路由与端到端串联",
       "files": [
         "src/routes/login.ts",
-        "tests/e2e/login.spec.ts"
+        ".rd/features/user-login/tests/e2e/login.spec.ts"
       ],
       "steps": [
         "POST /api/login 接入 auth 服务，按 design.md 的契约返回",
         "登录成功后按 returnTo 跳转，缺省回首页",
         "补端到端测试覆盖 AC-1 到 AC-4"
       ],
-      "verify": "npm test -- tests/e2e/login.spec.ts",
+      "verify": "node --test .rd/features/user-login/tests/e2e/login.spec.ts",
       "covers": [
         "AC-1",
         "AC-2",

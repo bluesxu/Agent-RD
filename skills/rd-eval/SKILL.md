@@ -139,7 +139,7 @@ feature: {slug}
 ## 逐条
 ### AC-1 {name}  ✅ pass
 - 判定方式: machine
-- 命令: npm test -- -t AC-1
+- 命令: node --test .rd/features/{slug}/tests/*.test.ts --test-name-pattern={slug}\sAC-1
 - 输出: {真实输出摘要}
 
 ### AC-4 {name}  ❌ fail

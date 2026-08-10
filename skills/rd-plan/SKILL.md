@@ -191,12 +191,19 @@ node <agent-rd>/scripts/check-artifacts.js -Feature {slug} -Json
 |---|---|
 | **同一 layer 内，任意两个 task 的 `files` 必须无交集** | 由 `validate-plan.js` 机械校验，不是靠自觉 |
 | **`layer` 表示依赖深度** | layer 1 无依赖，layer N 只能依赖 layer < N |
-| **每个 task 必须有 `verify`** | 一条它自己能跑的验证命令（窄，只覆盖它的文件） |
+| **每个 task 必须有 `verify`** | 一条它自己能跑的验证命令（窄，只覆盖它的文件）。测试类 verify 以项目根为 cwd，显式指向 `.rd/features/{slug}/tests/` 下对应文件 |
 | **每个 task 必须有 `covers`** | 它负责满足哪几条 AC。所有 AC 必须被至少一个 task 覆盖 |
 | **task 粒度**：一个自包含的工作单元，有明确交付物 | 太小 → 协调开销大于收益；太大 → 没有检查点 |
 
 典型分层：layer 1 是底层（model / schema / util / store），layer 2 是上层
 （service / route / controller / component），layer 3 是集成与端到端测试。
+
+⛔ **测试文件一律进 `.rd/features/{slug}/tests/`，不许写进项目树。** 项目树里只放产品代码；
+   AC 测试（含 `files` 白名单里的测试路径）全部落在 `.rd/features/{slug}/tests/` 下，
+   该目录整体被 gitignore、不进 git。所有 `check` / `verify` 命令以项目根为 cwd 执行，
+   显式指向 `.rd/features/{slug}/tests/...`，不许依赖语言默认发现（项目树里已经没有测试）。
+   **例外（语言硬约束）**：Go / Rust 的测试只能留在包内（`go test ./...` / `cargo test`
+   只发现包内测试），这类语言的测试随产品代码走、留在项目树，视为产品代码的一部分。
 
 ## 第五步：把 checkIntent 具化成 check —— 技术定了才做得了这件事
 
@@ -212,7 +219,7 @@ checkIntent: 对一组写死的输入跑计算，逐个断言四个周期的输�
      ↓ 选定 Node 之后
 
 check:       node .rd/bin/check-ac.js
-             -Cmd "node --test --test-name-pattern={slug}\sAC-1"
+             -Cmd "node --test .rd/features/{slug}/tests/*.test.js --test-name-pattern={slug}\sAC-1"
              -MustMatch "AC-1: 数值精确匹配;;AC-1: 均值初值与首值初值可区分"
 ```
 

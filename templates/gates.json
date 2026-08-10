@@ -2,11 +2,11 @@
   "l1": [
     { "name": "typecheck", "cmd": "npx tsc --noEmit", "required": true },
     { "name": "lint",      "cmd": "npm run lint",     "required": true },
-    { "name": "test",      "cmd": "npm test",         "required": true },
+    { "name": "test",      "cmd": "node --test .rd/features/*/tests/*.test.*", "required": true },
     { "name": "build",     "cmd": "npm run build",    "required": false }
   ],
 
-  "_note": "按你的项目改。required=false 的项失败只警告不阻塞。顺序即执行顺序，越便宜的放越前面，早失败早退出。",
+  "_note": "按你的项目改。required=false 的项失败只警告不阻塞。顺序即执行顺序，越便宜的放越前面，早失败早退出。test 门用不带引号的 glob 指向 .rd/features/*/tests/：AC 测试由 skill 写在 .rd/features/{slug}/tests/（被 gitignore），不在项目树里；glob 不引号，bash 自行展开、cmd 不展开所以 node 收到字面 glob 自己展开——两种 shell 都成立，还避开嵌套引号。",
 
   "_syntaxGate": {
     "_why": "给不在编译器覆盖范围里的目录（public/、静态前端、脚本目录）加一条零成本的语法下限。实跑教训：public/ 完全在机器门之外，一个渲染缺陷靠 L3 真实浏览器才暴露，白跑一整轮 —— 而在那之前连语法层都没有门。tsc 不覆盖 public/ 是设计，但逐文件 node --check 不要钱。",
@@ -19,7 +19,7 @@
     "python": [
       { "name": "typecheck", "cmd": "mypy .",            "required": true },
       { "name": "lint",      "cmd": "ruff check .",      "required": true },
-      { "name": "test",      "cmd": "pytest -q",         "required": true }
+      { "name": "test",      "cmd": "pytest -q .rd/features", "required": true }
     ],
     "go": [
       { "name": "vet",   "cmd": "go vet ./...",   "required": true },

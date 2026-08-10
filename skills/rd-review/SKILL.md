@@ -28,6 +28,12 @@ node <agentrd>/scripts/freeze-target.js -Feature {slug} -Round {N} -Verify
 
 **你返回之前不得移动该目标或改动工作树。**
 
+**审查范围含测试文件**：`.rd/features/{slug}/tests/` 的 AC 测试被 gitignore、进不了 git diff，
+freeze 已从磁盘把它们收进 `review-target.json` 的 `testFiles`（路径 + sha256），
+并把有变化的测试内容附在 `l2-round{N}.diff` 末尾的「测试段」里。
+逐段读 `testFiles` 列出的测试文件 —— 测试造假（mock / 放宽断言 / 被 skip 的用例）
+是这条流水线上最值得防的高危区，见下方「特别留意」。
+
 ## 你的身份 —— 默认就是敌对的，不是可选角度
 
 **你的任务是让这套代码在生产上出事，然后把做法写出来。**

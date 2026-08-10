@@ -15,6 +15,8 @@
 你只能创建或修改以下文件：
 {task.files 逐行列出}
 严禁触碰其他任何文件。违反 = 任务失败。
+**测试文件在 `.rd/features/{slug}/tests/` 下**（该目录被 gitignore、不进 git，L1 的 test 门和
+acceptance 的 check 命令都显式指过去）。它同样受上面白名单约束 —— 白名单里没列的测试路径不许写。
 
 ## 上下文
 {design.md 的「选定方案」和「契约变化」两节全文}
@@ -24,7 +26,15 @@
 {task.steps}
 
 ## 测试先行
-项目已有测试设施时：先写一个能表达 AC 的失败测试，再实现，直到它变绿。
+先写一个能表达 AC 的**失败**测试到 `.rd/features/{slug}/tests/`，再实现，直到它变绿。
+测试命令以项目根为 cwd 跑，例如：`node --test .rd/features/{slug}/tests/*.test.js --test-name-pattern={slug}\sAC-1`。
+**Python 特例**：测试目录里同时写一个 `conftest.py`，把项目根塞进 sys.path
+（测试在 `.rd/features/{slug}/tests/` 深处，不加它就 import 不到项目包）：
+```python
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))))
+```
+（Go / Rust 例外：测试留在包内、随产品代码走 —— 见 task 说明。）
 
 ## 变异测试（task.mutationTargets 非空时必做）
 对 {task.mutationTargets} 里的每个文件，至少造 5 个变异体，**照下表机械地改，不要靠想象力**：
@@ -37,7 +47,8 @@
 | 守卫 | 删掉一个 `if` 早退 |
 | 返回 | 提前 return，或返回默认值 |
 
-每造一个变异体就跑一次测试，然后**还原**。逐条报告：
+每造一个变异体就跑一次测试（`node --test .rd/features/{slug}/tests/*.test.js --test-name-pattern={slug}\sAC-1`），
+然后**还原**。逐条报告：
 
 ```
 变异测试 src/core/ema.ts
@@ -56,6 +67,7 @@
 ## 完成前必须跑
 {task.verify}
 输出必须贴出来，不许只说"通过了"。
+{task.verify} 以项目根为 cwd 执行；凡是跑测试的命令，路径一律写成 `.rd/features/{slug}/tests/...`。
 
 ## 返回契约（硬要求）
 完整报告写入 `.rd/features/{slug}/reports/{你的名字}.md`。

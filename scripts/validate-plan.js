@@ -270,7 +270,7 @@ if (ac !== null) {
 
         // check 里禁止嵌套转义引号 \" —— 不可移植。
         if (String(s.check).indexOf('\\"') >= 0) {
-          addErr(`${id} 的 check 含嵌套转义引号 \\" —— 不可移植，sh 下过、cmd 下会因引号错配得到假 FAIL。改用 --flag=value 形式，空格用正则 \\s 代替，例如: -Cmd "node --test --test-name-pattern=<feature>\\s${id}" -MustMatch "<feature> ${id}"`);
+          addErr(`${id} 的 check 含嵌套转义引号 \\" —— 不可移植，sh 下过、cmd 下会因引号错配得到假 FAIL。改用 --flag=value 形式，空格用正则 \\s 代替，例如: -Cmd "node --test .rd/features/<feature>/tests/*.test.ts --test-name-pattern=<feature>\\s${id}" -MustMatch "<feature> ${id}"`);
         }
 
         const key = String(s.check).trim();

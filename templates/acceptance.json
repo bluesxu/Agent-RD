@@ -11,7 +11,7 @@
       "when": "以 alice / wrong-pw 提交登录",
       "then": "返回 401，body.error 为 invalid_credentials，响应中不含任何 token 字段，且不设置任何 cookie",
       "judge": "machine",
-      "check": "node .rd/bin/check-ac.js -Cmd \"npm test -- --test-name-pattern=user-login\\sAC-1\" -MustMatch \"AC-1: 401 与 invalid_credentials;;AC-1: 响应不含 token;;AC-1: 不设置 cookie\"",
+      "check": "node .rd/bin/check-ac.js -Cmd \"node --test .rd/features/user-login/tests/*.test.ts --test-name-pattern=user-login\\sAC-1\" -MustMatch \"AC-1: 401 与 invalid_credentials;;AC-1: 响应不含 token;;AC-1: 不设置 cookie\"",
       "checkIntent": "给定用户 alice（密码为 correct-pw），以错误密码提交登录，断言四件事同时成立：① 状态码为 401；② 错误标识为 invalid_credentials；③ 响应体中不存在任何名字含 token 的字段；④ 未设置任何 cookie。四条各自独立断言，不许合并成一个整体比较。"
     },
     {
@@ -21,7 +21,7 @@
       "when": "再次用错误密码提交，然后立刻用正确密码提交",
       "then": "第 5 次返回 401；用正确密码的那次返回 423，body.retry_after_seconds 在 890 到 900 之间",
       "judge": "machine",
-      "check": "node .rd/bin/check-ac.js -Cmd \"npm test -- --test-name-pattern=user-login\\sAC-2\" -MustMatch \"AC-2: 第 5 次返回 401;;AC-2: 正确密码返回 423;;AC-2: retry_after_seconds 区间\"",
+      "check": "node .rd/bin/check-ac.js -Cmd \"node --test .rd/features/user-login/tests/*.test.ts --test-name-pattern=user-login\\sAC-2\" -MustMatch \"AC-2: 第 5 次返回 401;;AC-2: 正确密码返回 423;;AC-2: retry_after_seconds 区间\"",
       "checkIntent": "构造「已连续失败 4 次」的用户状态，再提交一次错误密码，然后立刻提交正确密码。断言：第 5 次返回 401；用正确密码的那次返回 423，且其 retry_after_seconds 落在 890~900 闭区间内（区间而非定值，因为它依赖执行时刻）。"
     },
     {

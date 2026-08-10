@@ -121,7 +121,7 @@ if (fs.existsSync(guardSrc)) {
   fs.copyFileSync(guardSrc, guardDst);
   out(C.green('  vendored .rd/bin/check-ac.js'));
   out(C.dark('           acceptance.json 的 check 一律从**项目根**执行，且**不许有嵌套转义引号**：'));
-  out(C.dark('             对  -Cmd "node --test --test-name-pattern=<feature>\\sAC-1" -MustMatch "<feature> AC-1"'));
+  out(C.dark('             对  -Cmd "node --test .rd/features/{feature}/tests/*.test.js --test-name-pattern=<feature>\\sAC-1" -MustMatch "<feature> AC-1"'));
   out(C.dark('             错  -Cmd "node --test --test-name-pattern \\"<feature> AC-1\\"" ...'));
   out(C.dark('           错的那种在 sh 下能过、在 cmd 下反斜杠被吃掉导致引号错配，'));
   out(C.dark('           连 -MustMatch 都会被吞进 -Cmd，得到一个**假 FAIL**。用 --flag=value + 正则 \\s 绕开。'));
@@ -187,7 +187,7 @@ for (const g of (Array.isArray(gatesCfg.l1) ? gatesCfg.l1 : [])) {
 // ---- .gitignore：直接创建 ----
 const giPath = path.join(Root, '.gitignore');
 
-const common = ['# --- Agent-RD init ---', '.DS_Store', 'Thumbs.db', '*.log'];
+const common = ['# --- Agent-RD init ---', '.DS_Store', 'Thumbs.db', '*.log', '.rd/'];
 let langIgnore;
 if (kind === 'python') langIgnore = ['__pycache__/', '*.py[cod]', '.venv/', 'venv/', '.pytest_cache/', '.mypy_cache/', 'dist/', 'build/', '*.egg-info/'];
 else if (kind === 'go') langIgnore = ['bin/', '*.exe', '*.test', 'coverage.out'];
@@ -218,8 +218,9 @@ if (fs.existsSync(giPath)) {
 }
 
 out('');
-out(C.dark('  ⛔ .rd/ 整个是**本地工作区**，会被忽略、不进 git（用户裁决：不污染共享仓库）。'));
-out(C.dark('     run.json / reports/ / review-target.json / lessons/ 都是它的产物 ——'));
+out(C.dark('  ⛔ .rd/ 整个是**本地工作区**，会被忽略、不进 git。'));
+out(C.dark('     项目树里只放产品代码。skill 的所有产物 —— spec / design / acceptance /'));
+out(C.dark('     run.json / reports / lessons / **AC 测试** —— 一律进 .rd/，都不进 git。'));
 out(C.dark('     换机器 / clone 一份不会带走它们。lessons 想长期保留就手动复制出来。'));
 out('');
 out(C.green('=== 完成。在 Claude Code 里调用 /rd 开始 ==='));
