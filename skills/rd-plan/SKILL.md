@@ -17,20 +17,13 @@ argument-hint: "[feature slug]"
 
 - **不继承主对话历史**（每个 agent 的任务必须自包含，把 `spec.md` 全文、
   **`spec-internal.md` 全文**（若存在）和 `acceptance.json` 放进它的 prompt）。
-  理由：继承了你的假设的 agent 不再独立，
-  它会去找支持你已有倾向的证据，而不是真的另想一条路。
 - **异构优先，但有能力下限**：能指定不同厂商/不同模型就指定 —— 同一个模型出三份方案，
   大概率是同一份方案的三种措辞。
   **但异构必须在 opus 级模型之间做，不许为了「够异构」派低能力模型出方案。**
-  理由见下面「模型档位」：方案错了，后面三道门一个都拦不住。
 - **每个 agent 必须把方案写进自己的文件**（见下一节「方案必须落盘」）。
 - **提示词不许三份完全一样**（见「三份提示词必须有差异」）。
 - **同一条消息里全部派出**，然后**立即等待，停止你自己的一切分析、检索和文件操作**，
   直到全部返回。
-
-  > 这条是硬纪律。派了不等，你会先形成自己的结论，三份返回结果只被扫一眼就丢掉 ——
-  > 界面上四个 agent 都在工作，信息增量上只有一份。
-
 - 每个 agent 的产出要求：**方案 + 关键取舍 + 它主动排除了哪些路及原因 + 风险**，
   涉及现有代码的结论必须带 `file:line`。
 
@@ -43,7 +36,7 @@ argument-hint: "[feature slug]"
 > 📎 **派发前的角度差异化 + planFanout 对账** → 读 `references/fanout-angles.md`
 > 不读会：三份提示词写成一模一样 —— 换模型也只是换措辞，仲裁变成挑文笔
 
-## 三份提示词必须有差异 —— 同一份提示词换三个模型，还是同一份方案
+## 三份提示词必须有差异
 
 **硬性要求：派给每个论证 agent 的提示词不许完全相同。**
 
@@ -74,9 +67,6 @@ argument-hint: "[feature slug]"
 ```markdown
 <!-- RD-DONE stage=plan artifact=plan-a by={模型/agent 名} at={ISO8601} -->
 ```
-
-> 📎 **为什么必须落盘（中断即归零的实跑教训）** → 读 `references/rationale.md`（role=human）
-> 不读会：无运行期后果
 
 **派发之前**，把这三个文件路径写进 `run.json` 的 `inflight`：
 
@@ -110,9 +100,6 @@ argument-hint: "[feature slug]"
   ]
 }
 ```
-
-> 📎 **为什么两份看起来一样的名单（inflight vs planFanout）** → 读 `references/rationale.md`（role=human）
-> 不读会：无运行期后果
 
 **收齐后立刻把 `inflight` 清成 null**，并把结果落进 `rounds`。
 ⛔ **`planFanout` 不许清、不许改** —— 改它等于篡改「本该有几份」。
@@ -184,9 +171,6 @@ node <agent-rd>/scripts/check-artifacts.js -Feature {slug} -Json
 
 **按文件边界切，不按功能切。**
 
-功能是耦合的，文件不是。两个 agent 同时改一个文件，产生的冲突是自动审查抓不出来的
-—— 它看到的是一份已经被覆盖过的 diff。所以：
-
 | 规则 | 说明 |
 |---|---|
 | **同一 layer 内，任意两个 task 的 `files` 必须无交集** | 由 `validate-plan.js` 机械校验，不是靠自觉 |
@@ -231,9 +215,6 @@ check:       node .rd/bin/check-ac.js
    一个锚点只能回答「有没有用例跑到」，回答不了「每一句是不是都被锁住了」。
 3. **翻译不动的，说明阶段 0 那条判据本身有问题** —— 回头找 `rd-spec` 重写，
    不要在这里把它悄悄弱化。
-
-> 📎 **为什么这一步存在（技术选型在论证前就被钉死的实跑教训）** → 读 `references/rationale.md`（role=human）
-> 不读会：无运行期后果
 
 **同时检查 `gates.json`**：如果它带着 `_provisional: true`，
 说明 `init-rd` 当时在一个空目录上猜的语言（多半猜成了 node）。
@@ -282,17 +263,10 @@ node <agent-rd>/scripts/validate-plan.js -Feature {slug} -Stage plan
 
 本阶段（出方案 + 仲裁 + 切 tasks）**全部属于 opus 级**，没有例外。
 
-> 📎 **为什么方案阶段不能省算力** → 读 `references/rationale.md`（role=human）
-> 不读会：无运行期后果
-
 ## 硬门槛
 
 - **论证 agent 只许写一个文件：它自己的 `proposals/plan-{x}.md`。**
   除此之外全仓库只读 —— 不许碰源码、不许改 spec/acceptance、不许写 design.md。
-
-  > 这条原本是「论证 agent 不许写文件」。收窄成现在这样，是因为那条规则的本意是
-  > **别让论证阶段动到代码**，而不是「别留下产物」；而「不留产物」恰恰制造了
-  > 中断即归零。既要只读、又要可恢复，边界就划在「只能写自己那一份方案」。
 - **不许派了不等**。
 - **不许跳过仲裁前点数**。派出去几份、回来几份完整的，对不上就先重派。
 - **不许跳过 validate-plan**。
@@ -307,4 +281,3 @@ node <agent-rd>/scripts/validate-plan.js -Feature {slug} -Stage plan
 | `references/fanout-angles.md` | 派方案 agent 之前 | 角度差异化 + 角度示例 + planFanout 对账 |
 | `references/prompts/planner.md` | 派发时，role=forward 整份转发 | 方案 agent 自包含任务书模板 |
 | `references/arbitration.md` | 方案收齐之后 | 点数 / 降级留痕 / 打分复核 |
-| `references/rationale.md` | role=human，运行期永不加载 | 设计理由（落盘 / planFanout / 方案档位） |

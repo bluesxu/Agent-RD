@@ -8,13 +8,6 @@ argument-hint: "[feature slug | 要记住的事]"
 
 任务做完后，判断有没有经验值得长期留下。
 
-**这个 skill 的价值在于「不记什么」。**
-lessons 如果什么都收，最后就是垃圾桶：越写越长、越写越乱，
-检索时命中一堆无关条目，agent 反而更难抓住重点。
-
-> 📎 **为什么筛选不是记录 / 为什么本阶段必须 opus** → 读 `references/rationale.md`（role=human）
-> 不读会：无运行期后果
-
 ## 什么值得进 lessons/
 
 必须**同时**满足四条：
@@ -111,9 +104,6 @@ attention.md：新增 {a} 行，清理过期 {b} 行
 **本阶段必须 opus 级。**只有 `rd-build` 里按 `tasks.json` 写代码的 agent
 可以用 Sonnet 这种级别的模型。
 
-> 📎 **为什么筛选是判断不是记录** → 读 `references/rationale.md`（role=human）
-> 不读会：无运行期后果
-
 ## 硬门槛
 
 - **写入 lessons 前要报告候选和理由**，让用户能一眼否决。
@@ -127,4 +117,3 @@ attention.md：新增 {a} 行，清理过期 {b} 行
 | Reference | 加载条件 | 用途 |
 |---|---|---|
 | `references/lesson-lifecycle.md` | 写或复用 lesson 时 | status 生命周期 / read-repair / 分类目录 |
-| `references/rationale.md` | role=human，运行期永不加载 | 为什么筛选不是记录 / 为何必须 opus |

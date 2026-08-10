@@ -107,9 +107,6 @@ spec.md 只列决策事实与被否掉的替代方案。写法见 confirmation-g
 <!-- RD-DONE stage=spec artifact=spec-internal at={ISO8601} -->
 ```
 
-> 📎 **为什么必须分成两份（L3 场外观察的含金量）** → 读 `references/rationale.md`（role=human）
-> 不读会：无运行期后果 —— 那是解释不是指令
-
 ## 第三步：写 acceptance.json —— 硬门槛在这里
 
 从 `templates/acceptance.json` 起手。每条场景必须有 `judge`：
@@ -142,9 +139,6 @@ spec.md 只列决策事实与被否掉的替代方案。写法见 confirmation-g
 
 判定不了的东西，后面没有任何一层能拦住 agent 说"我做完了"。
 
-> 📎 **为什么技术选型拦截是硬的 / 为什么拷问力度没降** → 读 `references/rationale.md`（role=human）
-> 不读会：无运行期后果
-
 ### 什么该 machine，什么该 agent
 
 - **能写成断言的一律 machine**：状态码、返回结构、数据库最终态、错误码、性能阈值。
@@ -155,10 +149,6 @@ spec.md 只列决策事实与被否掉的替代方案。写法见 confirmation-g
 
 `judge: "agent"` 的场景，`then` 必须用**自然语言描述用户观察到的结果**，
 不要写成代码断言，也不要提任何实现细节（函数名、文件名、变量名）。
-
-原因：agent 极容易 overfit 到固定测试代码上 —— 各种 mock 和 fallback，
-功能装模作样就通过了。自然语言描述的是目标本身，更难被曲解。
-`rd-eval` 拿到这条场景时不会看到你的实现，它只能真的去跑一遍。
 
 反例（不要这样写）：
 ```
@@ -195,8 +185,6 @@ node <agent-rd>/scripts/validate-plan.js -Feature {slug} -Stage spec
 
 **档位**：本阶段**必须 opus 级**。只有 rd-build 里按 tasks.json 写代码的 agent
 可以用 Sonnet 这种级别的模型。
-理由：这一阶段产出的 `acceptance.json` 是后面全部三道门的燃料 ——
-判据错了，L1/L2/L3 会拿着错判据一路绿灯，没有任何机制能反过来质疑判据本身。
 
 ## 硬门槛
 
@@ -212,4 +200,3 @@ node <agent-rd>/scripts/validate-plan.js -Feature {slug} -Stage spec
 | `references/interview-probes.md` | 拷问开始时 | 四透镜诊断 + 六类诊断化 + 档位探针 + 组合检查 |
 | `references/blindspot-map.md` | 命中「评估不了」任一触发信号时 | 决策地图格式 + 地雷猎杀 |
 | `references/confirmation-gate.md` | 拷问退出后、写文件前 | 三桶→四节确认门 + 结算测试写法 |
-| `references/rationale.md` | role=human，运行期永不加载 | 设计理由（为什么两份 / 为什么技术拦截是硬的） |

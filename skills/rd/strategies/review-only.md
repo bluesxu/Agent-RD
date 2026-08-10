@@ -29,10 +29,6 @@ node <agent-rd>/scripts/freeze-target.js -Feature {slug}
 ```
 没有 feature 目录时直接用 `git diff` 交给 reviewer，但**审查期间不许改动工作树**。
 
-> 为什么要冻结：审查最常见的失效方式不是审得不好，
-> 而是"审的东西已经不是最终的东西" —— reviewer 还在看，主流程又改了几个文件，
-> findings 全部对不上号。
-
 ### 2. 派 reviewer
 
 - **用户直接调用本策略时，你自己就是 reviewer**，不要再派生
