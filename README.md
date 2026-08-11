@@ -397,10 +397,6 @@ cd ~/.agent-rd/repo
 
 # 装 skill 到 ~/.claude/skills/（旧版自动备份）
 node install.js -Apply
-
-# 可选：开启 Agent Teams（往 settings.json 加一个环境变量，写前自动备份）
-# 只影响 rd-build 的并行档位，不开会自动降级到并行子 agent，一样能跑
-node scripts/enable-agent-teams.js
 ```
 
 **装完重启 Claude Code，输入 `/rd` 加上你的诉求就能用了。** 到这一步你的项目还没被碰过一个字节 ——
@@ -468,8 +464,8 @@ node install.js -Apply               # 重装 skill 到 ~/.claude/skills/（旧�
 帮我卸载 Agent-RD：https://raw.githubusercontent.com/bluesxu/agent-rd/main/docs/uninstall.md
 ```
 
-**只动三处**：`~/.claude/skills/` 里的 7 个 skill、`settings.json` 里的一个环境变量、
-仓库目录 `~/.agent-rd/`。**你的项目代码和项目里的 `.rd/`（验收标准、设计、报告、经验……）一概不碰。**
+**只动两处**：`~/.claude/skills/` 里的 7 个 skill 和仓库目录 `~/.agent-rd/`。
+**你的项目代码和项目里的 `.rd/`（验收标准、设计、报告、经验……）一概不碰。**
 想重装随时重跑安装，全程幂等。
 
 ---
@@ -483,9 +479,6 @@ node install.js -Apply               # 重装 skill 到 ~/.claude/skills/（旧�
   但你项目自己的检查命令（`npm test`、`cargo test` 之类）得在你的平台上能跑，这取决于你的工具链。
 - 🖥️ **纯代码库效果打折。** 没有能跑起来的界面或命令，第三道检查会退化成普通集成测试。
 - 💸 **多个 AI 并行大约费 5 倍额度。** 简单的增删改查用一个 AI 更划算——所以有那八条路线。
-- 🧪 **Agent Teams 是 Claude Code 的实验功能**，Windows 上只能用单窗口模式。
-  用不了会先降级成并行子 agent（照样并行，只是队友之间不能互相通信），
-  再不行才一个个来，流程不会中断。
 
 ---
 
@@ -514,7 +507,6 @@ Agent-RD/
 ├── templates/                 各种文件的模板（含 contracts.json 契约模板）
 └── scripts/                   守卫脚本（零 npm 依赖）
     ├── init-rd.js             在项目里初始化
-    ├── enable-agent-teams.js  开并行编排的开关（唯一会写 settings.json 的脚本）
     ├── gate-test.js           测试层：跑审查层写的全部测试（带锚点）
     ├── check-ac.js            防止「命令成功但什么都没测」
     ├── check-artifacts.js     查进度、查中断、查规则有没有被改

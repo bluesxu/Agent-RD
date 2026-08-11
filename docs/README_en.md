@@ -406,10 +406,6 @@ cd ~/.agent-rd/repo
 
 # Install the skills into ~/.claude/skills/ (existing versions get backed up)
 node install.js -Apply
-
-# Optional: turn on Agent Teams (adds one env var to settings.json, backs it up first)
-# Only affects which parallel mode rd-build uses; without it, it falls back to parallel subagents
-node scripts/enable-agent-teams.js
 ```
 
 **Restart Claude Code, then type `/rd` followed by what you want.** At this point not a single byte of
@@ -449,8 +445,8 @@ Done with it? Paste this line to any AI coding agent and it will remove only wha
 Please uninstall Agent-RD for me: https://raw.githubusercontent.com/bluesxu/agent-rd/main/docs/uninstall.md
 ```
 
-**It touches only three places**: the 7 `rd-*` skills in `~/.claude/skills/`, one env var in `settings.json`,
-and the repo directory `~/.agent-rd/`. **Your project code and the `.rd/` folders in your projects
+**It touches only two places**: the 7 `rd-*` skills in `~/.claude/skills/` and the repo directory
+`~/.agent-rd/`. **Your project code and the `.rd/` folders in your projects
 (acceptance criteria, designs, reports, lessons...) are never touched.** Reinstall anytime by rerunning the install — everything is idempotent.
 
 ---
@@ -463,9 +459,6 @@ Said up front, to save you time:
 - 💻 **Cross-platform.** The check scripts are Node.js and run on Windows / macOS / Linux. Your project's own check commands (`npm test`, `cargo test`, etc.) just need to run on your platform — that's up to your toolchain.
 - 🖥️ **Pure codebases get diminished results.** With no runnable interface or command, gate 3 degrades into an ordinary integration test.
 - 💸 **Parallel AIs cost roughly 5× the tokens.** A single AI is more economical for simple CRUD — hence the eight routes.
-- 🧪 **Agent Teams is an experimental Claude Code feature**; on Windows, only single-window mode works.
-  If unavailable, it first degrades to parallel subagents (still parallel, just no teammate-to-teammate
-  messaging), and only then to one-at-a-time execution. Either way the flow doesn't break.
 
 ---
 
@@ -493,7 +486,6 @@ Agent-RD/
 ├── templates/                 Templates for the various files
 └── scripts/                   Guard scripts (zero npm dependencies)
     ├── init-rd.js             Initialize inside a project
-    ├── enable-agent-teams.js  Flips the parallel-orchestration switch (only script that writes settings.json)
     ├── gate-test.js            Test layer
     ├── check-ac.js            Prevents "command succeeded but tested nothing"
     ├── check-artifacts.js     Checks progress, interruptions, and rule tampering

@@ -135,8 +135,8 @@ const REQUIRED_SECTIONS = {
   'spec.md': ['要解决什么', '范围', '关键约束', '已确认的决策'],
   'design.md': ['选定方案', '技术选型', '影响面', '契约变化', '被排除的方案'],
   'proposal': ['方案', '关键取舍', '被排除的路', '风险'],
-  'l2': ['审查结论', 'blocking', 'important', 'nit'],
-  'l3': ['验收结论', '逐条', '收尾附录'],
+  'review': ['审查结论', 'blocking', 'important', 'nit'],
+  'eval': ['验收结论', '逐条', '收尾附录'],
   'dispatch.md': [],
 };
 
@@ -459,7 +459,7 @@ function checkHooks(skillDir) {
   · 名字不在 CONDITION_NAMES → 点名「不在合法集合」
   · 三节都写「无」的报告没有 finding 小节 → 零 finding，照常通过
 */
-function checkL2Findings(txt) {
+function checkReviewFindings(txt) {
   const issues = [];
   const lines = String(txt).split(/\r?\n/);
   for (let i = 0; i < lines.length; i++) {
@@ -711,12 +711,12 @@ if (args.SelfTest) {
   L('AC-6 加载清单缺子清单应判 fail', () => runSkillLint(lintTmp).issues.some((i) => i.includes('guarded.md') && i.includes('永不加载')));
 
   // AC-4 条件名三态
-  const okL2 = '## blocking\n\n### B1 问题\n\n- 判定条件: contract-break\n';
-  const badL2 = '## blocking\n\n### B1 问题\n\n- 判定条件: very-severe\n';
-  const noneL2 = '## blocking\n\n### B1 问题\n\n- 位置: x\n';
-  L('AC-4 合法条件名应判 ok', () => checkL2Findings(okL2).length === 0);
-  L('AC-4 拼错条件名应判 fail', () => checkL2Findings(badL2).some((i) => i.includes('不在合法集合')));
-  L('AC-4 缺失条件名应判 fail', () => checkL2Findings(noneL2).some((i) => i.includes('缺「- 判定条件')));
+  const okReview = '## blocking\n\n### B1 问题\n\n- 判定条件: contract-break\n';
+  const badReview = '## blocking\n\n### B1 问题\n\n- 判定条件: very-severe\n';
+  const noneReview = '## blocking\n\n### B1 问题\n\n- 位置: x\n';
+  L('AC-4 合法条件名应判 ok', () => checkReviewFindings(okReview).length === 0);
+  L('AC-4 拼错条件名应判 fail', () => checkReviewFindings(badReview).some((i) => i.includes('不在合法集合')));
+  L('AC-4 缺失条件名应判 fail', () => checkReviewFindings(noneReview).some((i) => i.includes('缺「- 判定条件')));
 
   // AC-4 冻结表对账：authoring.md 围栏块与脚本常量不一致 → 报（A18 双路复算）
   mk('docs/authoring.md', '<!-- conditions:start -->\nwrong-name:blocking\n<!-- conditions:end -->\n<!-- receipt-fields:start -->\ntaskId\n<!-- receipt-fields:end -->\n');
@@ -837,10 +837,10 @@ function roundNums(dir, re) {
   }
   return Array.from(new Set(nums)).sort((a, b) => a - b);
 }
-const l1 = roundNums(reports, /^l1-round.*\.json$/i);
-const l2 = roundNums(reports, /^l2-round.*\.md$/i);
-const l2d = roundNums(reports, /^l2-round.*\.diff$/i);
-const l3 = roundNums(reports, /^l3-round.*\.md$/i);
+const testRounds = roundNums(reports, /^test-round.*\.json$/i);
+const reviewRounds = roundNums(reports, /^review-round.*\.md$/i);
+const reviewDiffRounds = roundNums(reports, /^review-round.*\.diff$/i);
+const evalRounds = roundNums(reports, /^eval-round.*\.md$/i);
 
 // ---- run.json ----
 const runPath = path.join(fdir, 'run.json');
@@ -949,41 +949,41 @@ for (const n of listDirFiles(receiptsDir, (x) => /\.json$/i.test(x)).sort()) {
 stages.push({
   name: 'build', label: '开发与测试层',
   missing: [
-    ...(l1.length === 0 ? ['l1-round{N}.json  ← 一轮测试层都没跑过'] : []),
+    ...(testRounds.length === 0 ? ['test-round{N}.json  ← 一轮测试层都没跑过'] : []),
     ...receiptsMissing,
   ],
 });
 
 // 审查层：每个存在的 .diff 都必须有对应的 .md
-const l2Missing = [];
-if (l2.length === 0 && l2d.length === 0) {
-  l2Missing.push('l2-round{N}.md + .diff  ← 一轮审查层都没跑过');
+const reviewMissing = [];
+if (reviewRounds.length === 0 && reviewDiffRounds.length === 0) {
+  reviewMissing.push('review-round{N}.md + .diff  ← 一轮审查层都没跑过');
 }
-for (const n of l2d) {
-  if (!l2.includes(n)) {
-    l2Missing.push(`l2-round${n}.md  ← .diff 在但报告正文不在。rd-review:91 明文要求写正文`);
+for (const n of reviewDiffRounds) {
+  if (!reviewRounds.includes(n)) {
+    reviewMissing.push(`review-round${n}.md  ← .diff 在但报告正文不在。rd-review:91 明文要求写正文`);
   }
 }
 // 已存在的审查报告，逐份查完成度 —— 被中断的报告和写完的报告，文件名长得一样
-for (const n of listDirFiles(reports, (x) => /^l2-round.*\.md$/i.test(x))) {
+for (const n of listDirFiles(reports, (x) => /^review-round.*\.md$/i.test(x))) {
   const full = path.join(reports, n);
-  const res = checkMarkdown(full, REQUIRED_SECTIONS.l2);
+  const res = checkMarkdown(full, REQUIRED_SECTIONS.review);
   const miss = missLine('reports/' + n, res);
   // 每条 finding 必须标注命中的行为判定条件（缺/拼错都点名到具体发现）
-  for (const fi of checkL2Findings(readText(full))) {
+  for (const fi of checkReviewFindings(readText(full))) {
     miss.push('reports/' + n + '  ' + fi);
   }
-  l2Missing.push(...miss);
+  reviewMissing.push(...miss);
 }
-stages.push({ name: 'review', label: '审查层', missing: l2Missing });
+stages.push({ name: 'review', label: '审查层', missing: reviewMissing });
 
-const l3Missing = [];
-if (l3.length === 0) l3Missing.push('l3-round{N}.md  ← 一轮场景验收都没跑过');
-for (const n of listDirFiles(reports, (x) => /^l3-round.*\.md$/i.test(x))) {
-  // 多 evaluator 并行验收：`l3-round{N}.md` + `l3-round{N}-eval2.md` … 都算同一轮验收产物
-  // （正则 `l3-round.*` 天然覆盖，roundNums 提取同一 round 号去重）。每份都要完整
+const evalMissing = [];
+if (evalRounds.length === 0) evalMissing.push('eval-round{N}.md  ← 一轮场景验收都没跑过');
+for (const n of listDirFiles(reports, (x) => /^eval-round.*\.md$/i.test(x))) {
+  // 多 evaluator 并行验收：`eval-round{N}.md` + `eval-round{N}-eval2.md` … 都算同一轮验收产物
+  // （正则 `eval-round.*` 天然覆盖，roundNums 提取同一 round 号去重）。每份都要完整
   // （验收结论/逐条/收尾附录），收尾附录各自写隔离审计。
-  l3Missing.push(...missLine('reports/' + n, checkMarkdown(path.join(reports, n), REQUIRED_SECTIONS.l3)));
+  evalMissing.push(...missLine('reports/' + n, checkMarkdown(path.join(reports, n), REQUIRED_SECTIONS.eval)));
 }
 /* 跑过验收层就必须留下运行手册。
 
@@ -992,10 +992,10 @@ for (const n of listDirFiles(reports, (x) => /^l3-round.*\.md$/i.test(x))) {
    实跑里第 1 轮 344 次工具调用、第 2 轮 122 次，其中大量是重复摸索
    （浏览器怎么驱动、页面什么结构、哪个标的数据不足、哪个控件点不动）。
    同时环境事实会随验收者退出而丢失，每轮判定口径也可能各自漂移。 */
-if (l3.length > 0 && !exists(path.join(fdir, 'acceptance-runbook.md'))) {
-  l3Missing.push('acceptance-runbook.md  ← 跑过验收层却没留下运行手册，下一轮验收者要从零重新摸索一遍');
+if (evalRounds.length > 0 && !exists(path.join(fdir, 'acceptance-runbook.md'))) {
+  evalMissing.push('acceptance-runbook.md  ← 跑过验收层却没留下运行手册，下一轮验收者要从零重新摸索一遍');
 }
-stages.push({ name: 'eval', label: '验收层', missing: l3Missing });
+stages.push({ name: 'eval', label: '验收层', missing: evalMissing });
 
 // keep：允许「本次无采纳」，但必须有痕迹
 const keepMissing = [];
@@ -1117,7 +1117,7 @@ for (const a of oof) {
 const verdictBy = { agent: 0, orchestrator: 0, human: 0, other: 0 };
 if (run !== null) {
   for (const r of asList(run.rounds)) {
-    for (const layer of ['l1', 'l2', 'l3']) {
+    for (const layer of ['test', 'review', 'eval']) {
       let by = r[`${layer}_verified_by`];
       if (!by) by = r[`${layer}_judged_by`];
       if (!by) {
@@ -1140,7 +1140,7 @@ if (run !== null) {
     if (r.round !== null && r.round !== undefined) recorded.push(parseInt(r.round, 10));
   }
   // 正向：磁盘上有产物的轮次，run.json 必须有记录
-  const onDisk = Array.from(new Set([...l1, ...l2, ...l3])).sort((a, b) => a - b);
+  const onDisk = Array.from(new Set([...testRounds, ...reviewRounds, ...evalRounds])).sort((a, b) => a - b);
   for (const n of onDisk) {
     if (!recorded.includes(n)) {
       roundGaps.push(`round ${n} 有落盘产物，但 run.json 的 rounds 里没有这一条（rd-build:245 要求每轮结束追加）`);
@@ -1148,7 +1148,7 @@ if (run !== null) {
   }
   // 非 agent 下的判定必须带证据
   for (const r of asList(run.rounds)) {
-    for (const layer of ['l1', 'l2', 'l3']) {
+    for (const layer of ['test', 'review', 'eval']) {
       const by = r[`${layer}_verified_by`];
       if (!by) continue;
       if (by === 'agent') continue;
@@ -1160,7 +1160,7 @@ if (run !== null) {
   }
   // 反向：run.json 自己声称的证据文件必须真的存在
   for (const r of asList(run.rounds)) {
-    for (const field of ['l1_evidence', 'l2_evidence', 'l3_evidence']) {
+    for (const field of ['test_evidence', 'review_evidence', 'eval_evidence']) {
       const v = r[field];
       if (!v) continue;
       for (const piece of String(v).split(/\s*\+\s*/)) {
@@ -1208,7 +1208,7 @@ for (const s of stages) totalMissing += asList(s.missing).length;
 if (args.Json) {
   const jsonOut = {
     feature: Feature,
-    rounds: { l1, l2, l2diff: l2d, l3 },
+    rounds: { testRounds, reviewRounds, reviewDiff: reviewDiffRounds, evalRounds },
     runJsonExists: exists(runPath),
     runJsonError: runErr,
     runJsonStage: run !== null ? run.stage : null,
@@ -1234,9 +1234,9 @@ out('');
 out(C.cyan(`=== 产物清单校验 [${Feature}] ===`));
 out('');
 out(C.gray('  轮次：'));
-out('    测试层     ' + (l1.length ? 'round ' + l1.join(', ') : '（无）'));
-out('    审查层     ' + (l2.length ? 'round ' + l2.join(', ') : '（无）') + (l2d.length ? '   diff: round ' + l2d.join(', ') : ''));
-out('    验收层     ' + (l3.length ? 'round ' + l3.join(', ') : '（无）'));
+out('    测试层     ' + (testRounds.length ? 'round ' + testRounds.join(', ') : '（无）'));
+out('    审查层     ' + (reviewRounds.length ? 'round ' + reviewRounds.join(', ') : '（无）') + (reviewDiffRounds.length ? '   diff: round ' + reviewDiffRounds.join(', ') : ''));
+out('    验收层     ' + (evalRounds.length ? 'round ' + evalRounds.join(', ') : '（无）'));
 if (proposals.length > 0 || proposalsLost.length > 0) {
   const tail = proposalsPartial.length > 0 ? `，${proposalsPartial.length} 份只写了一半` : '';
   const line = `    方案扇出    ${proposalsOk.length} 份完整 / 共 ${proposals.length} 份${tail}`;

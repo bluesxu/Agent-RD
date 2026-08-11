@@ -4,7 +4,6 @@
 
   默认 dry-run，只打印将要做什么。确认无误后加 -Apply 真正执行。
   本脚本只复制 skill 目录，不修改任何配置文件。
-  Agent Teams 的开关由 scripts/enable-agent-teams.js 单独负责，见 docs/install.md 步骤 2。
   用法：
     node install.js
     node install.js -Apply

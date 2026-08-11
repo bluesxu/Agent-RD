@@ -54,7 +54,7 @@ machine AC 已由**测试层**（gate-test）带 `-MustMatch` 锚点跑过，**�
 每次 fix 后测试层都会重跑，机械判定不丢。
 
 你只处理 `judge: "agent"` 的场景。若某条 agent AC 的验证需要参照机械判定结果，
-读测试层的 `l1-round{N}.json`，但**不重跑**它的 check 命令。
+读测试层的 `test-round{N}.json`，但**不重跑**它的 check 命令。
 
 ### 分片验收（并行 evaluator 时）
 
@@ -108,7 +108,7 @@ feature: {slug}
 ## 逐条
 ### AC-1 {name}  —（machine，由测试层覆盖，不重跑）
 - 判定方式: machine
-- 说明: 见测试层 l1-round{N}.json —— 验收层不重跑 machine AC
+- 说明: 见测试层 test-round{N}.json —— 验收层不重跑 machine AC
 
 ### AC-4 {name}  ✅ pass
 - 判定方式: agent
@@ -123,7 +123,7 @@ feature: {slug}
 - 卡在: {什么阻止了验证}
 ```
 
-同时写入 `.rd/features/{slug}/reports/l3-round{N}.md`。
+同时写入 `.rd/features/{slug}/reports/eval-round{N}.md`。
 
 ## 收尾附录（必填）
 
@@ -149,7 +149,7 @@ feature: {slug}
 写完两节附录之后，**最后一个动作**是在报告末行盖标记：
 
 ```markdown
-<!-- RD-DONE stage=eval artifact=l3-round{N} at={ISO8601} -->
+<!-- RD-DONE stage=eval artifact=eval-round{N} at={ISO8601} -->
 ```
 
 没有它，这份验收报告一律按「验到一半被中断」处理，不算数。

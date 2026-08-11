@@ -8,9 +8,9 @@
 帮我卸载 Agent-RD：https://raw.githubusercontent.com/bluesxu/agent-rd/main/docs/uninstall.md
 ```
 
-> 🛡️ **只动 Agent-RD 自己装的东西：** 卸载只碰三处 —— ① `~/.claude/skills/` 里的 7 个
-> `rd` 开头的 skill、② `~/.claude/settings.json` 里的一个环境变量键、③ 仓库目录 `~/.agent-rd/`。
-> 其他 skill、`settings.json` 里其余内容、你的项目代码，一概不碰。
+> 🛡️ **只动 Agent-RD 自己装的东西：** 卸载只碰两处 —— ① `~/.claude/skills/` 里的 7 个
+> `rd` 开头的 skill、② 仓库目录 `~/.agent-rd/`。
+> 其他 skill、你的项目代码，一概不碰。
 
 > 📂 **项目里的 `.rd/` 不会动：** 在某个项目里初始化出来的 `.rd/` 目录（验收标准、设计、
 > 报告、经验……）是你的工作产物，**卸载不删**。要不要删、怎么处理，你自己决定。
@@ -24,8 +24,8 @@ Agent-RD 是一套给 Claude Code 用的「多 AI 审核交付流程」。卸载
 
 ### 目标
 
-把 Agent-RD 安装时写进用户环境的三处全部撤掉，撤完验证干净，再告诉用户怎么确认卸载完成：
-① `~/.claude/skills/` 下的 7 个 skill；② `settings.json` 里的 Agent Teams 开关；③ 仓库 `~/.agent-rd/`。
+把 Agent-RD 安装时写进用户环境的两处全部撤掉，撤完验证干净，再告诉用户怎么确认卸载完成：
+① `~/.claude/skills/` 下的 7 个 skill；② 仓库 `~/.agent-rd/`。
 另外处理安装/升级时留下的 `.bak-*` 备份（先问用户）。
 
 **卸载和安装只有一处不一样：安装是覆盖（写之前有备份），卸载是删除（删了不一定有得回滚）。**
@@ -34,8 +34,7 @@ Agent-RD 是一套给 Claude Code 用的「多 AI 审核交付流程」。卸载
 ### ⚠️ 边界
 
 - **不要** 用 `sudo` / 管理员权限跑任何一步。
-- **只删这三处**：7 个 skill 目录、`settings.json` 里那一个键、仓库目录。**不要** 碰其他 skill、
-  `settings.json` 里其他内容、任何项目文件。
+- **只删这两处**：7 个 skill 目录、仓库目录。**不要** 碰其他 skill、任何项目文件。
 - **不要用通配符删 skill**（`rm -rf ~/.claude/skills/rd*` 会把用户自己叫 `rd-…` 的其他 skill 一起误删）。
   只删清单里确切列出的 7 个目录名。
 - **不要删任何 `.rd/` 目录** —— 那是用户在项目里的产物，卸载不背这个锅，交给用户决定。
@@ -50,19 +49,14 @@ Agent-RD 是一套给 Claude Code 用的「多 AI 审核交付流程」。卸载
 |---|---|
 | Agent-RD 仓库本体 | `~/.agent-rd/`（Windows：`%USERPROFILE%\.agent-rd\`） |
 | 已安装的 skill（卸载目标） | `~/.claude/skills/` 下的 `rd` / `rd-spec` / `rd-plan` / `rd-build` / `rd-eval` / `rd-review` / `rd-keep` |
-| Agent Teams 开关（卸载目标） | `~/.claude/settings.json` 的 `env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` |
-| 安装/升级留下的备份（要处理） | `~/.claude/skills/*.bak-<时间戳>`、`~/.claude/settings.json.bak-<时间戳>` |
+| 安装/升级留下的备份（要处理） | `~/.claude/skills/*.bak-<时间戳>` |
 | 项目内 skill 工作区（**不删**） | `<用户项目>/.rd/` |
 
 > 如果当初安装用了 `-ClaudeHome` 指定别的目录，下面所有 `~/.claude` 一律换成那个目录。
 
 ### 前置条件
 
-```bash
-node --version    # 只用来安全改 settings.json，和安装时同一个运行时
-```
-
-不需要 git。三平台均可。
+不需要 node，也不需要 git。三平台均可。
 
 ### 步骤 1：摸清装了什么（先看，不删）
 
@@ -72,9 +66,7 @@ node --version    # 只用来安全改 settings.json，和安装时同一个运�
 ls ~/.claude/skills/                     # 7 个 skill 哪些在
 ls -d ~/.claude/skills/rd* 2>/dev/null   # 有哪些 rd 开头的东西（含 .bak-*）
 ls -d ~/.agent-rd 2>/dev/null            # 仓库在不在
-ls ~/.claude/settings.json 2>/dev/null   # settings.json 在不在
-grep -n CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS ~/.claude/settings.json 2>/dev/null  # 开关在不在
-ls -d ~/.claude/skills/*.bak-* ~/.claude/settings.json.bak-* 2>/dev/null         # 备份文件
+ls -d ~/.claude/skills/*.bak-* 2>/dev/null   # 备份文件
 ```
 
 `.rd/` 目录：**不要全盘扫**。问用户在哪些项目里跑过 `init-rd.js`，或直接提醒用户项目里的 `.rd/` 由 ta 自己处理。
@@ -82,9 +74,8 @@ ls -d ~/.claude/skills/*.bak-* ~/.claude/settings.json.bak-* 2>/dev/null        
 把结果整理成清单，**亮给用户、等一次确认**再动手：
 
 - 在的 7 个 skill 目录（逐个列）
-- `settings.json` 里的开关（在不在）
 - 仓库目录（在不在）
-- 找到的 `.bak-*` 备份（这些**先不删**，步骤 5 再定）
+- 找到的 `.bak-*` 备份（这些**先不删**，步骤 4 再定）
 
 > ⚠️ 例外：清单里任何一项**无法确认是 Agent-RD 装的**，别等用户开口，直接停下来问。
 > 拿不准的东西宁可留着，也不误删。
@@ -118,38 +109,7 @@ done
 > 如果用户自定义过某个 skill（内容和仓库副本对不上），删之前提醒一句：这会丢掉 ta 的改动。
 > 想留档的话先让用户备份，再继续删。
 
-### 步骤 3：撤掉 Agent Teams 开关
-
-```bash
-node -e '
-const fs = require("fs"), os = require("os"), path = require("path");
-const f = path.join(os.homedir(), ".claude", "settings.json");
-if (!fs.existsSync(f)) { console.log("settings.json 不存在，跳过"); process.exit(0); }
-const raw = fs.readFileSync(f, "utf8");
-const KEY = "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS";
-let json;
-try { json = JSON.parse(raw); }
-catch (e) { console.error("settings.json 不是合法 JSON，未改动。请手动删 env 里的 " + KEY); process.exit(1); }
-if (json.env && typeof json.env === "object" && KEY in json.env) {
-  fs.writeFileSync(f + ".bak-uninstall-" + Date.now(), raw);
-  delete json.env[KEY];
-  fs.writeFileSync(f, JSON.stringify(json, null, 2) + "\n");
-  console.log("已删除 " + KEY + "（原文件已备份）");
-} else {
-  console.log("未找到 " + KEY + "，无需改动");
-}
-'
-```
-
-要点：
-- 先备份原文件再删键；**只删 `env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` 这一个键**，
-  `settings.json` 其余内容原样保留。
-- 键不在 → 幂等，直接说「无需改动」。
-- `settings.json` 不是合法 JSON（比如手写 JSONC 带注释）→ **不硬改**，告诉用户手动删那个键，给出键名。
-- 如果上次安装时开关本来就没配上（enable 那步失败被跳过）→ 这里自然也什么都没有，不用补做任何事。
-- 安装时用了自定义 `-ClaudeHome` 的话，把上面 `".claude"` 换成那个目录名。
-
-### 步骤 4：删仓库（可选，默认删）
+### 步骤 3：删仓库（可选，默认删）
 
 `~/.agent-rd/` 只是一份 clone，删了随时能重新 clone，但它同时也是文档和以后升级的入口。问用户一句：
 
@@ -158,27 +118,24 @@ if (json.env && typeof json.env === "object" && KEY in json.env) {
 
 > 顺序：先做步骤 2（还要拿它当判别依据），再删仓库。
 
-### 步骤 5：处理 `.bak-*` 备份（用户决定）
+### 步骤 4：处理 `.bak-*` 备份（用户决定）
 
 步骤 1 里找到的 `.bak-*` 是安装/升级时替你留的旧版本。**默认先留着，把选项摆给用户**：
 
 | 选项 | 做法 | 后果 |
 |---|---|---|
-| A. 回滚 | 把 `.bak-*` 改名回原名（`rd.bak-20260810-120000` → `rd`）；`settings.json.bak-*` 覆盖回 `settings.json` | 退回到 Agent-RD 动手之前的样子 |
-| B. 删干净 | `rm -rf ~/.claude/skills/*.bak-* ~/.claude/settings.json.bak-*` | 彻底清掉 |
+| A. 回滚 | 把 `.bak-*` 改名回原名（`rd.bak-20260810-120000` → `rd`） | 退回到 Agent-RD 动手之前的样子 |
+| B. 删干净 | `rm -rf ~/.claude/skills/*.bak-*` | 彻底清掉 |
 | C. 留着 | 什么都不做 | 不占多少空间，日后自己处理 |
 
 - 只有确实存在 `.bak-*` 的文件才谈得上 A。全新安装（之前没有旧版本）通常没有这些文件，
   删掉 skill 就是全部，没有回滚可言。
 - 多个 `.bak-*` 并存（装过多次）时，把文件名和时间戳亮给用户，由 ta 决定回滚到哪个版本。
-- settings.json 回滚会用备份覆盖当前文件：若用户在装完后又往 `settings.json` 里加过别的配置，
-  先确认那部分要不要留。
 
-### 步骤 6：收尾复查
+### 步骤 5：收尾复查
 
 ```bash
 ls ~/.claude/skills/                    # 7 个 rd 开头的应该都没了
-grep CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS ~/.claude/settings.json   # 应该没有输出了
 ls -d ~/.agent-rd 2>/dev/null           # 若选了删，应该不存在
 ```
 
@@ -198,21 +155,18 @@ ls -d ~/.agent-rd 2>/dev/null           # 若选了删，应该不存在
 |---|---|
 | `ls ~/.claude/skills/` | 看哪些 skill 在 |
 | `rm -rf ~/.claude/skills/rd ~/.claude/skills/rd-spec ~/.claude/skills/rd-plan ~/.claude/skills/rd-build ~/.claude/skills/rd-eval ~/.claude/skills/rd-review ~/.claude/skills/rd-keep` | 删 7 个 skill（逐个列全，不用通配符） |
-| `node -e '…'`（见步骤 3） | 删 `settings.json` 里的 Agent Teams 键（先备份） |
 | `rm -rf ~/.agent-rd` | 删仓库（可选） |
-| `rm -rf ~/.claude/skills/*.bak-* ~/.claude/settings.json.bak-*` | 清备份（可选，先问） |
+| `rm -rf ~/.claude/skills/*.bak-*` | 清备份（可选，先问） |
 
 ## 常见问题
 
 - **卸载完 `/rd` 还在？** skill 是启动时加载的，**重启 Claude Code**。还不行就查
   `~/.claude/skills/` 下有没有残留。
-- **卸载了想反悔？** 只要 `.bak-*` 备份还在，就能回滚（步骤 5 选项 A）。
-- **找不到 `~/.agent-rd`？** 无所谓，skill 和开关照删；仓库早已不在就正好跳过步骤 4。
+- **卸载了想反悔？** 只要 `.bak-*` 备份还在，就能回滚（步骤 4 选项 A）。
+- **找不到 `~/.agent-rd`？** 无所谓，skill 照删；仓库早已不在就正好跳过步骤 3。
 - **某个 skill 拿不准是不是 Agent-RD 的？** 别删，问用户。判别：SKILL.md 里带 Agent-RD 的流水线标记
   （`阶段 0/1/2/3`、`L1/L2/L3`、`acceptance.json` 等）。
-- **`settings.json` 里有注释（JSONC）？** 解析不过的脚本/命令**不会动它**。手动删 `env` 里的
-  `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` 这一个键即可。
 - **Windows 上路径怎么对？** `%USERPROFILE%\.claude\skills`、`%USERPROFILE%\.agent-rd`。
   PowerShell 删目录用 `Remove-Item -Recurse -Force <路径>`。
 - **项目里的 `.rd/` 还留着？** 那是你的产物，卸载不碰。留着无害（skill 没了没人再读它），想清就自己删。
-- **想重装？** 随时可以：重新跑一遍 `docs/install.md`。仓库重 clone、skill 重装、开关重加，全程幂等。
+- **想重装？** 随时可以：重新跑一遍 `docs/install.md`。仓库重 clone、skill 重装，全程幂等。

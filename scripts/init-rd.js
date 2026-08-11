@@ -84,7 +84,7 @@ if (fs.existsSync(gatesDst)) {
   else if (kind === 'go') preset = tpl._presets.go;
   else if (kind === 'python') preset = tpl._presets.python;
 
-  const l1 = preset !== null && preset !== undefined ? preset : tpl.l1;
+  const test = preset !== null && preset !== undefined ? preset : tpl.test;
 
   // 没有任何语言标记文件时，这套门是猜的（默认按 node）。标记出来，让阶段 1 必须回来解决。
   const markers = ['Cargo.toml', 'go.mod', 'pyproject.toml', 'requirements.txt', 'package.json'];
@@ -92,7 +92,7 @@ if (fs.existsSync(gatesDst)) {
   for (const mk of markers) { if (fs.existsSync(path.join(Root, mk))) { hasMarker = true; break; } }
 
   const outCfg = {
-    l1,
+    test,
     _note: `由 init-rd 按项目类型 [${kind}] 生成。按你的项目改。required=false 只警告不阻塞。顺序即执行顺序，越便宜的放越前面。`,
   };
   if (!hasMarker) {
@@ -133,7 +133,7 @@ if (fs.existsSync(guardSrc)) {
 const gatesCfg = JSON.parse(fs.readFileSync(gatesDst, 'utf8'));
 out('');
 out(C.cyan('  --- gate 命令冒烟（只验能否执行，失败不阻塞）---'));
-for (const g of (Array.isArray(gatesCfg.l1) ? gatesCfg.l1 : [])) {
+for (const g of (Array.isArray(gatesCfg.test) ? gatesCfg.test : [])) {
   if (g.kind === 'syntax') {
     out(C.dark(`    ✓ ${g.name}: 内建语法门，无需外部命令`));
     continue;

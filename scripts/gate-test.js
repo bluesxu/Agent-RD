@@ -9,7 +9,7 @@
     2. check-artifacts 文档校验（RD-DONE / 必填小节 / 回执字段）—— 审查层报告必须
        完整（末行 RD-DONE + 四节有内容）、孤儿证据必须清零。
 
-  原「L1 机械门」的语法门移除 —— 语法检查下沉到 Builder 完成门（node --check / tsc --noEmit）。
+  原机械门的语法门移除 —— 语法检查下沉到 Builder 完成门（node --check / tsc --noEmit）。
 
   用法：
     node gate-test.js
@@ -143,7 +143,7 @@ catch (e) {
 }
 
 // ---- 跑审查层写的全部测试：每条 machine AC 的 check（带 -MustMatch 锚点）----
-// 改动十一（L1 失败批量修）已吸收：gate-test **无条件收集全部失败**，不 early-exit ——
+// 改动十一（测试层失败批量修）已吸收：gate-test **无条件收集全部失败**，不 early-exit ——
 // 每条 AC 是独立测试，全量收集给 owner/审查层完整失败面，比逐个修逐个重跑省一轮。
 // -ContinueOnFailure 旗标保留仅作向后兼容，跑不跑都一样。
 const machineACs = asArr(ac.scenarios).filter((s) => s.judge === 'machine' && !isBlank(s.check));
@@ -178,9 +178,9 @@ if (machineACs.length === 0) {
   out(C.yellow('   （那归验收层），要么审查层还没写。继续做文档校验。'));
 }
 
-// ---- 落盘 l1-round{N}.json（数据模型保留 l1 命名）----
+// ---- 落盘 test-round{N}.json ----
 const report = {
-  stage: 'l1', feature: Feature, round: Round, verdict: testFailed ? 'fail' : 'pass',
+  stage: 'test', feature: Feature, round: Round, verdict: testFailed ? 'fail' : 'pass',
   ts: new Date().toISOString(),
   tests: results.map((x) => ({ ac: x.ac, exitCode: x.exitCode, ok: x.ok, seconds: x.seconds })),
   docReviewMissing,
@@ -189,9 +189,9 @@ const report = {
 if (Feature) {
   const dir = path.join(Root, '.rd', 'features', Feature, 'reports');
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, `l1-round${Round}.json`), JSON.stringify(report, null, 2), 'utf8');
+  fs.writeFileSync(path.join(dir, `test-round${Round}.json`), JSON.stringify(report, null, 2), 'utf8');
   out('');
-  out(C.dark(`  报告: .rd/features/${Feature}/reports/l1-round${Round}.json`));
+  out(C.dark(`  报告: .rd/features/${Feature}/reports/test-round${Round}.json`));
 }
 
 // ---- 文档校验判定 ----

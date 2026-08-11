@@ -1,5 +1,5 @@
 {
-  "l1": [
+  "test": [
     { "name": "typecheck", "cmd": "npx tsc --noEmit", "required": true },
     { "name": "lint",      "cmd": "npm run lint",     "required": true },
     { "name": "test",      "cmd": "node --test .rd/features/*/tests/*.test.*", "required": true },

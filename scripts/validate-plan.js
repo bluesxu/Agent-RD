@@ -416,23 +416,23 @@ if (Stage === 'plan') {
     } else {
       try {
         const gatesCfg = JSON.parse(fs.readFileSync(gatesPath, 'utf8'));
-        const l1arr = asList(gatesCfg.l1);
+        const testArr = asList(gatesCfg.test);
 
         /* 历史遗留：kind:"syntax" 的门已随语法门下沉 Builder 而退役，但存量配置里可能还在 ——
-           不认识它的话：只配语法门时 cmds 为空串，会被误报「l1 为空」；
+           不认识它的话：只配语法门时 cmds 为空串，会被误报「test 为空」；
            混配时它覆盖的源文件也不算数，会被误报「只覆盖了 0/N 个源文件」。
            两种都是**让一份正确的配置过不了门**，比漏报更劝退。
            语法门声明的 dirs 视同对该目录下所有文件的覆盖。 */
-        const syntaxGates = l1arr.filter((g) => g.kind === 'syntax');
+        const syntaxGates = testArr.filter((g) => g.kind === 'syntax');
         const syntaxDirs = [];
         for (const g of syntaxGates) {
           for (const d of asList(g.dirs)) syntaxDirs.push(String(d).replace(/\\/g, '/').replace(/\/+$/, ''));
         }
-        const cmds = l1arr.filter((g) => g.kind !== 'syntax').map((g) => g.cmd).join(' ; ');
-        const declaresAll = l1arr.filter((g) => g.coversAllSrc === true).length > 0;
+        const cmds = testArr.filter((g) => g.kind !== 'syntax').map((g) => g.cmd).join(' ; ');
+        const declaresAll = testArr.filter((g) => g.coversAllSrc === true).length > 0;
 
         if (isBlank(cmds) && syntaxGates.length === 0) {
-          addErr('gates.json 的 l1 为空');
+          addErr('gates.json 的 test 为空');
         } else if (declaresAll) {
           // 有 gate 声明了 coversAllSrc，跳过文件级覆盖检查
         } else {
@@ -453,7 +453,7 @@ if (Stage === 'plan') {
 
           if (!hasGlob && literal.length < srcUniq.length) {
             const missing = srcUniq.filter((sf) => literal.indexOf(sf) < 0);
-            addErr(`gates.json 的 l1 只逐字覆盖了 ${literal.length}/${srcUniq.length} 个源文件，且没有通配。未覆盖: ${missing.join(', ')} —— 这些文件的语法/类型错误测试层抓不到，只能靠测试恰好 import 到它们时才炸出来`);
+            addErr(`gates.json 的 test 只逐字覆盖了 ${literal.length}/${srcUniq.length} 个源文件，且没有通配。未覆盖: ${missing.join(', ')} —— 这些文件的语法/类型错误测试层抓不到，只能靠测试恰好 import 到它们时才炸出来`);
           } else if (!hasGlob && srcUniq.length > 1 && literal.length === srcUniq.length) {
             addWarn(`gates.json 逐字列出了全部 ${srcUniq.length} 个源文件。新增文件时容易漏，建议改成通配`);
           }

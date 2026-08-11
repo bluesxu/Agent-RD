@@ -199,7 +199,7 @@ argument-hint: "[诉求]"
 
 | 产物 | 标记 |
 |---|---|
-| Markdown（`dispatch.md` / `spec.md` / `design.md` / `proposals/*.md` / `reports/l2-*.md` / `l3-*.md`） | 末行 `<!-- RD-DONE stage=... artifact=... at={ISO8601} -->` |
+| Markdown（`dispatch.md` / `spec.md` / `design.md` / `proposals/*.md` / `reports/review-*.md` / `eval-*.md`） | 末行 `<!-- RD-DONE stage=... artifact=... at={ISO8601} -->` |
 | JSON（`acceptance.json` / `tasks.json`） | 顶层 `"_complete": true` |
 | `run.json` | **不盖章** —— 它是活状态文件，完成与否由 `stage`/`status` 表示 |
 

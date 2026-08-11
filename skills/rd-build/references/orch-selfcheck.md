@@ -36,8 +36,8 @@ Builder 的产出过三层门，你的核对过零层。
 写进 `reports/orch-check-{标识}.md`，并在 `run.json` 的对应轮次里标注：
 
 ```json
-"l1_verified_by": "orchestrator",
-"l1_evidence": "reports/orch-check-r3.md"
+"test_verified_by": "orchestrator",
+"test_evidence": "reports/orch-check-r3.md"
 ```
 
 `check-artifacts.js` 会检查：**标了 `*_verified_by` 且不是 `agent` 的，必须有对应的

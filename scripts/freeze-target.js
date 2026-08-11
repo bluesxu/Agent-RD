@@ -414,7 +414,7 @@ if (!current.text.trim() && testSection.trim() === '') {
 }
 
 fs.mkdirSync(diffDir, { recursive: true });
-const diffPath = path.join(diffDir, `l2-round${Round}.diff`);
+const diffPath = path.join(diffDir, `review-round${Round}.diff`);
 // 必须写成与 sha256Hex 完全相同的字节（UTF-8 无 BOM），否则第三方对这个文件
 // 重新 hash 会得到与 review-target.json 记录不同的值。
 fs.writeFileSync(diffPath, current.text + testSection, 'utf8');

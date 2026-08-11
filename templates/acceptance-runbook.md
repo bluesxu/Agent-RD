@@ -23,7 +23,7 @@
 | 驱动方式 | {opencli browser / curl / CLI 命令 / …} |
 | 会话模型 | {单 tab？需要登录态？每条 AC 之间要不要重置？} |
 | 选择器策略 | {用什么定位元素：文本 / role / data-testid；哪些选择器不稳} |
-| 证据存放 | `reports/evidence/l3-round{N}/` |
+| 证据存放 | `reports/evidence/eval-round{N}/` |
 | 证据命名 | {如 `ac{n}-{步骤}-{描述}.png`} |
 
 **启动到可观察的最短路径**（照抄就能跑起来）：
@@ -63,7 +63,7 @@
 
 必填小节以脚本为准：`node <agentrd>/scripts/check-artifacts.js -Sections`。
 当前验收层报告要求 `验收结论` / `逐条` / `收尾附录` 三节都有实际内容，
-末行盖 `<!-- RD-DONE stage=eval artifact=l3-round{N} at={ISO8601} -->`。
+末行盖 `<!-- RD-DONE stage=eval artifact=eval-round{N} at={ISO8601} -->`。
 
 每条 AC 的判定行格式：
 

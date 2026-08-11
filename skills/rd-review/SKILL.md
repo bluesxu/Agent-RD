@@ -30,7 +30,7 @@ node <agentrd>/scripts/freeze-target.js -Feature {slug} -Round {N} -Verify
 
 **审查范围含测试文件**：`.rd/features/{slug}/tests/` 的 AC 测试进不了 git diff，
 freeze 已从磁盘把它们收进 `review-target.json` 的 `testFiles`（路径 + sha256），
-并把有变化的测试内容附在 `l2-round{N}.diff` 末尾的「测试段」里。
+并把有变化的测试内容附在 `review-round{N}.diff` 末尾的「测试段」里。
 逐段读 `testFiles` 列出的测试文件 —— 测试造假（mock / 放宽断言 / 被 skip 的用例）
 是这条流水线上最值得防的高危区，见下方「特别留意」。
 
@@ -166,10 +166,10 @@ blocking: {n}  important: {n}  nit: {n}
 ## nit
 ...
 
-<!-- RD-DONE stage=review artifact=l2-round{N} at={ISO8601} -->
+<!-- RD-DONE stage=review artifact=review-round{N} at={ISO8601} -->
 ```
 
-同时把这份报告写入 `.rd/features/{slug}/reports/l2-round{N}.md`。
+同时把这份报告写入 `.rd/features/{slug}/reports/review-round{N}.md`。
 
 **末行的 `RD-DONE` 必须真的最后写。**`check-artifacts` 靠它区分
 「审完了」和「审到一半被中断」——没有它，这份报告一律按未完成处理，

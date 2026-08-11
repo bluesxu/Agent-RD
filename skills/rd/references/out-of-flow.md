@@ -28,7 +28,7 @@
 用户裁决后，追加一条到 `run.json` 的 `outOfFlowActions`：
 
 ```json
-{ "action": "kill-agent", "target": "l3-eval-r2",
+{ "action": "kill-agent", "target": "eval-round2",
   "reason": "无痕前提作废，它会把预算烧在做不到的事上",
   "ifNotDone": "它会跑满 8 次预算后判 blocked，结论相同但多花约 3 万 token",
   "userDecision": "approved", "ts": "..." }

@@ -136,22 +136,22 @@ try {
     '# 方案 a\n\n## 方案\n加一个字段\n\n## 关键取舍\n轻量\n\n## 被排除的路\n重写\n\n## 风险\n无\n\n' + RD_DONE + '\n');
   write(path.join(tmp, '.rd', 'features', 'feat1', 'proposals', 'plan-b.md'),
     '# 方案 b\n\n## 方案\n新建服务\n\n## 关键取舍\n完整\n\n## 被排除的路\n加字段\n\n## 风险\n成本高\n\n' + RD_DONE + '\n');
-  write(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'l1-round1.json'), JSON.stringify({ stage: 'l1', verdict: 'pass' }));
-  write(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'l2-round1.md'),
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'test-round1.json'), JSON.stringify({ stage: 'test', verdict: 'pass' }));
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'review-round1.md'),
     '# 审查\n\n## 审查结论\n通过\n\n## blocking\n无\n\n## important\n无\n\n## nit\n无\n\n' + RD_DONE + '\n');
-  write(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'l2-round1.diff'), 'x\n');
-  write(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'l3-round1.md'),
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'review-round1.diff'), 'x\n');
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'eval-round1.md'),
     '# 验收\n\n## 验收结论\n通过\n\n## 逐条\nAC 全过\n\n## 收尾附录\n已清理\n\n' + RD_DONE + '\n');
-  // 多 evaluator 并行验收：第二份报告（l3-round1-eval2.md）不该被当成孤儿
-  write(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'l3-round1-eval2.md'),
+  // 多 evaluator 并行验收：第二份报告（eval-round1-eval2.md）不该被当成孤儿
+  write(path.join(tmp, '.rd', 'features', 'feat1', 'reports', 'eval-round1-eval2.md'),
     '# 验收\n\n## 验收结论\n通过\n\n## 逐条\nAC-2 子集全过\n\n## 收尾附录\n隔离审计：读了 acceptance.json\n\n' + RD_DONE + '\n');
   // 跑过验收层就必须留运行手册（check-artifacts 的 eval 阶段检查）
   write(path.join(tmp, '.rd', 'features', 'feat1', 'acceptance-runbook.md'), '# 运行手册\n\n怎么观察：浏览器打开页面。\n');
-  write(path.join(tmp, '.rd', 'lessons', 'l1.md'), 'x\n');
+  write(path.join(tmp, '.rd', 'lessons', 'test.md'), 'x\n');
   // run.json rounds 里要记 round 1，否则对账会报警 → 补 round 记录
   write(path.join(tmp, '.rd', 'features', 'feat1', 'run.json'), JSON.stringify({
     stage: 'keep', status: 'done', inflight: null, keep: { decided: [] },
-    rounds: [{ round: 1, l1: 'pass', l2: 'pass', l3: 'pass' }],
+    rounds: [{ round: 1, test: 'pass', review: 'pass', eval: 'pass' }],
   }, null, 2));
   const ca0 = run('check-artifacts.js', ['-Root', tmp, '-Feature', 'feat1'], tmp);
   check('产物齐全无孤儿 → exit 0', ca0.code === 0, 'got ' + ca0.code + '\n' + ca0.out);
@@ -169,9 +169,9 @@ try {
   const feat2 = path.join(tmp, '.rd', 'features', 'feat2');
   write(path.join(feat2, 'run.json'), JSON.stringify({
     stage: 'review', status: 'running', inflight: null,
-    rounds: [{ round: 1, l1: 'pass', l2: 'pass' }],
+    rounds: [{ round: 1, test: 'pass', review: 'pass' }],
   }, null, 2));
-  write(path.join(feat2, 'reports', 'l2-round1.md'),
+  write(path.join(feat2, 'reports', 'review-round1.md'),
     '# 审查\n\n## 审查结论\n通过\n\n## blocking\n无\n\n## important\n无\n\n## nit\n无\n\n' + RD_DONE + '\n');
   const gtAc = (check) => JSON.stringify({
     scenarios: [{ id: 'AC-1', name: 'x', given: 'g', when: 'w', then: 't', judge: 'machine', checkIntent: 'I/O 判等', check }],
@@ -190,10 +190,10 @@ try {
   check('空过（锚点 0 中）→ exit 1', gtVac.code === 1, 'got ' + gtVac.code);
   // 审查层报告缺失 → exit 1（文档校验：review stage 不完整；先恢复通过态 check）
   write(path.join(feat2, 'acceptance.json'), gtAc('node .rd/bin/check-ac.js -Cmd "echo feat2 AC-1 hit" -MustMatch "feat2 AC-1"'));
-  write(path.join(feat2, 'reports', 'l2-round1.md'), '审到一半……\n');
+  write(path.join(feat2, 'reports', 'review-round1.md'), '审到一半……\n');
   const gtDoc = run('gate-test.js', ['-Root', tmp, '-Feature', 'feat2'], tmp);
   check('审查层报告未写完 → exit 1', gtDoc.code === 1, 'got ' + gtDoc.code);
-  fs.unlinkSync(path.join(feat2, 'reports', 'l2-round1.md'));
+  fs.unlinkSync(path.join(feat2, 'reports', 'review-round1.md'));
   // 配置缺失（feature 无 acceptance.json）→ exit 2
   const gtNo = run('gate-test.js', ['-Root', tmp, '-Feature', 'nonexistent'], tmp);
   check('feature 无 acceptance.json → exit 2', gtNo.code === 2, 'got ' + gtNo.code);
@@ -220,7 +220,7 @@ try {
     tasks: [{ id: 'T1', layer: 1, files: ['index.js'], steps: ['do'], selfCheck: 'node --check index.js', covers: ['AC-1'], mutationTargets: ['index.js'] }],
   }));
   write(path.join(feat, 'design.md'), 'x\n');
-  write(path.join(tmp, '.rd', 'gates.json'), JSON.stringify({ l1: [{ name: 'noop', cmd: 'node --check index.js', required: true }] }));
+  write(path.join(tmp, '.rd', 'gates.json'), JSON.stringify({ test: [{ name: 'noop', cmd: 'node --check index.js', required: true }] }));
   write(path.join(feat, 'acceptance.json'), JSON.stringify({
     scenarios: [{ id: 'AC-1', name: 'x', given: 'g', when: 'w', then: 't', judge: 'machine', checkIntent: 'I/O 判等', check: 'node --test --test-name-pattern=feat1\\sAC-1' }],
   }));
@@ -239,7 +239,7 @@ try {
   check('plan 阶段合规 → exit 0', vpPlanOk.code === 0, 'got ' + vpPlanOk.code + '\n' + vpPlanOk.out);
 
   // contracts.json：跨层依赖必须被契约覆盖（改动三）
-  write(path.join(tmp, '.rd', 'gates.json'), JSON.stringify({ l1: [{ name: 'noop', cmd: 'node --check *.js', required: true }] }));
+  write(path.join(tmp, '.rd', 'gates.json'), JSON.stringify({ test: [{ name: 'noop', cmd: 'node --check *.js', required: true }] }));
   write(path.join(feat, 'tasks.json'), JSON.stringify({
     tasks: [
       { id: 'T1', layer: 1, files: ['a.js'], steps: ['do'], selfCheck: 'node --check a.js', covers: ['AC-1'], mutationTargets: [] },
@@ -310,49 +310,12 @@ try {
   const srcCount = fs.readdirSync(path.join(ROOT, 'skills'), { withFileTypes: true }).filter((e) => e.isDirectory()).length;
   const dstCount = fs.existsSync(path.join(fakeHome, 'skills')) ? fs.readdirSync(path.join(fakeHome, 'skills')).filter((d) => fs.statSync(path.join(fakeHome, 'skills', d)).isDirectory()).length : 0;
   check(`install 全部 ${srcCount} 个 skill`, srcCount > 0 && dstCount === srcCount, `src=${srcCount} dst=${dstCount}`);
-  // install.js 不得碰任何配置文件 —— Agent Teams 开关归 enable-agent-teams.js（docs/install.md 步骤 2）
+  // install.js 不得碰任何配置文件（文档：docs/install.md）
   check('install.js 不创建 settings.json', !fs.existsSync(path.join(fakeHome, 'settings.json')));
 
-  // ==== 8. enable-agent-teams（写 settings.json 的那一条独立命令）====
+  // ==== 8. 编排脚本（audit-receipts / boundary-check / assemble-prompt）====
   console.log('');
-  console.log(C.cyan('【8】enable-agent-teams'));
-  const eatHome = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-rd-eat-'));
-  const settings = path.join(eatHome, 'settings.json');
-  const eat = (argv) => spawnSync(process.execPath, [path.join(HERE, 'enable-agent-teams.js'), '-ClaudeHome', eatHome, ...argv], { cwd: ROOT, encoding: 'buffer' });
-  const readSettings = () => JSON.parse(fs.readFileSync(settings, 'utf8'));
-  const KEY = 'CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS';
-
-  // dry-run 不落地
-  const eatDry = eat(['-DryRun']);
-  check('dry-run → exit 0', eatDry.status === 0, 'got ' + eatDry.status);
-  check('dry-run 不创建 settings.json', !fs.existsSync(settings));
-  // 无 settings.json → 新建
-  const eatNew = eat([]);
-  check('无 settings.json → exit 0 并新建', eatNew.status === 0 && fs.existsSync(settings), 'got ' + eatNew.status);
-  check(`  …写入 env.${KEY}="1"`, readSettings().env[KEY] === '1');
-  // 幂等：二次运行不产生备份（说明它根本没写）
-  const eatAgain = eat([]);
-  check('幂等 → exit 0', eatAgain.status === 0, 'got ' + eatAgain.status);
-  check('  …已配置时不重复备份', fs.readdirSync(eatHome).filter((f) => f.startsWith('settings.json.bak-')).length === 0);
-  // 合并进已有配置：其他顶层键和已有 env 字段都要活下来
-  fs.writeFileSync(settings, JSON.stringify({ model: 'opus', env: { FOO: 'bar' }, permissions: { allow: ['Bash(ls)'] } }, null, 2), 'utf8');
-  const eatMerge = eat([]);
-  check('合并进已有配置 → exit 0', eatMerge.status === 0, 'got ' + eatMerge.status);
-  const merged = readSettings();
-  check('  …保留其他顶层键', merged.model === 'opus' && merged.permissions.allow[0] === 'Bash(ls)');
-  check('  …保留已有 env 字段', merged.env.FOO === 'bar' && merged.env[KEY] === '1');
-  check('  …写前备份了原文件', fs.readdirSync(eatHome).some((f) => f.startsWith('settings.json.bak-')));
-  // 坏 JSON → exit 1，且绝不覆盖用户原文件（install 流程靠这个保证「跳过是安全的」）
-  const junk = '{ "env": { /* 注释 */ } }';
-  fs.writeFileSync(settings, junk, 'utf8');
-  const eatBad = eat([]);
-  check('settings.json 解析失败 → exit 1', eatBad.status === 1, 'got ' + eatBad.status);
-  check('  …失败时不覆盖原文件', fs.readFileSync(settings, 'utf8') === junk);
-  try { fs.rmSync(eatHome, { recursive: true, force: true }); } catch { /* ignore */ }
-
-  // ==== 9. 编排脚本（audit-receipts / boundary-check / assemble-prompt）====
-  console.log('');
-  console.log(C.cyan('【9】编排脚本'));
+  console.log(C.cyan('【8】编排脚本'));
   const feat3 = path.join(tmp, '.rd', 'features', 'feat3');
   write(path.join(feat3, 'tasks.json'), JSON.stringify({
     tasks: [{ id: 'T1', layer: 1, name: '加函数', files: ['index.js'], steps: ['实现 add'], selfCheck: 'node --check index.js', covers: ['AC-1'], mutationTargets: ['index.js'] }],

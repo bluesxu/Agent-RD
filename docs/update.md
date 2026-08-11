@@ -9,7 +9,7 @@
 ```
 
 > 🛡️ **只写你自己的目录：** 升级只动 `~/.agent-rd/` 和 `~/.claude/` —— 更新仓库、
-> 重装 skill、配开关，都不碰你的项目。已存在的 skill 先备份成 `*.bak-<时间戳>` 再覆盖。
+> 重装 skill，都不碰你的项目。已存在的 skill 先备份成 `*.bak-<时间戳>` 再覆盖。
 
 > 📦 **升级不改存量 feature：** 已经跑完的 feature 产物原样保留。
 > 只是「下次再跑门 / 再开新 feature」会按新规则来（见下文「存量 feature 迁移提示」）。
@@ -22,7 +22,7 @@
 
 把已安装的 Agent-RD 升级到最新版（改动十三「Builder 纯实现」改造后），
 **一趟跑完，不要中间停下来做预览或等确认**。步骤：更新仓库 → 重装 skill →
-清理运行时残留 → 同步运行时依赖 → 配开关 → 讲清楚行为变化。
+清理运行时残留 → 同步运行时依赖 → 讲清楚行为变化。
 
 **这次升级到「讲清楚行为变化」为止。** 不要替用户改任何项目的 `.rd/`——
 存量 feature 的迁移是用户自己决定什么时候做，本文档只给提示，不动手。
@@ -32,7 +32,7 @@
 - **不要** 用 `sudo` / 管理员权限，全程只写用户目录。
 - **不要** 改 `~/.claude/` 和 `~/.agent-rd/` 之外的任何文件。
 - **不要** 主动改存量 feature 的 `tasks.json` / `contracts.json` / 回执 ——
-  那些是用户项目里的产物，属于用户，升级不动它们，只在步骤 5 讲清楚影响。
+  那些是用户项目里的产物，属于用户，升级不动它们，只在步骤 4 讲清楚影响。
 - 本文档列出的步骤照做即可，不用逐条等用户确认。**超出本文档范围**的动作必须先问用户。
 
 ### 📁 目录规则
@@ -41,7 +41,6 @@
 |---|---|
 | Agent-RD 仓库本体（升级就回这里 `git pull`） | `~/.agent-rd/repo/`（Windows：`%USERPROFILE%\.agent-rd\repo\`） |
 | 安装后的 skill | `~/.claude/skills/` |
-| Claude Code 配置 | `~/.claude/settings.json` |
 
 ### 前置条件（先检查）
 
@@ -100,15 +99,7 @@ cp -r "$SRC/templates"/* ~/.agent-rd/repo/templates/
 node ~/.agent-rd/repo/scripts/verify.js    # 应全绿（0 失败）
 ```
 
-### 步骤 4：配 Agent Teams（如之前没开 / 失败被跳过）
-
-```bash
-node ~/.agent-rd/repo/scripts/enable-agent-teams.js
-```
-
-幂等，写前备份。失败就跳过（不会覆盖原文件），照旧能跑，只是没有常驻队友。
-
-### 步骤 5：讲清楚「这次升级改了什么」+ 存量 feature 迁移提示
+### 步骤 4：讲清楚「这次升级改了什么」+ 存量 feature 迁移提示
 
 **先给用户看行为变化对照表**（这是本步骤的重点，别只说「升级完了」）：
 
@@ -134,12 +125,12 @@ node ~/.agent-rd/repo/scripts/enable-agent-teams.js
   重跑那一轮 build 让 Builder 补新格式回执即可。
 - **有跨层依赖的 feature** → `validate-plan` 会开始要求 `contracts.json` 覆盖每条跨层依赖。
   下次进 build 前补一份（模板在 `templates/contracts.json`）。
-- 报告文件名 `l1-round*.json` / `l2-round*.md` / `l3-round*.md` **保持不变**（数据模型没动），
-  只是文案里改叫测试层 / 审查层 / 验收层。
+- 报告文件名改成了**按层命名**：`test-round*`（测试层）/ `review-round*`（审查层）/ `eval-round*`（验收层）。
+  存量 feature 里的旧 `l1/l2/l3-round*` 文件是历史产物，不迁移 —— 重跑 `check-artifacts` 会报缺失，属预期。
 
 **「哪些没变」也要说一句**：`init-rd` 用法、`.rd/` 产物结构、八条路线、`rd` 入口分诊 —— 全没变。
 
-### 步骤 6：收尾复查
+### 步骤 5：收尾复查
 
 确认：
 
@@ -159,7 +150,6 @@ node ~/.agent-rd/repo/scripts/enable-agent-teams.js
 | `cd ~/.agent-rd/repo && git pull && node install.js -Apply` | 更新仓库 + 重装 skill（升级核心两步） |
 | `rm -f ~/.agent-rd/repo/scripts/gate-l1.js` | 清运行时残留（gate-l1 已改名 gate-test） |
 | `node ~/.agent-rd/repo/scripts/verify.js` | 升级后冒烟：脚本契约全绿 |
-| `node ~/.agent-rd/repo/scripts/enable-agent-teams.js` | 开启 Agent Teams（幂等，写前备份） |
 
 ## 常见问题
 
@@ -168,9 +158,8 @@ node ~/.agent-rd/repo/scripts/enable-agent-teams.js
 - **升级完 `assemble-prompt` 拼出来的 prompt 有 `{xxx}` 占位符**：`repo/skills` 还是旧版
   （步骤 3 没做）。把源仓的 `skills/` 同步过去再重跑。
 - **存量 feature 跑 `validate-plan` 报「缺 selfCheck」**：tasks.json 还是旧 `verify` 字段，
-  改字段名即可（见步骤 5 迁移提示）。
+  改字段名即可（见步骤 4 迁移提示）。
 - **存量 feature 跑 `validate-plan` 报「有跨层依赖但缺 contracts.json」**：补一份契约，
   模板在 `templates/contracts.json`。
 - **`verify.js` 升级后红了**：先 `git pull` 确认仓库是最新；本机双克隆场景把
   `scripts/` + `skills/` + `templates/` 三处都同步（步骤 3），只同步 scripts 不够。
-- **Windows 上 Agent Teams 只有单窗口（in-process）模式**：Claude Code 在 Windows 的既有限制，不是升级出错。
