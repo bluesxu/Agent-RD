@@ -433,6 +433,33 @@ node ~/.agent-rd/repo/scripts/init-rd.js
 
 ---
 
+## 🔄 升级也一句话
+
+已经装过旧版、想升级到最新？同样把这一整行丢给任意一个 AI 编程 Agent，它会全程代办：
+
+```text
+帮我升级 Agent-RD：https://raw.githubusercontent.com/bluesxu/agent-rd/main/docs/update.md
+```
+
+不想让 Agent 代办也行，核心就两步：
+
+```bash
+cd ~/.agent-rd/repo && git pull      # 仓库当初放在固定位置，就是为了这一下
+node install.js -Apply               # 重装 skill 到 ~/.claude/skills/（旧版先备份）
+```
+
+装完**重启 Claude Code** 生效。
+
+**升级只动 `~/.agent-rd/` 和 `~/.claude/`，不碰你的项目**，已跑完的 feature 产物原样保留。
+但有两处行为变化要心里有数（完整对照表见 [docs/update.md](docs/update.md)）：
+
+- **写代码的 AI 不再碰测试**：Builder 只写产品代码，完成门是 `node --check` / `tsc --noEmit` 自检；
+  测试由审查层写、测试层唯一执行。存量 `tasks.json` 的 `verify` 字段改叫 `selfCheck`。
+- **有跨层依赖的 feature 要出 `contracts.json`**：下游任务照契约并行写，不再等上游实现完；
+  契约被实现悄悄破坏时 `verify-contracts.js` 机械对账点名。
+
+---
+
 ## 🧹 卸载也一句话
 
 不想用了？同样把这一整行丢给任意一个 AI 编程 Agent，它会只撤掉 Agent-RD 自己装的东西：
